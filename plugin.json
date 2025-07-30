@@ -1,0 +1,16 @@
+{
+  "slug": "opc-vcv-ir",
+  "name": "VCV IR Loader",
+  "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
+  "brand": "October Production Co.",
+  "author": "Gianni Cappelletti",
+  "authorEmail": "gianni@octoberproductionco.com",
+  "authorUrl": "",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "https://github.com/gianni-cappelletti/opc-vcv-ir",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": []
+}
