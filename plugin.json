@@ -12,5 +12,15 @@
   "sourceUrl": "https://github.com/gianni-cappelletti/opc-vcv-ir",
   "donateUrl": "",
   "changelogUrl": "",
-  "modules": []
+  "modules": [
+    {
+      "slug": "opc-vcv-ir",
+      "name": "opc-vcv-ir",
+      "description": "Impulse response loader!",
+      "tags": [
+        "\u201cphysical modeling",
+        "sampler"
+      ]
+    }
+  ]
 }

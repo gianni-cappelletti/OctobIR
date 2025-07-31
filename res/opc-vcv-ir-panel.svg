@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="40.639999mm"
+   height="128.5mm"
+   viewBox="0 0 40.64 128.5"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   sodipodi:docname="opc-vcv-ir-panel.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.78973928"
+     inkscape:cx="-53.182108"
+     inkscape:cy="319.09265"
+     inkscape:window-width="1304"
+     inkscape:window-height="979"
+     inkscape:window-x="169"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     showguides="true">
+    <inkscape:grid
+       id="grid3"
+       units="mm"
+       originx="0"
+       originy="0"
+       spacingx="2.5400001"
+       spacingy="2.5400001"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="4"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <rect
+       x="38.400001"
+       y="9.6000006"
+       width="76.800001"
+       height="28.800002"
+       id="rect3" />
+    <rect
+       x="67.200001"
+       y="240.00001"
+       width="67.200002"
+       height="16.739965"
+       id="rect2" />
+    <rect
+       x="57.600001"
+       y="240.00001"
+       width="38.399999"
+       height="18.355099"
+       id="rect7" />
+    <rect
+       x="50.266924"
+       y="242.83465"
+       width="55.333078"
+       height="25.96537"
+       id="rect6" />
+    <rect
+       x="54.506303"
+       y="242.83465"
+       width="41.493695"
+       height="24.851866"
+       id="rect5" />
+    <rect
+       x="67.200005"
+       y="240.00002"
+       width="67.200005"
+       height="16.739965"
+       id="rect2-1" />
+    <rect
+       x="67.200005"
+       y="240.00002"
+       width="67.200005"
+       height="16.739965"
+       id="rect2-15" />
+    <rect
+       x="67.200005"
+       y="240.00002"
+       width="67.200005"
+       height="16.739965"
+       id="rect2-15-8" />
+    <rect
+       x="67.200005"
+       y="240.00002"
+       width="67.200005"
+       height="16.739965"
+       id="rect2-8" />
+    <rect
+       x="67.200005"
+       y="240.00002"
+       width="67.200005"
+       height="16.739965"
+       id="rect2-3" />
+  </defs>
+  <g
+     inkscape:label="Graphics"
+     inkscape:groupmode="layer"
+     id="layer1"
+     sodipodi:insensitive="true">
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-6.492821,-16.362765)"
+       id="text2"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#000000"><tspan
+         x="84.13318"
+         y="252.58497"
+         id="tspan3">INPUT
+</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-16.652822,54.863538)"
+       id="text2-4"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2-15);display:inline;fill:#000000"><tspan
+         x="94.799805"
+         y="251.3265"
+         id="tspan4">IN
+</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,3.681465,54.863538)"
+       id="text2-4-5"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2-15-8);display:inline;fill:#000000"><tspan
+         x="91.799805"
+         y="251.3265"
+         id="tspan5">OUT</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-6.3323082,7.1440064)"
+       id="text2-1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2-1);display:inline;fill:#000000"><tspan
+         x="80.799855"
+         y="252.58497"
+         id="tspan6">OUTPUT</tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="components"
+     style="display:none"
+     sodipodi:insensitive="true">
+    <circle
+       style="fill:#00ff00;fill-opacity:1;stroke-width:0.264583"
+       id="input"
+       cx="10.16"
+       cy="111.76"
+       r="5.0799999"
+       inkscape:label="input" />
+    <circle
+       style="fill:#0000ff;fill-opacity:1;stroke-width:0.264583"
+       id="output"
+       cx="30.48"
+       cy="111.76"
+       r="5.0799999"
+       inkscape:label="output" />
+    <circle
+       style="fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
+       id="input_gain"
+       cx="20.32"
+       cy="40.640003"
+       r="5.0799999"
+       inkscape:label="input_gain" />
+    <circle
+       style="fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
+       id="output_gain"
+       cx="20.32"
+       cy="63.698055"
+       r="5.0799999"
+       inkscape:label="output_gain"
+       inkscape:transform-center-y="-15.695896" />
+    <rect
+       style="fill:#ffff00;fill-opacity:1;stroke-width:0.264583"
+       id="ir_picker"
+       width="30.48"
+       height="20.32"
+       x="5.0800014"
+       y="7.6200013"
+       inkscape:label="ir_picker" />
+  </g>
+</svg>
