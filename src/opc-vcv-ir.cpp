@@ -1,6 +1,11 @@
 #include "plugin.hpp"
+#include <string>
+#include <vector>
 
-struct Opc_vcv_ir : Module {
+#define DR_WAV_IMPLEMENTATION
+#include "dr_wav.h"
+
+struct Opc_vcv_ir final : Module {
 	enum ParamId {
 		INPUT_GAIN_PARAM,
 		OUTPUT_GAIN_PARAM,
@@ -18,21 +23,94 @@ struct Opc_vcv_ir : Module {
 		LIGHTS_LEN
 	};
 
+	std::vector<float> irSamples;
+	uint32_t irSampleRate = 0;
+	size_t irLength = 0;
+	bool irLoaded = false;
+
 	Opc_vcv_ir() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(INPUT_GAIN_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(OUTPUT_GAIN_PARAM, 0.f, 1.f, 0.f, "");
-		configInput(INPUT_INPUT, "");
-		configOutput(OUTPUT_OUTPUT, "");
+		configParam(INPUT_GAIN_PARAM, 0.f, 1.f, 0.5f, "Input Gain");
+		configParam(OUTPUT_GAIN_PARAM, 0.f, 1.f, 0.5f, "Output Gain");
+		configInput(INPUT_INPUT, "Audio Input");
+		configOutput(OUTPUT_OUTPUT, "Audio Output");
+		
+		// Try to load IR from home directory - change this path as needed
+		std::string homeDir = getenv("HOME") ? getenv("HOME") : "";
+		if (!homeDir.empty()) {
+			loadIR(homeDir + "/ir_sample.wav");
+		}
+	}
+
+	void loadIR(const std::string& filePath) {
+		uint32_t channels;
+		drwav_uint64 totalPCMFrameCount;
+		
+		float* pSampleData = drwav_open_file_and_read_pcm_frames_f32(filePath.c_str(), &channels, &irSampleRate, &totalPCMFrameCount, NULL);
+		
+		if (pSampleData == nullptr) {
+			WARN("Failed to load IR file: %s", filePath.c_str());
+			irLoaded = false;
+			return;
+		}
+		
+		irLength = (size_t)totalPCMFrameCount;
+		irSamples.clear();
+		irSamples.resize(irLength);
+		
+		if (channels == 1) {
+			// Mono - copy directly
+			for (size_t i = 0; i < irLength; i++) {
+				irSamples[i] = pSampleData[i];
+			}
+		} else if (channels == 2) {
+			// Stereo - mix to mono
+			for (size_t i = 0; i < irLength; i++) {
+				irSamples[i] = (pSampleData[i * 2] + pSampleData[i * 2 + 1]) * 0.5f;
+			}
+		} else {
+			// Multi-channel - take first channel
+			for (size_t i = 0; i < irLength; i++) {
+				irSamples[i] = pSampleData[i * channels];
+			}
+		}
+		
+		drwav_free(pSampleData, NULL);
+		irLoaded = true;
+		INFO("Loaded IR file: %s (%zu samples, %u Hz)", filePath.c_str(), irLength, irSampleRate);
 	}
 
 	void process(const ProcessArgs& args) override {
+		if (!inputs[INPUT_INPUT].isConnected() || !outputs[OUTPUT_OUTPUT].isConnected()) {
+			return;
+		}
+
+		// Get parameter values
+		float inputGain = params[INPUT_GAIN_PARAM].getValue();
+		float outputGain = params[OUTPUT_GAIN_PARAM].getValue();
+		
+		// Get input sample
+		float input = inputs[INPUT_INPUT].getVoltage();
+		
+		// Apply input gain
+		float processed = input * inputGain;
+		
+		// TODO: Implement convolution with loaded IR samples here
+		// For now, just pass through the signal
+		if (irLoaded && irLength > 0) {
+			// Placeholder: Could multiply by first IR sample for testing
+			// processed *= irSamples[0];
+		}
+		
+		// Apply output gain and send to output
+		float output = processed * outputGain;
+		outputs[OUTPUT_OUTPUT].setVoltage(output);
 	}
 };
 
 
-struct Opc_vcv_irWidget : ModuleWidget {
-	Opc_vcv_irWidget(Opc_vcv_ir* module) {
+struct Opc_vcv_irWidget final : ModuleWidget {
+	explicit Opc_vcv_irWidget(Opc_vcv_ir* module) {
 		setModule(module);
 		setPanel(createPanel(asset::plugin(pluginInstance, "res/opc-vcv-ir.svg")));
 
