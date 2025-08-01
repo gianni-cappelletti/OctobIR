@@ -1,9 +1,11 @@
 #include "plugin.hpp"
+#include "convolution.h"
 #include <string>
 #include <vector>
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
+
 
 struct Opc_vcv_ir final : Module {
 	enum ParamId {
@@ -27,6 +29,8 @@ struct Opc_vcv_ir final : Module {
 	uint32_t irSampleRate = 0;
 	size_t irLength = 0;
 	bool irLoaded = false;
+	
+	Convolution convolver;
 
 	Opc_vcv_ir() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -35,10 +39,13 @@ struct Opc_vcv_ir final : Module {
 		configInput(INPUT_INPUT, "Audio Input");
 		configOutput(OUTPUT_OUTPUT, "Audio Output");
 		
-		// Try to load IR from home directory - change this path as needed
+		// Load IR file from home directory on startup
 		std::string homeDir = getenv("HOME") ? getenv("HOME") : "";
 		if (!homeDir.empty()) {
 			loadIR(homeDir + "/ir_sample.wav");
+		}
+		else {
+			WARN("Could not find home directory!");
 		}
 	}
 
@@ -54,7 +61,7 @@ struct Opc_vcv_ir final : Module {
 			return;
 		}
 		
-		irLength = (size_t)totalPCMFrameCount;
+		irLength = static_cast<size_t>(totalPCMFrameCount);
 		irSamples.clear();
 		irSamples.resize(irLength);
 		
@@ -76,34 +83,41 @@ struct Opc_vcv_ir final : Module {
 		}
 		
 		drwav_free(pSampleData, NULL);
-		irLoaded = true;
-		INFO("Loaded IR file: %s (%zu samples, %u Hz)", filePath.c_str(), irLength, irSampleRate);
+		
+		// Initialize convolution with the loaded IR data
+		if (convolver.initialize(irSamples.data(), irLength)) {
+			irLoaded = true;
+			INFO("Loaded IR file: %s (%zu samples, %u Hz)", filePath.c_str(), irLength, irSampleRate);
+		} else {
+			irLoaded = false;
+			WARN("Failed to initialize convolver with IR data");
+		}
 	}
 
 	void process(const ProcessArgs& args) override {
-		if (!inputs[INPUT_INPUT].isConnected() || !outputs[OUTPUT_OUTPUT].isConnected()) {
-			return;
+		// Always set output to prevent floating values
+		float output = 0.0f;
+		
+		if (inputs[INPUT_INPUT].isConnected() && outputs[OUTPUT_OUTPUT].isConnected()) {
+			// Get parameter values
+			float inputGain = params[INPUT_GAIN_PARAM].getValue();
+			float outputGain = params[OUTPUT_GAIN_PARAM].getValue();
+			
+			// Get input sample
+			float input = inputs[INPUT_INPUT].getVoltage();
+			
+			// Apply input gain
+			float processed = input * inputGain;
+			
+			// Apply convolution if IR is loaded
+			if (irLoaded) {
+				processed = convolver.process(processed);
+			}
+			
+			// Apply output gain
+			output = processed * outputGain;
 		}
-
-		// Get parameter values
-		float inputGain = params[INPUT_GAIN_PARAM].getValue();
-		float outputGain = params[OUTPUT_GAIN_PARAM].getValue();
 		
-		// Get input sample
-		float input = inputs[INPUT_INPUT].getVoltage();
-		
-		// Apply input gain
-		float processed = input * inputGain;
-		
-		// TODO: Implement convolution with loaded IR samples here
-		// For now, just pass through the signal
-		if (irLoaded && irLength > 0) {
-			// Placeholder: Could multiply by first IR sample for testing
-			// processed *= irSamples[0];
-		}
-		
-		// Apply output gain and send to output
-		float output = processed * outputGain;
 		outputs[OUTPUT_OUTPUT].setVoltage(output);
 	}
 };
@@ -112,7 +126,7 @@ struct Opc_vcv_ir final : Module {
 struct Opc_vcv_irWidget final : ModuleWidget {
 	explicit Opc_vcv_irWidget(Opc_vcv_ir* module) {
 		setModule(module);
-		setPanel(createPanel(asset::plugin(pluginInstance, "res/opc-vcv-ir.svg")));
+		setPanel(createPanel(asset::plugin(pluginInstance, "res/opc-vcv-ir-panel.svg")));
 
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
