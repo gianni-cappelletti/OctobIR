@@ -21,3 +21,11 @@ DISTRIBUTABLES += $(wildcard presets)
 
 # Include the Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
+
+# Formatting targets
+.PHONY: format format-check
+format:
+	clang-format -i src/*.cpp src/*.hpp
+
+format-check:
+	clang-format --dry-run --Werror src/*.cpp src/*.hpp
