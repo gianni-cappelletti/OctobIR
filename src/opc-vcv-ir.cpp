@@ -9,8 +9,7 @@
 
 struct Opc_vcv_ir final : Module {
 	enum ParamId {
-		INPUT_GAIN_PARAM,
-		OUTPUT_GAIN_PARAM,
+		GAIN_PARAM,
 		PARAMS_LEN
 	};
 	enum InputId {
@@ -34,8 +33,10 @@ struct Opc_vcv_ir final : Module {
 
 	Opc_vcv_ir() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(INPUT_GAIN_PARAM, 0.f, 1.f, 0.5f, "Input Gain");
-		configParam(OUTPUT_GAIN_PARAM, 0.f, 1.f, 0.5f, "Output Gain");
+		// We want to snap this to the closest 0.1dB. The easiest way to do this is multiply the internal value by 10 to
+		// leverage VCV's snapEnabled parameter. When we fetch this value later, we will need to divide it by 10.
+		configParam(GAIN_PARAM, -200.f, 200.f, 0.f, "Gain", " dB", 0.f, 0.1f);
+		paramQuantities[GAIN_PARAM]->snapEnabled = true;
 		configInput(INPUT_INPUT, "Audio Input");
 		configOutput(OUTPUT_OUTPUT, "Audio Output");
 		
@@ -84,6 +85,14 @@ struct Opc_vcv_ir final : Module {
 		
 		drwav_free(pSampleData, NULL);
 		
+		// TODO: Investigate a better gain normalization method
+		// I tried an RMS based normalization, but that did not work very well across different IRs.
+		// For now, just going to reduce the gain by this value that seems to work moderately well for different IRs
+		float irCompensationGain = dsp::dbToAmplitude(-17.0f);
+		for (size_t i = 0; i < irLength; i++) {
+			irSamples[i] *= irCompensationGain;
+		}
+		
 		// Initialize convolution with the loaded IR data
 		if (convolver.initialize(irSamples.data(), irLength)) {
 			irLoaded = true;
@@ -99,23 +108,26 @@ struct Opc_vcv_ir final : Module {
 		float output = 0.0f;
 		
 		if (inputs[INPUT_INPUT].isConnected() && outputs[OUTPUT_OUTPUT].isConnected()) {
-			// Get parameter values
-			float inputGain = params[INPUT_GAIN_PARAM].getValue();
-			float outputGain = params[OUTPUT_GAIN_PARAM].getValue();
-			
+			// Get parameter values in dB and remember to divide it by 10! See discussion near the top of this file
+			// for more details on why we do this
+			float gainDb = params[GAIN_PARAM].getValue() * 0.1f;
+
+			// Convert dB to linear amplitude using VCV Rack utility function
+			float gain = dsp::dbToAmplitude(gainDb);
+
 			// Get input sample
 			float input = inputs[INPUT_INPUT].getVoltage();
 			
 			// Apply input gain
-			float processed = input * inputGain;
-			
+			float processed = input * gain;
+
 			// Apply convolution if IR is loaded
 			if (irLoaded) {
 				processed = convolver.process(processed);
 			}
 			
-			// Apply output gain
-			output = processed * outputGain;
+			// Set the processed result as output
+			output = processed;
 		}
 		
 		outputs[OUTPUT_OUTPUT].setVoltage(output);
@@ -133,8 +145,7 @@ struct Opc_vcv_irWidget final : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(20.32, 40.64)), module, Opc_vcv_ir::INPUT_GAIN_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(20.32, 63.698)), module, Opc_vcv_ir::OUTPUT_GAIN_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(20.32, 40.64)), module, Opc_vcv_ir::GAIN_PARAM));
 
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(10.16, 111.76)), module, Opc_vcv_ir::INPUT_INPUT));
 
