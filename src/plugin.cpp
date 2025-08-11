@@ -1,15 +1,8 @@
 #include "plugin.hpp"
 
-Plugin *pluginInstance;
+Plugin* plugin_instance;
 
-void init(Plugin *p) {
-    pluginInstance = p;
-
-    // Add modules here
-    // p->addModel(modelMyModule);
-    p->addModel(modelOpc_vcv_ir);
-
-    // Any other plugin initialization may go here.
-    // As an alternative, consider lazy-loading assets and lookup tables when your module is created
-    // to reduce startup times of Rack.
+void init(Plugin* p) {
+    plugin_instance = p;
+    p->addModel(model_opc_vcv_ir);
 }

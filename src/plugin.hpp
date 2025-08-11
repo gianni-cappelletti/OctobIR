@@ -3,8 +3,5 @@
 
 using namespace rack;
 
-// Declare the Plugin, defined in plugin.cpp
-extern Plugin *pluginInstance;
-
-// Declare each Model, defined in each module source file
-extern Model *modelOpc_vcv_ir;
+extern Plugin* plugin_instance;
+extern Model* model_opc_vcv_ir;
