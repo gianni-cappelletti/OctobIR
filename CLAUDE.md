@@ -23,4 +23,6 @@ The build system uses the VCV Rack plugin framework (included via `$(RACK_DIR)/p
 - Adhere to the .clang-format rules when generating code
 - Include good logger messages in all branching paths
 - Be concise in the code, but do not sacrifice clarity for brevity
-- Follow Google's C++ style guide in the code as closely as possible with C++ 11, upon which VCV Rack is built.
+- Follow Google's C++ style guide in the code as closely as possible with C++ 11, upon which VCV Rack is built
+- For UI components, double check that the colors, fonts, and sizes used adhere to the Web Content Accessibility Guidelines (WCAG) 2.1
+- When running `make` to check that things work, run the command `make clean && make install` so it is a clean build that installs as well for testing

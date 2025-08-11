@@ -266,8 +266,9 @@ struct IrFileDisplay : app::LedDisplayChoice {
 
     IrFileDisplay() : module(nullptr) {
         fontPath = asset::system("res/fonts/DSEG7ClassicMini-BoldItalic.ttf");
-        color = color::GREEN;
-        bgColor = nvgRGB(0x10, 0x10, 0x10);
+        color = nvgRGB(0x12, 0x12, 0x12);
+        //bgColor = nvgRGB(0xe0, 0x9e, 0x6e);
+        bgColor = nvgRGB(0xd9, 0x81, 0x29);
         text = "<No IR selected>";
     }
 
@@ -333,8 +334,8 @@ struct OpcVcvIrWidget final : ModuleWidget {
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(30.48, 111.76)), module,
                                                    OpcVcvIr::OUTPUT_OUTPUT));
 
-        auto *fileDisplay = createWidget<IrFileDisplay>(mm2px(Vec(5.08, 7.62)));
-        fileDisplay->box.size = mm2px(Vec(30.48, 8.0));
+        auto *fileDisplay = createWidget<IrFileDisplay>(mm2px(Vec(5.08, 12.0)));
+        fileDisplay->box.size = mm2px(Vec(30.48, 17.0));
         fileDisplay->module = module;
         addChild(fileDisplay);
     }
