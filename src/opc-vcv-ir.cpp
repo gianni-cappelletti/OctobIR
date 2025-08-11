@@ -7,6 +7,8 @@
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
+#include <osdialog.h>
+
 struct OpcVcvIr final : Module {
     enum ParamId { GAIN_PARAM, PARAMS_LEN };
     enum InputId { INPUT_INPUT, INPUTS_LEN };
@@ -20,6 +22,7 @@ struct OpcVcvIr final : Module {
     size_t ir_length_ = 0;
     bool ir_loaded_ = false;
     bool needs_resampling_ = false;
+    std::string loaded_file_path_;
 
     int sample_rate_check_counter_ = 0;
     static constexpr int kSampleRateCheckInterval = 4096;
@@ -55,8 +58,11 @@ struct OpcVcvIr final : Module {
         if (sample_data == nullptr) {
             WARN("Failed to load IR file: %s", file_path.c_str());
             ir_loaded_ = false;
+            loaded_file_path_.clear();
             return;
         }
+
+        loaded_file_path_ = file_path;
 
         ir_length_ = static_cast<size_t>(totalPCMFrameCount);
         ir_samples_.clear();
@@ -237,6 +243,73 @@ struct OpcVcvIr final : Module {
 
         outputs[OUTPUT_OUTPUT].setVoltage(output);
     }
+
+    json_t *dataToJson() override {
+        json_t *rootJ = json_object();
+        json_object_set_new(rootJ, "filePath", json_string(loaded_file_path_.c_str()));
+        return rootJ;
+    }
+
+    void dataFromJson(json_t *rootJ) override {
+        json_t *filePathJ = json_object_get(rootJ, "filePath");
+        if (filePathJ) {
+            std::string path = json_string_value(filePathJ);
+            if (!path.empty()) {
+                LoadIR(path);
+            }
+        }
+    }
+};
+
+struct IrFileDisplay : app::LedDisplayChoice {
+    OpcVcvIr *module;
+
+    IrFileDisplay() : module(nullptr) {
+        fontPath = asset::system("res/fonts/DSEG7ClassicMini-BoldItalic.ttf");
+        color = color::GREEN;
+        bgColor = nvgRGB(0x10, 0x10, 0x10);
+        text = "<No IR selected>";
+    }
+
+    void onButton(const widget::Widget::ButtonEvent &e) override {
+        if (e.action == GLFW_PRESS && e.button == GLFW_MOUSE_BUTTON_LEFT && module) {
+            openFileDialog();
+        }
+    }
+
+    void openFileDialog() {
+        osdialog_filters *filters = osdialog_filters_parse("Audio files:wav,aiff,flac;All files:*");
+        char *path = osdialog_file(OSDIALOG_OPEN, nullptr, nullptr, filters);
+
+        if (path) {
+            module->LoadIR(std::string(path));
+            updateDisplayText();
+            std::free(path);
+        }
+
+        osdialog_filters_free(filters);
+    }
+
+    void updateDisplayText() {
+        if (!module || module->loaded_file_path_.empty()) {
+            text = "<No IR selected>";
+        } else {
+            size_t pos = module->loaded_file_path_.find_last_of("/\\");
+            std::string filename = (pos != std::string::npos)
+                                       ? module->loaded_file_path_.substr(pos + 1)
+                                       : module->loaded_file_path_;
+
+            if (filename.length() > 20) {
+                filename = filename.substr(0, 17) + "...";
+            }
+            text = filename;
+        }
+    }
+
+    void step() override {
+        updateDisplayText();
+        app::LedDisplayChoice::step();
+    }
 };
 
 struct OpcVcvIrWidget final : ModuleWidget {
@@ -260,7 +333,10 @@ struct OpcVcvIrWidget final : ModuleWidget {
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(30.48, 111.76)), module,
                                                    OpcVcvIr::OUTPUT_OUTPUT));
 
-        addChild(createWidget<Widget>(mm2px(Vec(5.08, 7.62))));
+        auto *fileDisplay = createWidget<IrFileDisplay>(mm2px(Vec(5.08, 7.62)));
+        fileDisplay->box.size = mm2px(Vec(30.48, 8.0));
+        fileDisplay->module = module;
+        addChild(fileDisplay);
     }
 };
 
