@@ -1,8 +1,8 @@
+#include "convoengine.h"
 #include "plugin.hpp"
+#include <dsp/resampler.hpp>
 #include <string>
 #include <vector>
-#include <dsp/resampler.hpp>
-#include "convoengine.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
@@ -20,10 +20,10 @@ struct Opc_vcv_ir final : Module {
     size_t irLength = 0;
     bool irLoaded = false;
     bool needsResampling = false;
-    
+
     // Sample rate check optimization
     int sampleRateCheckCounter = 0;
-    static const int SAMPLE_RATE_CHECK_INTERVAL = 4096; // Check every ~93ms at 44.1kHz
+    static constexpr int SAMPLE_RATE_CHECK_INTERVAL = 4096; // Check every ~93ms at 44.1kHz
 
     WDL_ConvolutionEngine convolver;
     WDL_ImpulseBuffer impulseBuffer;
@@ -39,7 +39,6 @@ struct Opc_vcv_ir final : Module {
         configInput(INPUT_INPUT, "Audio Input");
         configOutput(OUTPUT_OUTPUT, "Audio Output");
 
-        // Initialize lastSystemSampleRate to current system sample rate
         lastSystemSampleRate = static_cast<uint32_t>(APP->engine->getSampleRate());
 
         // Load IR file from home directory on startup
@@ -82,7 +81,7 @@ struct Opc_vcv_ir final : Module {
             }
         }
 
-        drwav_free(pSampleData, NULL);
+        drwav_free(pSampleData, nullptr);
 
         // TODO: Investigate a better gain normalization method
         // I tried an RMS based normalization, but that did not work very well across different IRs.
@@ -108,104 +107,105 @@ struct Opc_vcv_ir final : Module {
         auto systemSampleRate = static_cast<uint32_t>(APP->engine->getSampleRate());
         needsResampling = (irSampleRate != systemSampleRate);
         lastSystemSampleRate = systemSampleRate;
-        
+
         if (needsResampling) {
-            INFO("IR sample rate (%u Hz) differs from system (%u Hz), resampling...", 
-                 irSampleRate, systemSampleRate);
-            
+            INFO("IR sample rate (%u Hz) differs from system (%u Hz), resampling...", irSampleRate,
+                 systemSampleRate);
+
             // Configure resampler
             irResampler.setChannels(1);
             irResampler.setQuality(8); // High quality resampling
             irResampler.setRates(irSampleRate, systemSampleRate);
-            
+
             // Calculate output length with proper rounding
             size_t outFrames = (irLength * systemSampleRate + irSampleRate / 2) / irSampleRate;
-            
+
             // Allocate output buffer with extra padding for safety
             resampledIR.resize(outFrames + 64);
-            
+
             // Perform resampling
             int inFrames = static_cast<int>(irLength);
             int actualOutFrames = static_cast<int>(outFrames);
-            irResampler.process(irSamples.data(), 1, &inFrames, resampledIR.data(), 1, &actualOutFrames);
-            
-            // Resize to actual output length
+            irResampler.process(irSamples.data(), 1, &inFrames, resampledIR.data(), 1,
+                                &actualOutFrames);
+
             resampledIR.resize(actualOutFrames);
-            
-            // Initialize WDL impulse buffer with resampled IR
+
             int actualLength = impulseBuffer.SetLength(actualOutFrames);
             if (actualLength <= 0) {
                 irLoaded = false;
-                WARN("Failed to set impulse buffer length: requested %d, got %d", actualOutFrames, actualLength);
+                WARN("Failed to set impulse buffer length: requested %d, got %d", actualOutFrames,
+                     actualLength);
                 return;
             }
-            
+
             impulseBuffer.SetNumChannels(1);
             if (impulseBuffer.GetNumChannels() != 1) {
                 irLoaded = false;
-                WARN("Failed to set impulse buffer channels to 1, got %d", impulseBuffer.GetNumChannels());
+                WARN("Failed to set impulse buffer channels to 1, got %d",
+                     impulseBuffer.GetNumChannels());
                 return;
             }
-            
+
             impulseBuffer.samplerate = systemSampleRate;
-            
-            // Copy resampled IR data to WDL impulse buffer
-            WDL_FFT_REAL* irBuffer = impulseBuffer.impulses[0].Get();
+
+            WDL_FFT_REAL *irBuffer = impulseBuffer.impulses[0].Get();
             if (!irBuffer) {
                 irLoaded = false;
                 WARN("Failed to get impulse buffer data pointer");
                 return;
             }
-            
+
             for (int i = 0; i < actualLength; i++) {
                 irBuffer[i] = (i < actualOutFrames) ? resampledIR[i] : 0.0f;
             }
-            
-            // Initialize convolution with impulse buffer
+
             int result = convolver.SetImpulse(&impulseBuffer);
             if (result > 0) {
                 irLoaded = true;
-                INFO("Loaded and resampled IR file: (%zu→%d samples, %u→%u Hz, latency: %d)", 
+                INFO("Loaded and resampled IR file: (%zu→%d samples, %u→%u Hz, latency: %d)",
                      irLength, actualLength, irSampleRate, systemSampleRate, result);
             } else {
                 irLoaded = false;
-                WARN("Failed to initialize WDL convolver with resampled IR data, error code: %d", result);
+                WARN("Failed to initialize WDL convolver with resampled IR data, error code: %d",
+                     result);
             }
         } else {
-            // No resampling needed, use original IR
             int actualLength = impulseBuffer.SetLength(static_cast<int>(irLength));
             if (actualLength <= 0) {
                 irLoaded = false;
-                WARN("Failed to set impulse buffer length: requested %zu, got %d", irLength, actualLength);
+                WARN("Failed to set impulse buffer length: requested %zu, got %d", irLength,
+                     actualLength);
                 return;
             }
-            
+
             impulseBuffer.SetNumChannels(1);
             if (impulseBuffer.GetNumChannels() != 1) {
                 irLoaded = false;
-                WARN("Failed to set impulse buffer channels to 1, got %d", impulseBuffer.GetNumChannels());
+                WARN("Failed to set impulse buffer channels to 1, got %d",
+                     impulseBuffer.GetNumChannels());
                 return;
             }
-            
+
             impulseBuffer.samplerate = systemSampleRate;
-            
+
             // Copy original IR data to WDL impulse buffer
-            WDL_FFT_REAL* irBuffer = impulseBuffer.impulses[0].Get();
+            WDL_FFT_REAL *irBuffer = impulseBuffer.impulses[0].Get();
             if (!irBuffer) {
                 irLoaded = false;
                 WARN("Failed to get impulse buffer data pointer");
                 return;
             }
-            
+
             for (int i = 0; i < actualLength; i++) {
                 irBuffer[i] = (i < static_cast<int>(irLength)) ? irSamples[i] : 0.0f;
             }
-            
-            // Initialize convolution with impulse buffer
+
             int result = convolver.SetImpulse(&impulseBuffer);
             if (result > 0) {
                 irLoaded = true;
-                INFO("Using original IR: (%d samples, %u Hz, latency: %d)", actualLength, irSampleRate, result);
+                INFO("Using original IR: (%d samples, %u Hz, latency: %d)", actualLength,
+                     irSampleRate, result);
             } else {
                 irLoaded = false;
                 WARN("Failed to initialize WDL convolver with IR data, error code: %d", result);
@@ -217,12 +217,11 @@ struct Opc_vcv_ir final : Module {
         // Only check sample rate occasionally to reduce CPU overhead
         if (++sampleRateCheckCounter >= SAMPLE_RATE_CHECK_INTERVAL) {
             sampleRateCheckCounter = 0;
-            
-            // Check if system sample rate has changed and we have IR data loaded
+
             if (irSampleRate > 0 && !irSamples.empty()) {
                 auto currentSystemSampleRate = static_cast<uint32_t>(args.sampleRate);
                 if (currentSystemSampleRate != lastSystemSampleRate) {
-                    INFO("System sample rate changed from %u to %u Hz, reprocessing IR...", 
+                    INFO("System sample rate changed from %u to %u Hz, reprocessing IR...",
                          lastSystemSampleRate, currentSystemSampleRate);
                     resampleAndInitialize();
                 }
@@ -236,24 +235,18 @@ struct Opc_vcv_ir final : Module {
             // top of this file for more details on why we do this
             float gainDb = params[GAIN_PARAM].getValue() * 0.1f;
 
-            // Convert dB to linear amplitude using VCV Rack utility function
             float gain = dsp::dbToAmplitude(gainDb);
 
-            // Get input sample
             float input = inputs[INPUT_INPUT].getVoltage();
 
-            // Apply input gain
             float processed = input * gain;
 
-            // Apply convolution if IR is loaded
             if (irLoaded) {
-                // Add input sample to WDL convolver
-                WDL_FFT_REAL* inputPtr = &processed;
+                WDL_FFT_REAL *inputPtr = &processed;
                 convolver.Add(&inputPtr, 1, 1);
-                
-                // Get processed output if available
+
                 if (convolver.Avail(1) >= 1) {
-                    WDL_FFT_REAL** outputPtr = convolver.Get();
+                    WDL_FFT_REAL **outputPtr = convolver.Get();
                     processed = outputPtr[0][0];
                     convolver.Advance(1);
                 } else {
@@ -261,10 +254,9 @@ struct Opc_vcv_ir final : Module {
                 }
             }
 
-            // Set the processed result as output
             output = processed;
         }
-        
+
         outputs[OUTPUT_OUTPUT].setVoltage(output);
     }
 };
