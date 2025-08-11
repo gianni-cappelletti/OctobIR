@@ -1,8 +1,6 @@
 #include <string>
 #include <vector>
 
-#include <dsp/resampler.hpp>
-
 #include "convoengine.h"
 #include "plugin.hpp"
 
@@ -47,11 +45,11 @@ struct OpcVcvIr final : Module {
         LoadIR(ir_path);
     }
 
-    void LoadIR(const std::string& file_path) {
+    void LoadIR(const std::string &file_path) {
         uint32_t channels;
         drwav_uint64 totalPCMFrameCount;
 
-        float* sample_data = drwav_open_file_and_read_pcm_frames_f32(
+        float *sample_data = drwav_open_file_and_read_pcm_frames_f32(
             file_path.c_str(), &channels, &ir_sample_rate_, &totalPCMFrameCount, nullptr);
 
         if (sample_data == nullptr) {
@@ -99,20 +97,21 @@ struct OpcVcvIr final : Module {
         last_system_sample_rate_ = system_sample_rate;
 
         if (needs_resampling_) {
-            INFO("IR sample rate (%u Hz) differs from system (%u Hz), resampling...", ir_sample_rate_,
-                 system_sample_rate);
+            INFO("IR sample rate (%u Hz) differs from system (%u Hz), resampling...",
+                 ir_sample_rate_, system_sample_rate);
 
             ir_resampler_.setChannels(1);
             ir_resampler_.setQuality(8);
             ir_resampler_.setRates(ir_sample_rate_, system_sample_rate);
 
-            size_t out_frames = (ir_length_ * system_sample_rate + ir_sample_rate_ / 2) / ir_sample_rate_;
+            size_t out_frames =
+                (ir_length_ * system_sample_rate + ir_sample_rate_ / 2) / ir_sample_rate_;
             resampled_ir_.resize(out_frames + 64);
 
             int in_frames = static_cast<int>(ir_length_);
             int actual_out_frames = static_cast<int>(out_frames);
             ir_resampler_.process(ir_samples_.data(), 1, &in_frames, resampled_ir_.data(), 1,
-                                &actual_out_frames);
+                                  &actual_out_frames);
 
             resampled_ir_.resize(actual_out_frames);
 
@@ -134,7 +133,7 @@ struct OpcVcvIr final : Module {
 
             impulse_buffer_.samplerate = system_sample_rate;
 
-            WDL_FFT_REAL* ir_buffer = impulse_buffer_.impulses[0].Get();
+            WDL_FFT_REAL *ir_buffer = impulse_buffer_.impulses[0].Get();
             if (!ir_buffer) {
                 ir_loaded_ = false;
                 WARN("Failed to get impulse buffer data pointer");
@@ -174,7 +173,7 @@ struct OpcVcvIr final : Module {
 
             impulse_buffer_.samplerate = system_sample_rate;
 
-            WDL_FFT_REAL* ir_buffer = impulse_buffer_.impulses[0].Get();
+            WDL_FFT_REAL *ir_buffer = impulse_buffer_.impulses[0].Get();
             if (!ir_buffer) {
                 ir_loaded_ = false;
                 WARN("Failed to get impulse buffer data pointer");
@@ -197,7 +196,7 @@ struct OpcVcvIr final : Module {
         }
     }
 
-    void process(const ProcessArgs& args) override {
+    void process(const ProcessArgs &args) override {
         if (++sample_rate_check_counter_ >= kSampleRateCheckInterval) {
             sample_rate_check_counter_ = 0;
 
@@ -221,11 +220,11 @@ struct OpcVcvIr final : Module {
             float processed = input * gain;
 
             if (ir_loaded_) {
-                WDL_FFT_REAL* input_ptr = &processed;
+                WDL_FFT_REAL *input_ptr = &processed;
                 convolver_.Add(&input_ptr, 1, 1);
 
                 if (convolver_.Avail(1) >= 1) {
-                    WDL_FFT_REAL** output_ptr = convolver_.Get();
+                    WDL_FFT_REAL **output_ptr = convolver_.Get();
                     processed = output_ptr[0][0];
                     convolver_.Advance(1);
                 } else {
@@ -241,7 +240,7 @@ struct OpcVcvIr final : Module {
 };
 
 struct OpcVcvIrWidget final : ModuleWidget {
-    explicit OpcVcvIrWidget(OpcVcvIr* module) {
+    explicit OpcVcvIrWidget(OpcVcvIr *module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(plugin_instance, "res/opc-vcv-ir-panel.svg")));
 
@@ -265,4 +264,4 @@ struct OpcVcvIrWidget final : ModuleWidget {
     }
 };
 
-Model* model_opc_vcv_ir = createModel<OpcVcvIr, OpcVcvIrWidget>("opc-vcv-ir");
+Model *model_opc_vcv_ir = createModel<OpcVcvIr, OpcVcvIrWidget>("opc-vcv-ir");
