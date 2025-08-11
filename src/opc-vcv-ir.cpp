@@ -265,7 +265,7 @@ struct IrFileDisplay : app::LedDisplayChoice {
     OpcVcvIr *module;
 
     IrFileDisplay() : module(nullptr) {
-        fontPath = asset::system("res/fonts/DSEG7ClassicMini-BoldItalic.ttf");
+        fontPath = asset::plugin(plugin_instance, "res/font/Inconsolata_Condensed-Bold.ttf");
         color = nvgRGB(0x12, 0x12, 0x12);
         //bgColor = nvgRGB(0xe0, 0x9e, 0x6e);
         bgColor = nvgRGB(0xd9, 0x81, 0x29);
