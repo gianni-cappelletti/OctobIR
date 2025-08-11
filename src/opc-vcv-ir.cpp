@@ -1,8 +1,8 @@
-#include "convolution.h"
 #include "plugin.hpp"
 #include <string>
 #include <vector>
 #include <dsp/resampler.hpp>
+#include "convoengine.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
@@ -25,7 +25,8 @@ struct Opc_vcv_ir final : Module {
     int sampleRateCheckCounter = 0;
     static const int SAMPLE_RATE_CHECK_INTERVAL = 4096; // Check every ~93ms at 44.1kHz
 
-    Convolution convolver;
+    WDL_ConvolutionEngine convolver;
+    WDL_ImpulseBuffer impulseBuffer;
     dsp::SampleRateConverter<1> irResampler;
 
     Opc_vcv_ir() {
@@ -131,23 +132,83 @@ struct Opc_vcv_ir final : Module {
             // Resize to actual output length
             resampledIR.resize(actualOutFrames);
             
-            // Initialize convolution with resampled IR
-            if (convolver.initialize(resampledIR.data(), actualOutFrames)) {
+            // Initialize WDL impulse buffer with resampled IR
+            int actualLength = impulseBuffer.SetLength(actualOutFrames);
+            if (actualLength <= 0) {
+                irLoaded = false;
+                WARN("Failed to set impulse buffer length: requested %d, got %d", actualOutFrames, actualLength);
+                return;
+            }
+            
+            impulseBuffer.SetNumChannels(1);
+            if (impulseBuffer.GetNumChannels() != 1) {
+                irLoaded = false;
+                WARN("Failed to set impulse buffer channels to 1, got %d", impulseBuffer.GetNumChannels());
+                return;
+            }
+            
+            impulseBuffer.samplerate = systemSampleRate;
+            
+            // Copy resampled IR data to WDL impulse buffer
+            WDL_FFT_REAL* irBuffer = impulseBuffer.impulses[0].Get();
+            if (!irBuffer) {
+                irLoaded = false;
+                WARN("Failed to get impulse buffer data pointer");
+                return;
+            }
+            
+            for (int i = 0; i < actualLength; i++) {
+                irBuffer[i] = (i < actualOutFrames) ? resampledIR[i] : 0.0f;
+            }
+            
+            // Initialize convolution with impulse buffer
+            int result = convolver.SetImpulse(&impulseBuffer);
+            if (result > 0) {
                 irLoaded = true;
-                INFO("Loaded and resampled IR file: (%zu→%zu samples, %u→%u Hz)", 
-                     irLength, resampledIR.size(), irSampleRate, systemSampleRate);
+                INFO("Loaded and resampled IR file: (%zu→%d samples, %u→%u Hz, latency: %d)", 
+                     irLength, actualLength, irSampleRate, systemSampleRate, result);
             } else {
                 irLoaded = false;
-                WARN("Failed to initialize convolver with resampled IR data");
+                WARN("Failed to initialize WDL convolver with resampled IR data, error code: %d", result);
             }
         } else {
             // No resampling needed, use original IR
-            if (convolver.initialize(irSamples.data(), irLength)) {
+            int actualLength = impulseBuffer.SetLength(static_cast<int>(irLength));
+            if (actualLength <= 0) {
+                irLoaded = false;
+                WARN("Failed to set impulse buffer length: requested %zu, got %d", irLength, actualLength);
+                return;
+            }
+            
+            impulseBuffer.SetNumChannels(1);
+            if (impulseBuffer.GetNumChannels() != 1) {
+                irLoaded = false;
+                WARN("Failed to set impulse buffer channels to 1, got %d", impulseBuffer.GetNumChannels());
+                return;
+            }
+            
+            impulseBuffer.samplerate = systemSampleRate;
+            
+            // Copy original IR data to WDL impulse buffer
+            WDL_FFT_REAL* irBuffer = impulseBuffer.impulses[0].Get();
+            if (!irBuffer) {
+                irLoaded = false;
+                WARN("Failed to get impulse buffer data pointer");
+                return;
+            }
+            
+            for (int i = 0; i < actualLength; i++) {
+                irBuffer[i] = (i < static_cast<int>(irLength)) ? irSamples[i] : 0.0f;
+            }
+            
+            // Initialize convolution with impulse buffer
+            int result = convolver.SetImpulse(&impulseBuffer);
+            if (result > 0) {
                 irLoaded = true;
-                INFO("Using original IR: (%zu samples, %u Hz)", irLength, irSampleRate);
+                INFO("Using original IR: (%d samples, %u Hz, latency: %d)", actualLength, irSampleRate, result);
             } else {
                 irLoaded = false;
-                WARN("Failed to initialize convolver with IR data");
+                WARN("Failed to initialize WDL convolver with IR data, error code: %d", result);
             }
         }
     }
@@ -186,7 +247,18 @@ struct Opc_vcv_ir final : Module {
 
             // Apply convolution if IR is loaded
             if (irLoaded) {
-                processed = convolver.process(processed);
+                // Add input sample to WDL convolver
+                WDL_FFT_REAL* inputPtr = &processed;
+                convolver.Add(&inputPtr, 1, 1);
+                
+                // Get processed output if available
+                if (convolver.Avail(1) >= 1) {
+                    WDL_FFT_REAL** outputPtr = convolver.Get();
+                    processed = outputPtr[0][0];
+                    convolver.Advance(1);
+                } else {
+                    processed = 0.0f;
+                }
             }
 
             // Set the processed result as output

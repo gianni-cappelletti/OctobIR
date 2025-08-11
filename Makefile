@@ -3,6 +3,7 @@ RACK_DIR ?= ../..
 
 # FLAGS will be passed to both the C and C++ compiler
 FLAGS += -Idep/include
+FLAGS += -IiPlug2/WDL
 CFLAGS +=
 CXXFLAGS +=
 
@@ -12,6 +13,11 @@ LDFLAGS +=
 
 # Add .cpp files to the build
 SOURCES += $(wildcard src/*.cpp)
+
+# Add iPlug2 WDL sources
+SOURCES += iPlug2/WDL/convoengine.cpp
+SOURCES += iPlug2/WDL/resample.cpp
+SOURCES += iPlug2/WDL/fft.c
 
 # Add files to the ZIP package when running `make dist`
 # The compiled plugin and "plugin.json" are automatically added.
