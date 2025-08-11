@@ -20,6 +20,10 @@ struct Opc_vcv_ir final : Module {
     size_t irLength = 0;
     bool irLoaded = false;
     bool needsResampling = false;
+    
+    // Sample rate check optimization
+    int sampleRateCheckCounter = 0;
+    static const int SAMPLE_RATE_CHECK_INTERVAL = 4096; // Check every ~93ms at 44.1kHz
 
     Convolution convolver;
     dsp::SampleRateConverter<1> irResampler;
@@ -34,8 +38,13 @@ struct Opc_vcv_ir final : Module {
         configInput(INPUT_INPUT, "Audio Input");
         configOutput(OUTPUT_OUTPUT, "Audio Output");
 
+        // Initialize lastSystemSampleRate to current system sample rate
+        lastSystemSampleRate = static_cast<uint32_t>(APP->engine->getSampleRate());
+
         // Load IR file from home directory on startup
         std::string homeDir = getenv("HOME") ? getenv("HOME") : "";
+        std::string irPath = homeDir + "/ir_sample.wav";
+        loadIR(irPath);
     }
 
     void loadIR(const std::string &filePath) {
@@ -43,7 +52,7 @@ struct Opc_vcv_ir final : Module {
         drwav_uint64 totalPCMFrameCount;
 
         float *pSampleData = drwav_open_file_and_read_pcm_frames_f32(
-            filePath.c_str(), &channels, &irSampleRate, &totalPCMFrameCount, NULL);
+            filePath.c_str(), &channels, &irSampleRate, &totalPCMFrameCount, nullptr);
 
         if (pSampleData == nullptr) {
             WARN("Failed to load IR file: %s", filePath.c_str());
@@ -108,21 +117,22 @@ struct Opc_vcv_ir final : Module {
             irResampler.setQuality(8); // High quality resampling
             irResampler.setRates(irSampleRate, systemSampleRate);
             
-            // Calculate output length
-            int inFrames = static_cast<int>(irLength);
-            int outFrames = static_cast<int>((irLength * systemSampleRate + irSampleRate - 1) / irSampleRate);
+            // Calculate output length with proper rounding
+            size_t outFrames = (irLength * systemSampleRate + irSampleRate / 2) / irSampleRate;
             
-            // Allocate output buffer
-            resampledIR.resize(outFrames);
+            // Allocate output buffer with extra padding for safety
+            resampledIR.resize(outFrames + 64);
             
             // Perform resampling
-            irResampler.process(irSamples.data(), 1, &inFrames, resampledIR.data(), 1, &outFrames);
+            int inFrames = static_cast<int>(irLength);
+            int actualOutFrames = static_cast<int>(outFrames);
+            irResampler.process(irSamples.data(), 1, &inFrames, resampledIR.data(), 1, &actualOutFrames);
             
             // Resize to actual output length
-            resampledIR.resize(outFrames);
+            resampledIR.resize(actualOutFrames);
             
             // Initialize convolution with resampled IR
-            if (convolver.initialize(resampledIR.data(), outFrames)) {
+            if (convolver.initialize(resampledIR.data(), actualOutFrames)) {
                 irLoaded = true;
                 INFO("Loaded and resampled IR file: (%zu→%zu samples, %u→%u Hz)", 
                      irLength, resampledIR.size(), irSampleRate, systemSampleRate);
@@ -143,13 +153,18 @@ struct Opc_vcv_ir final : Module {
     }
 
     void process(const ProcessArgs &args) override {
-        // Check if system sample rate has changed and we have IR data loaded
-        if (irSampleRate > 0 && !irSamples.empty()) {
-            uint32_t currentSystemSampleRate = static_cast<uint32_t>(args.sampleRate);
-            if (currentSystemSampleRate != lastSystemSampleRate) {
-                INFO("System sample rate changed from %u to %u Hz, reprocessing IR...", 
-                     lastSystemSampleRate, currentSystemSampleRate);
-                resampleAndInitialize();
+        // Only check sample rate occasionally to reduce CPU overhead
+        if (++sampleRateCheckCounter >= SAMPLE_RATE_CHECK_INTERVAL) {
+            sampleRateCheckCounter = 0;
+            
+            // Check if system sample rate has changed and we have IR data loaded
+            if (irSampleRate > 0 && !irSamples.empty()) {
+                auto currentSystemSampleRate = static_cast<uint32_t>(args.sampleRate);
+                if (currentSystemSampleRate != lastSystemSampleRate) {
+                    INFO("System sample rate changed from %u to %u Hz, reprocessing IR...", 
+                         lastSystemSampleRate, currentSystemSampleRate);
+                    resampleAndInitialize();
+                }
             }
         }
         // Always set output to prevent floating values
@@ -177,9 +192,7 @@ struct Opc_vcv_ir final : Module {
             // Set the processed result as output
             output = processed;
         }
-        auto currentSystemSampleRate = static_cast<uint32_t>(args.sampleRate);
-        INFO("System sample rate changed from %u to %u Hz, reprocessing IR...",
-                             lastSystemSampleRate, currentSystemSampleRate);
+        
         outputs[OUTPUT_OUTPUT].setVoltage(output);
     }
 };
