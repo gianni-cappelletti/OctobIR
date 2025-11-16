@@ -87,4 +87,40 @@ size_t IRProcessor::getIRNumSamples() const {
   return irLoader_ ? irLoader_->getNumSamples() : 0;
 }
 
+int IRProcessor::getNumIRChannels() const {
+  return irLoader_ ? irLoader_->getNumChannels() : 0;
+}
+
+void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL,
+                                Sample* outputR, FrameCount numFrames) {
+  if (!irLoaded_) {
+    std::copy(inputL, inputL + numFrames, outputL);
+    std::copy(inputR, inputR + numFrames, outputR);
+    return;
+  }
+
+  for (size_t i = 0; i < numFrames; i++) {
+    WDL_FFT_REAL samplesL = inputL[i];
+    WDL_FFT_REAL samplesR = inputR[i];
+    WDL_FFT_REAL* inputPtrs[2] = {&samplesL, &samplesR};
+
+    convolutionEngine_->Add(inputPtrs, 1, 2);
+
+    if (convolutionEngine_->Avail(1) >= 1) {
+      WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
+      outputL[i] = outputPtr[0][0];
+      outputR[i] = outputPtr[1][0];
+      convolutionEngine_->Advance(1);
+    } else {
+      outputL[i] = 0.0f;
+      outputR[i] = 0.0f;
+    }
+  }
+}
+
+void IRProcessor::processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL,
+                                  Sample* outputR, FrameCount numFrames) {
+  processStereo(inputL, inputR, outputL, outputR, numFrames);
+}
+
 }  // namespace octob

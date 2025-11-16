@@ -1,29 +1,45 @@
 #include "PluginProcessor.h"
+
 #include "PluginEditor.h"
 
 OctobIRProcessor::OctobIRProcessor()
-    : AudioProcessor(
-          BusesProperties()
-              .withInput("Input", juce::AudioChannelSet::stereo(), true)
-              .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {}
+    : AudioProcessor(BusesProperties()
+                         .withInput("Input", juce::AudioChannelSet::stereo(), true)
+                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {}
 
 OctobIRProcessor::~OctobIRProcessor() {}
 
-const juce::String OctobIRProcessor::getName() const { return JucePlugin_Name; }
+const juce::String OctobIRProcessor::getName() const {
+  return JucePlugin_Name;
+}
 
-bool OctobIRProcessor::acceptsMidi() const { return false; }
+bool OctobIRProcessor::acceptsMidi() const {
+  return false;
+}
 
-bool OctobIRProcessor::producesMidi() const { return false; }
+bool OctobIRProcessor::producesMidi() const {
+  return false;
+}
 
-bool OctobIRProcessor::isMidiEffect() const { return false; }
+bool OctobIRProcessor::isMidiEffect() const {
+  return false;
+}
 
-double OctobIRProcessor::getTailLengthSeconds() const { return 0.0; }
+double OctobIRProcessor::getTailLengthSeconds() const {
+  return 0.0;
+}
 
-int OctobIRProcessor::getNumPrograms() { return 1; }
+int OctobIRProcessor::getNumPrograms() {
+  return 1;
+}
 
-int OctobIRProcessor::getCurrentProgram() { return 0; }
+int OctobIRProcessor::getCurrentProgram() {
+  return 0;
+}
 
-void OctobIRProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
+void OctobIRProcessor::setCurrentProgram(int index) {
+  juce::ignoreUnused(index);
+}
 
 const juce::String OctobIRProcessor::getProgramName(int index) {
   juce::ignoreUnused(index);
@@ -39,7 +55,9 @@ void OctobIRProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
   irProcessor_.setSampleRate(sampleRate);
 }
 
-void OctobIRProcessor::releaseResources() { irProcessor_.reset(); }
+void OctobIRProcessor::releaseResources() {
+  irProcessor_.reset();
+}
 
 bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
   if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
@@ -53,7 +71,7 @@ bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const 
 }
 
 void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
-                                     juce::MidiBuffer& midiMessages) {
+                                    juce::MidiBuffer& midiMessages) {
   juce::ignoreUnused(midiMessages);
   juce::ScopedNoDenormals noDenormals;
 
@@ -63,21 +81,20 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
 
-  if (totalNumInputChannels >= 1 && totalNumOutputChannels >= 1) {
+  if (totalNumInputChannels >= 2 && totalNumOutputChannels >= 2) {
+    float* channelDataL = buffer.getWritePointer(0);
+    float* channelDataR = buffer.getWritePointer(1);
+    irProcessor_.processStereo(channelDataL, channelDataR, channelDataL, channelDataR,
+                               static_cast<size_t>(buffer.getNumSamples()));
+  } else if (totalNumInputChannels >= 1 && totalNumOutputChannels >= 1) {
     float* channelData = buffer.getWritePointer(0);
-    irProcessor_.processMono(channelData, channelData,
-                             static_cast<size_t>(buffer.getNumSamples()));
-
-    if (totalNumInputChannels >= 2 && totalNumOutputChannels >= 2) {
-      float* channelDataR = buffer.getWritePointer(1);
-      for (int i = 0; i < buffer.getNumSamples(); ++i) {
-        channelDataR[i] = channelData[i];
-      }
-    }
+    irProcessor_.processMono(channelData, channelData, static_cast<size_t>(buffer.getNumSamples()));
   }
 }
 
-bool OctobIRProcessor::hasEditor() const { return true; }
+bool OctobIRProcessor::hasEditor() const {
+  return true;
+}
 
 juce::AudioProcessorEditor* OctobIRProcessor::createEditor() {
   return new OctobIREditor(*this);
@@ -92,8 +109,7 @@ void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData) {
 }
 
 void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
-  juce::ValueTree state =
-      juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
+  juce::ValueTree state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
 
   if (state.isValid()) {
     juce::String path = state.getProperty("irPath").toString();
