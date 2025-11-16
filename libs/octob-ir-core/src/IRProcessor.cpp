@@ -1,14 +1,13 @@
 #include "octob-ir-core/IRProcessor.hpp"
 
-#include <WDL/ImpulseBuffer.h>
-#include <WDL/convoengine.h>
+#include <convoengine.h>
 
 namespace octob {
 
 IRProcessor::IRProcessor()
-    : impulseBuffer_(std::make_unique<WDL_ImpulseBuffer>()),
-      convolutionEngine_(std::make_unique<WDL_ConvolutionEngine>()),
-      irLoader_(std::make_unique<IRLoader>()) {}
+    : impulseBuffer_(new WDL_ImpulseBuffer()),
+      convolutionEngine_(new WDL_ConvolutionEngine()),
+      irLoader_(new IRLoader()) {}
 
 IRProcessor::~IRProcessor() = default;
 

@@ -3,8 +3,8 @@
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
-#include <WDL/ImpulseBuffer.h>
-#include <WDL/resample.h>
+#include <convoengine.h>
+#include <resample.h>
 
 namespace octob {
 
@@ -84,7 +84,7 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
         (numSamples_ * static_cast<size_t>(targetSampleRate) +
          static_cast<size_t>(irSampleRate_) / 2) /
         static_cast<size_t>(irSampleRate_);
-    std::vector<Sample> resampledIr(outFrames + 64);
+    std::vector<WDL_ResampleSample> resampledIr(outFrames + 64);
 
     WDL_ResampleSample* rsinbuf = nullptr;
     int inSamples = static_cast<int>(numSamples_);
@@ -125,7 +125,7 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
     }
 
     for (int i = 0; i < actualLength; i++) {
-      irBufferPtr[i] = (i < actualOutSamples) ? resampledIr[i] : 0.0f;
+      irBufferPtr[i] = (i < actualOutSamples) ? static_cast<WDL_FFT_REAL>(resampledIr[i]) : 0.0f;
     }
 
     return true;
@@ -148,7 +148,7 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
     }
 
     for (int i = 0; i < actualLength; i++) {
-      irBufferPtr[i] = (i < static_cast<int>(numSamples_)) ? irBuffer_[i] : 0.0f;
+      irBufferPtr[i] = (i < static_cast<int>(numSamples_)) ? static_cast<WDL_FFT_REAL>(irBuffer_[i]) : 0.0f;
     }
 
     return true;
