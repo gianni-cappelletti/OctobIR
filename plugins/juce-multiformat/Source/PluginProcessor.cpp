@@ -5,9 +5,23 @@
 OctobIRProcessor::OctobIRProcessor()
     : AudioProcessor(BusesProperties()
                          .withInput("Input", juce::AudioChannelSet::stereo(), true)
-                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {}
+                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts_(*this, nullptr, "Parameters", createParameterLayout()) {}
 
 OctobIRProcessor::~OctobIRProcessor() {}
+
+juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createParameterLayout() {
+  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "blend", "Blend", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.0f, juce::String(),
+      juce::AudioProcessorParameter::genericParameter, [](float value, int) {
+        int percentage = static_cast<int>(value * 100.0f);
+        return juce::String(percentage) + "%";
+      }));
+
+  return layout;
+}
 
 const juce::String OctobIRProcessor::getName() const {
   return JucePlugin_Name;
@@ -81,6 +95,9 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
 
+  float blendValue = apvts_.getRawParameterValue("blend")->load();
+  irProcessor_.setBlend(blendValue);
+
   if (totalNumInputChannels >= 2 && totalNumOutputChannels >= 2) {
     float* channelDataL = buffer.getWritePointer(0);
     float* channelDataR = buffer.getWritePointer(1);
@@ -101,8 +118,9 @@ juce::AudioProcessorEditor* OctobIRProcessor::createEditor() {
 }
 
 void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData) {
-  juce::ValueTree state("OctobIRState");
+  auto state = apvts_.copyState();
   state.setProperty("irPath", currentIRPath_, nullptr);
+  state.setProperty("ir2Path", currentIR2Path_, nullptr);
 
   juce::MemoryOutputStream stream(destData, false);
   state.writeToStream(stream);
@@ -112,10 +130,18 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
   juce::ValueTree state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
 
   if (state.isValid()) {
+    apvts_.replaceState(state);
+
     juce::String path = state.getProperty("irPath").toString();
     if (path.isNotEmpty()) {
       juce::String error;
       loadImpulseResponse(path, error);
+    }
+
+    juce::String path2 = state.getProperty("ir2Path").toString();
+    if (path2.isNotEmpty()) {
+      juce::String error;
+      loadImpulseResponse2(path2, error);
     }
   }
 }
@@ -126,12 +152,27 @@ bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath,
   if (irProcessor_.loadImpulseResponse(filepath.toStdString(), error)) {
     currentIRPath_ = filepath;
     setLatencySamples(irProcessor_.getLatencySamples());
-    DBG("Loaded IR: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
+    DBG("Loaded IR1: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
         " samples)");
     errorMessage.clear();
     return true;
   } else {
-    DBG("Failed to load IR: " + juce::String(error));
+    DBG("Failed to load IR1: " + juce::String(error));
+    errorMessage = juce::String(error);
+    return false;
+  }
+}
+
+bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
+                                            juce::String& errorMessage) {
+  std::string error;
+  if (irProcessor_.loadImpulseResponse2(filepath.toStdString(), error)) {
+    currentIR2Path_ = filepath;
+    DBG("Loaded IR2: " + filepath);
+    errorMessage.clear();
+    return true;
+  } else {
+    DBG("Failed to load IR2: " + juce::String(error));
     errorMessage = juce::String(error);
     return false;
   }

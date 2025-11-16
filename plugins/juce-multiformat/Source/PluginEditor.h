@@ -15,11 +15,22 @@ class OctobIREditor : public juce::AudioProcessorEditor {
  private:
   OctobIRProcessor& audioProcessor;
 
+  juce::Label ir1TitleLabel_;
   juce::TextButton loadButton_;
   juce::Label irPathLabel_;
+
+  juce::Label ir2TitleLabel_;
+  juce::TextButton loadButton2_;
+  juce::Label ir2PathLabel_;
+
+  juce::Label blendLabel_;
+  juce::Slider blendSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> blendAttachment_;
+
   juce::Label latencyLabel_;
 
   void loadButtonClicked();
+  void loadButton2Clicked();
   void updateLatencyDisplay();
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctobIREditor)

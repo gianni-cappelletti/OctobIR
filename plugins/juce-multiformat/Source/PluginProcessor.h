@@ -36,11 +36,19 @@ class OctobIRProcessor : public juce::AudioProcessor {
   void setStateInformation(const void* data, int sizeInBytes) override;
 
   bool loadImpulseResponse(const juce::String& filepath, juce::String& errorMessage);
+  bool loadImpulseResponse2(const juce::String& filepath, juce::String& errorMessage);
   juce::String getCurrentIRPath() const { return currentIRPath_; }
+  juce::String getCurrentIR2Path() const { return currentIR2Path_; }
+
+  juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
 
  private:
   octob::IRProcessor irProcessor_;
   juce::String currentIRPath_;
+  juce::String currentIR2Path_;
+
+  juce::AudioProcessorValueTreeState apvts_;
+  juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctobIRProcessor)
 };
