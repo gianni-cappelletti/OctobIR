@@ -12,12 +12,22 @@ if [ ! -d "third_party/JUCE" ]; then
     exit 1
 fi
 
-if [ ! -d "third_party/iPlug2" ]; then
-    echo "Error: iPlug2 submodule not found"
+if [ ! -d "third_party/WDL" ]; then
+    echo "Error: WDL submodule not found"
     exit 1
 fi
 
 echo "✓ Submodules initialized"
+
+echo ""
+echo "Installing git hooks..."
+if [ -f "scripts/hooks/pre-commit" ]; then
+    cp scripts/hooks/pre-commit .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    echo "✓ Pre-commit hook installed"
+else
+    echo "Warning: pre-commit hook not found in scripts/hooks/"
+fi
 
 echo ""
 echo "Setup complete! Next steps:"
