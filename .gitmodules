@@ -1,8 +1,7 @@
-[submodule "iPlug2"]
-	path = third_party/iPlug2
-	url = https://github.com/iPlug2/iPlug2.git
-
 [submodule "third_party/JUCE"]
 	path = third_party/JUCE
 	url = https://github.com/juce-framework/JUCE.git
 	branch = master
+[submodule "third_party/WDL"]
+	path = third_party/WDL
+	url = https://github.com/justinfrankel/WDL.git

@@ -1,4 +1,4 @@
-#include "octob-ir-core/IRProcessor.hpp"
+#include "octobir-core/IRProcessor.hpp"
 
 #include <convoengine.h>
 

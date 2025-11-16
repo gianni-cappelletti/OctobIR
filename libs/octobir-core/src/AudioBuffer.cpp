@@ -1,4 +1,4 @@
-#include "octob-ir-core/AudioBuffer.hpp"
+#include "octobir-core/AudioBuffer.hpp"
 
 #include <algorithm>
 

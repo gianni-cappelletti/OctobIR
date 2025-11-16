@@ -3,20 +3,21 @@ Third-Party Software Notices
 
 This software includes components from the following third-party projects:
 
-iPlug2 / WDL (Winamp Developmental Library)
--------------------------------------------
-Copyright (c) 2024 iPlug2 Team
+1. WDL (Winamp Developmental Library)
+--------------------------------------
 Copyright (c) Cockos Incorporated
+Source: https://github.com/justinfrankel/WDL (Official Cockos repository)
+Alternative: https://www-dev.cockos.com/wdl/WDL.git
 
-Licensed under the iPlug2 License (zlib-style)
-Source: https://github.com/iPlug2/iPlug2
+License: zlib-style (permissive, GPL-compatible)
 
-Used components:
-- WDL Convolution Engine (convoengine.h/cpp)
-- WDL Resampler (resample.h/cpp) 
-- WDL FFT (fft.h/c)
+Used WDL components (DSP algorithms only):
+- convoengine.cpp/.h - FFT-based convolution engine
+- fft.c/.h           - Fast Fourier Transform implementation
+- resample.cpp/.h    - Audio sample rate conversion
 
-License: Permission is granted to anyone to use this software for any purpose,
+License Text:
+Permission is granted to anyone to use this software for any purpose,
 including commercial applications, and to alter it and redistribute it freely,
 subject to the following restrictions:
 
@@ -25,3 +26,48 @@ subject to the following restrictions:
 2. Altered source versions must be plainly marked as such, and must not be
    misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
+
+
+2. JUCE Framework
+-----------------
+Copyright (c) 2020 - Raw Material Software Limited
+Source: https://github.com/juce-framework/JUCE
+
+License: GNU General Public License v3.0 (GPL-3.0)
+(Used under open-source GPL-3.0 option, not commercial license)
+
+Used for: Plugin framework (VST3/AU/Standalone formats)
+
+JUCE is dual-licensed:
+- GPL-3.0 for open-source projects (what we use)
+- Commercial license available from https://juce.com/
+
+Full GPL-3.0 license: https://www.gnu.org/licenses/gpl-3.0.html
+
+
+3. dr_wav
+---------
+Public Domain / Unlicense
+Source: https://github.com/mackron/dr_libs
+
+Used for: WAV file loading (header-only library)
+
+This is free and unencumbered software released into the public domain.
+ALTERNATIVE B - MIT No Attribution License:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction.
+
+
+4. VCV Rack SDK (VCV Rack Plugin Only)
+---------------------------------------
+Copyright (c) 2016-2024 VCV
+Source: https://github.com/VCVRack/Rack
+
+License: GNU General Public License v3.0 or later (GPL-3.0+)
+
+Used for: VCV Rack plugin API and module framework
+
+Note: VCV Rack plugins MUST be GPL-3.0 or later by VCV Rack requirements.
+
+Full license: https://www.gnu.org/licenses/gpl-3.0.html

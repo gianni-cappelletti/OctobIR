@@ -1,7 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <octob-ir-core/IRProcessor.hpp>
+#include <octobir-core/IRProcessor.hpp>
 
 class OctobIRProcessor : public juce::AudioProcessor {
  public:

@@ -1,4 +1,4 @@
-# octob-ir-core
+# octobir-core
 
 Platform-agnostic impulse response convolution DSP library.
 
@@ -12,7 +12,7 @@ Platform-agnostic impulse response convolution DSP library.
 ## Usage
 
 ```cpp
-#include <octob-ir-core/IRProcessor.hpp>
+#include <octobir-core/IRProcessor.hpp>
 
 octob::IRProcessor processor;
 processor.setSampleRate(48000.0);
@@ -84,9 +84,17 @@ Simple audio buffer wrapper.
 
 ## Dependencies
 
-- **WDL** (via iPlug2) - ConvolutionEngine, FFT, Resampler
+- **WDL** (Winamp Developmental Library from Cockos)
+  - Source: https://github.com/justinfrankel/WDL
+  - ConvolutionEngine (`convoengine.cpp`) - FFT-based convolution
+  - FFT (`fft.c`) - Fast Fourier Transform
+  - Resampler (`resample.cpp`) - Sample rate conversion
+  - License: zlib-style (permissive, GPL-compatible)
 - **dr_wav** - WAV file loading (header-only)
+  - License: Public Domain / MIT No Attribution
 
 ## License
 
-MIT License
+GNU General Public License v3.0 (GPL-3.0)
+
+This core library is part of the OctobIR project and is licensed under GPL-3.0 to ensure compatibility with JUCE (GPL-3.0) and VCV Rack (GPL-3.0+) requirements.

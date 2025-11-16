@@ -72,8 +72,8 @@ add_custom_target(vcv-plugin-format-check
 )
 
 # Make the main target depend on the core library if it exists
-if(TARGET octob-ir-core)
-    add_dependencies(vcv-plugin octob-ir-core)
+if(TARGET octobir-core)
+    add_dependencies(vcv-plugin octobir-core)
 endif()
 
 # Add custom clean target to the overall clean

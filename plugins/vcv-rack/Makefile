@@ -2,8 +2,8 @@
 RACK_DIR ?= ../..
 
 # FLAGS will be passed to both the C and C++ compiler
-FLAGS += -I../../libs/octob-ir-core/include
-FLAGS += -I../../third_party/iPlug2/WDL
+FLAGS += -I../../libs/octobir-core/include
+FLAGS += -I../../third_party/WDL/WDL
 FLAGS += -I../../third_party
 CFLAGS +=
 CXXFLAGS +=
@@ -15,15 +15,15 @@ LDFLAGS +=
 # Add .cpp files to the build
 SOURCES += $(wildcard src/*.cpp)
 
-# Add octob-ir-core library sources
-SOURCES += ../../libs/octob-ir-core/src/AudioBuffer.cpp
-SOURCES += ../../libs/octob-ir-core/src/IRLoader.cpp
-SOURCES += ../../libs/octob-ir-core/src/IRProcessor.cpp
+# Add octobir-core library sources
+SOURCES += ../../libs/octobir-core/src/AudioBuffer.cpp
+SOURCES += ../../libs/octobir-core/src/IRLoader.cpp
+SOURCES += ../../libs/octobir-core/src/IRProcessor.cpp
 
-# Add iPlug2 WDL sources
-SOURCES += ../../third_party/iPlug2/WDL/convoengine.cpp
-SOURCES += ../../third_party/iPlug2/WDL/resample.cpp
-SOURCES += ../../third_party/iPlug2/WDL/fft.c
+# Add WDL sources
+SOURCES += ../../third_party/WDL/WDL/convoengine.cpp
+SOURCES += ../../third_party/WDL/WDL/resample.cpp
+SOURCES += ../../third_party/WDL/WDL/fft.c
 
 # Add files to the ZIP package when running `make dist`
 # The compiled plugin and "plugin.json" are automatically added.

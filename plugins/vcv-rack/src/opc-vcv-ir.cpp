@@ -2,7 +2,7 @@
 
 #include "plugin.hpp"
 
-#include <octob-ir-core/IRProcessor.hpp>
+#include <octobir-core/IRProcessor.hpp>
 #include <osdialog.h>
 
 struct OpcVcvIr final : Module {

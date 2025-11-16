@@ -1,0 +1,75 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Development Build",
+      "description": "Debug build with all plugins",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "dev-vcv",
+      "displayName": "VCV Plugin Only (Dev)",
+      "description": "Debug build for VCV Rack plugin development",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/dev-vcv",
+      "cacheVariables": {
+        "BUILD_JUCE_PLUGIN": "OFF",
+        "BUILD_CORE_LIB": "ON",
+        "BUILD_VCV_PLUGIN": "ON"
+      }
+    },
+    {
+      "name": "dev-juce",
+      "displayName": "JUCE Plugin Only (Dev)",
+      "description": "Debug build for JUCE plugin development",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/dev-juce",
+      "cacheVariables": {
+        "BUILD_JUCE_PLUGIN": "ON",
+        "BUILD_CORE_LIB": "ON",
+        "BUILD_VCV_PLUGIN": "OFF"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release Build",
+      "description": "Optimized release build for all plugins",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "jobs": 0
+    },
+    {
+      "name": "dev-vcv",
+      "configurePreset": "dev-vcv",
+      "jobs": 0
+    },
+    {
+      "name": "dev-juce",
+      "configurePreset": "dev-juce",
+      "jobs": 0
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "jobs": 0
+    }
+  ]
+}

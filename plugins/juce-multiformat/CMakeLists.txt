@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(../../third_party/JUCE ${CMAKE_CURRENT_BINARY_DIR}/JUCE)
 
-# Note: octob-ir-core is added by root CMakeLists.txt, not here
+# Note: octobir-core is added by root CMakeLists.txt, not here
 # This avoids duplicate target errors when building from root
 
 set(FORMATS VST3 AU Standalone)
@@ -37,7 +37,7 @@ target_compile_definitions(OctobIR
 target_link_libraries(OctobIR
     PRIVATE
         juce::juce_audio_utils
-        octob-ir-core
+        octobir-core
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags

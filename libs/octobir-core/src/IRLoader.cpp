@@ -1,4 +1,4 @@
-#include "octob-ir-core/IRLoader.hpp"
+#include "octobir-core/IRLoader.hpp"
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
