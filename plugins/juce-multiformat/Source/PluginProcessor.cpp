@@ -114,18 +114,26 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
   if (state.isValid()) {
     juce::String path = state.getProperty("irPath").toString();
     if (path.isNotEmpty()) {
-      loadImpulseResponse(path);
+      juce::String error;
+      loadImpulseResponse(path, error);
     }
   }
 }
 
-void OctobIRProcessor::loadImpulseResponse(const juce::String& filepath) {
+bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath,
+                                           juce::String& errorMessage) {
   std::string error;
   if (irProcessor_.loadImpulseResponse(filepath.toStdString(), error)) {
     currentIRPath_ = filepath;
-    DBG("Loaded IR: " + filepath);
+    setLatencySamples(irProcessor_.getLatencySamples());
+    DBG("Loaded IR: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
+        " samples)");
+    errorMessage.clear();
+    return true;
   } else {
     DBG("Failed to load IR: " + juce::String(error));
+    errorMessage = juce::String(error);
+    return false;
   }
 }
 

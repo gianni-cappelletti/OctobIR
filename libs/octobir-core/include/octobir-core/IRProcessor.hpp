@@ -8,7 +8,7 @@
 #include "Types.hpp"
 
 class WDL_ImpulseBuffer;
-class WDL_ConvolutionEngine;
+class WDL_ConvolutionEngine_Div;
 
 namespace octob {
 
@@ -32,17 +32,19 @@ class IRProcessor {
   SampleRate getIRSampleRate() const;
   size_t getIRNumSamples() const;
   int getNumIRChannels() const;
+  int getLatencySamples() const;
 
   void reset();
 
  private:
   std::unique_ptr<WDL_ImpulseBuffer> impulseBuffer_;
-  std::unique_ptr<WDL_ConvolutionEngine> convolutionEngine_;
+  std::unique_ptr<WDL_ConvolutionEngine_Div> convolutionEngine_;
   std::unique_ptr<IRLoader> irLoader_;
 
   SampleRate sampleRate_ = 44100.0;
   std::string currentIRPath_;
   bool irLoaded_ = false;
+  int latencySamples_ = 0;
 };
 
 }  // namespace octob

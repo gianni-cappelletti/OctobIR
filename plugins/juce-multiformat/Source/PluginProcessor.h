@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+
 #include <octobir-core/IRProcessor.hpp>
 
 class OctobIRProcessor : public juce::AudioProcessor {
@@ -13,8 +14,7 @@ class OctobIRProcessor : public juce::AudioProcessor {
 
   bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 
-  void processBlock(juce::AudioBuffer<float>& buffer,
-                    juce::MidiBuffer& midiMessages) override;
+  void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
 
   juce::AudioProcessorEditor* createEditor() override;
   bool hasEditor() const override;
@@ -35,7 +35,7 @@ class OctobIRProcessor : public juce::AudioProcessor {
   void getStateInformation(juce::MemoryBlock& destData) override;
   void setStateInformation(const void* data, int sizeInBytes) override;
 
-  void loadImpulseResponse(const juce::String& filepath);
+  bool loadImpulseResponse(const juce::String& filepath, juce::String& errorMessage);
   juce::String getCurrentIRPath() const { return currentIRPath_; }
 
  private:

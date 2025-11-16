@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+
 #include "PluginProcessor.h"
 
 class OctobIREditor : public juce::AudioProcessorEditor {
@@ -16,8 +17,10 @@ class OctobIREditor : public juce::AudioProcessorEditor {
 
   juce::TextButton loadButton_;
   juce::Label irPathLabel_;
+  juce::Label latencyLabel_;
 
   void loadButtonClicked();
+  void updateLatencyDisplay();
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctobIREditor)
 };

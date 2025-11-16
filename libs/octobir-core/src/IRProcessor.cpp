@@ -6,7 +6,7 @@ namespace octob {
 
 IRProcessor::IRProcessor()
     : impulseBuffer_(new WDL_ImpulseBuffer()),
-      convolutionEngine_(new WDL_ConvolutionEngine()),
+      convolutionEngine_(new WDL_ConvolutionEngine_Div()),
       irLoader_(new IRLoader()) {}
 
 IRProcessor::~IRProcessor() = default;
@@ -26,10 +26,36 @@ bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& 
     return false;
   }
 
-  int latency = convolutionEngine_->SetImpulse(impulseBuffer_.get());
-  if (latency <= 0) {
-    errorMessage = "Failed to initialize convolution engine with IR";
+  int irLength = impulseBuffer_->GetLength();
+  int irChannels = impulseBuffer_->GetNumChannels();
+  double irSampleRate = impulseBuffer_->samplerate;
+
+  if (irLength <= 0) {
+    errorMessage = "IR buffer length is invalid: " + std::to_string(irLength);
     irLoaded_ = false;
+    return false;
+  }
+
+  if (irChannels <= 0) {
+    errorMessage = "IR buffer channels is invalid: " + std::to_string(irChannels);
+    irLoaded_ = false;
+    return false;
+  }
+
+  if (irSampleRate <= 0) {
+    errorMessage = "IR sample rate is invalid: " + std::to_string(irSampleRate);
+    irLoaded_ = false;
+    return false;
+  }
+
+  latencySamples_ = convolutionEngine_->SetImpulse(impulseBuffer_.get(), 64);
+  if (latencySamples_ < 0) {
+    errorMessage = "Failed to initialize convolution engine with IR (returned " +
+                   std::to_string(latencySamples_) + "). IR: " + std::to_string(irLength) +
+                   " samples, " + std::to_string(irChannels) + " channels, " +
+                   std::to_string(irSampleRate) + " Hz";
+    irLoaded_ = false;
+    latencySamples_ = 0;
     return false;
   }
 
@@ -47,7 +73,7 @@ void IRProcessor::setSampleRate(SampleRate sampleRate) {
     if (irLoaded_) {
       irLoader_->resampleAndInitialize(*impulseBuffer_, sampleRate_);
       convolutionEngine_->Reset();
-      convolutionEngine_->SetImpulse(impulseBuffer_.get());
+      latencySamples_ = convolutionEngine_->SetImpulse(impulseBuffer_.get(), 64);
     }
   }
 }
@@ -58,18 +84,16 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     return;
   }
 
-  for (size_t i = 0; i < numFrames; i++) {
-    WDL_FFT_REAL sample = input[i];
-    WDL_FFT_REAL* inputPtr = &sample;
-    convolutionEngine_->Add(&inputPtr, 1, 1);
+  WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
+  convolutionEngine_->Add(&inputPtr, static_cast<int>(numFrames), 1);
 
-    if (convolutionEngine_->Avail(1) >= 1) {
-      WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      output[i] = outputPtr[0][0];
-      convolutionEngine_->Advance(1);
-    } else {
-      output[i] = 0.0f;
-    }
+  int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
+  if (available >= static_cast<int>(numFrames)) {
+    WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
+    std::copy(outputPtr[0], outputPtr[0] + numFrames, output);
+    convolutionEngine_->Advance(static_cast<int>(numFrames));
+  } else {
+    std::fill(output, output + numFrames, 0.0f);
   }
 }
 
@@ -91,6 +115,10 @@ int IRProcessor::getNumIRChannels() const {
   return irLoader_ ? irLoader_->getNumChannels() : 0;
 }
 
+int IRProcessor::getLatencySamples() const {
+  return latencySamples_;
+}
+
 void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL,
                                 Sample* outputR, FrameCount numFrames) {
   if (!irLoaded_) {
@@ -99,22 +127,19 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     return;
   }
 
-  for (size_t i = 0; i < numFrames; i++) {
-    WDL_FFT_REAL samplesL = inputL[i];
-    WDL_FFT_REAL samplesR = inputR[i];
-    WDL_FFT_REAL* inputPtrs[2] = {&samplesL, &samplesR};
+  WDL_FFT_REAL* inputPtrs[2] = {const_cast<WDL_FFT_REAL*>(inputL),
+                                const_cast<WDL_FFT_REAL*>(inputR)};
+  convolutionEngine_->Add(inputPtrs, static_cast<int>(numFrames), 2);
 
-    convolutionEngine_->Add(inputPtrs, 1, 2);
-
-    if (convolutionEngine_->Avail(1) >= 1) {
-      WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      outputL[i] = outputPtr[0][0];
-      outputR[i] = outputPtr[1][0];
-      convolutionEngine_->Advance(1);
-    } else {
-      outputL[i] = 0.0f;
-      outputR[i] = 0.0f;
-    }
+  int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
+  if (available >= static_cast<int>(numFrames)) {
+    WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
+    std::copy(outputPtr[0], outputPtr[0] + numFrames, outputL);
+    std::copy(outputPtr[1], outputPtr[1] + numFrames, outputR);
+    convolutionEngine_->Advance(static_cast<int>(numFrames));
+  } else {
+    std::fill(outputL, outputL + numFrames, 0.0f);
+    std::fill(outputR, outputR + numFrames, 0.0f);
   }
 }
 
