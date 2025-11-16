@@ -44,13 +44,18 @@ void OctobIREditor::resized() {
 }
 
 void OctobIREditor::loadButtonClicked() {
-  juce::FileChooser chooser(
+  auto chooser = std::make_shared<juce::FileChooser>(
       "Select impulse response WAV file",
       juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*.wav");
 
-  if (chooser.browseForFileToOpen()) {
-    juce::File file = chooser.getResult();
-    audioProcessor.loadImpulseResponse(file.getFullPathName());
-    irPathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-  }
+  auto flags = juce::FileBrowserComponent::openMode |
+               juce::FileBrowserComponent::canSelectFiles;
+
+  chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
+    auto file = fc.getResult();
+    if (file.existsAsFile()) {
+      audioProcessor.loadImpulseResponse(file.getFullPathName());
+      irPathLabel_.setText(file.getFileName(), juce::dontSendNotification);
+    }
+  });
 }

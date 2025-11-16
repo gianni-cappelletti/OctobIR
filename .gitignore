@@ -6,6 +6,8 @@
 
 # Binaries and build targets
 *.a
+*.o
+*.d
 *.so
 *.dylib
 *.dll

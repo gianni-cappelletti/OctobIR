@@ -2,19 +2,15 @@
 
 set -e
 
-echo "Building all OctobIR plugins..."
+echo "Building all OctobIR plugins with unified CMake build system..."
 
 echo ""
-echo "=== Building JUCE Plugin ==="
+echo "=== Configuring CMake Build ==="
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
 
 echo ""
-echo "=== Building VCV Rack Plugin ==="
-cd plugins/vcv-rack
-make clean
-make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
-cd ../..
+echo "=== Building All Plugins ==="
+cmake --build build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 echo ""
 echo "✓ All plugins built successfully"

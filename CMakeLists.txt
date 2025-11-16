@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_CORE_LIB "Build octob-ir-core library" ON)
 option(BUILD_JUCE_PLUGIN "Build JUCE plugin (VST3/AU/Standalone)" ON)
-option(BUILD_VCV_PLUGIN "Build VCV Rack plugin" OFF)
+option(BUILD_VCV_PLUGIN "Build VCV Rack plugin" ON)
 
 if(BUILD_CORE_LIB)
     add_subdirectory(libs/octob-ir-core)
@@ -17,5 +17,5 @@ if(BUILD_JUCE_PLUGIN)
 endif()
 
 if(BUILD_VCV_PLUGIN)
-    message(STATUS "VCV Rack plugin: Use 'make' in plugins/vcv-rack/ directory")
+    add_subdirectory(plugins/vcv-rack)
 endif()

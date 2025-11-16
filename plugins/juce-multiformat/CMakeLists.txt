@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(../../third_party/JUCE ${CMAKE_CURRENT_BINARY_DIR}/JUCE)
 
-add_subdirectory(../../libs/octob-ir-core ${CMAKE_CURRENT_BINARY_DIR}/octob-ir-core)
+# Note: octob-ir-core is added by root CMakeLists.txt, not here
+# This avoids duplicate target errors when building from root
 
 set(FORMATS VST3 AU Standalone)
 

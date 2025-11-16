@@ -19,19 +19,23 @@ fi
 
 echo "✓ Submodules initialized"
 
-echo "Building octob-ir-core library..."
-cmake -B build/core -S libs/octob-ir-core -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/core
-
-echo "✓ Core library built"
-
 echo ""
 echo "Setup complete! Next steps:"
 echo ""
-echo "  JUCE Plugin:"
+echo "  Build all plugins (unified CMake system):"
 echo "    cmake -B build -DCMAKE_BUILD_TYPE=Release"
 echo "    cmake --build build --config Release"
 echo ""
-echo "  VCV Rack Plugin:"
-echo "    cd plugins/vcv-rack && make"
+echo "  Or use the build script:"
+echo "    ./scripts/build-all.sh"
+echo ""
+echo "  Build specific targets:"
+echo "    cmake --build build --target octob-ir-core      # Core library only"
+echo "    cmake --build build --target OctobIR            # JUCE plugin only"
+echo "    cmake --build build --target vcv-plugin         # VCV plugin only"
+echo ""
+echo "  VCV-specific targets:"
+echo "    cmake --build build --target vcv-plugin-install # Install VCV plugin"
+echo "    cmake --build build --target vcv-plugin-dist    # Create VCV distribution"
+echo "    cmake --build build --target vcv-plugin-clean   # Clean VCV build"
 echo ""
