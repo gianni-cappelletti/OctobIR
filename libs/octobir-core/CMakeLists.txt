@@ -16,22 +16,32 @@ target_include_directories(octobir-core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/WDL/WDL
 )
 
-target_include_directories(octobir-core
+# Mark third-party includes as SYSTEM to suppress warnings from external code
+target_include_directories(octobir-core SYSTEM
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/WDL/WDL
         ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
 )
 
 set(WDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/WDL/WDL)
 
-target_sources(octobir-core PRIVATE
+set(WDL_SOURCES
     ${WDL_DIR}/convoengine.cpp
     ${WDL_DIR}/fft.c
     ${WDL_DIR}/resample.cpp
 )
+
+target_sources(octobir-core PRIVATE ${WDL_SOURCES})
+
+# Suppress warnings in third-party WDL code that we cannot modify
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    set_source_files_properties(${WDL_SOURCES}
+        PROPERTIES
+        COMPILE_FLAGS "-Wno-unused-parameter"
+    )
+endif()
 
 if(APPLE)
     target_compile_options(octobir-core PRIVATE -Wall -Wextra)

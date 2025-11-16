@@ -65,7 +65,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
   if (totalNumInputChannels >= 1 && totalNumOutputChannels >= 1) {
     float* channelData = buffer.getWritePointer(0);
-    irProcessor_.processMono(channelData, channelData, buffer.getNumSamples());
+    irProcessor_.processMono(channelData, channelData,
+                             static_cast<size_t>(buffer.getNumSamples()));
 
     if (totalNumInputChannels >= 2 && totalNumOutputChannels >= 2) {
       float* channelDataR = buffer.getWritePointer(1);
@@ -91,7 +92,8 @@ void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData) {
 }
 
 void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
-  juce::ValueTree state = juce::ValueTree::readFromData(data, sizeInBytes);
+  juce::ValueTree state =
+      juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
 
   if (state.isValid()) {
     juce::String path = state.getProperty("irPath").toString();
