@@ -52,3 +52,8 @@ endif()
 set_target_properties(octobir-core PROPERTIES
     PUBLIC_HEADER "include/octobir-core/IRProcessor.hpp;include/octobir-core/IRLoader.hpp;include/octobir-core/AudioBuffer.hpp;include/octobir-core/Types.hpp"
 )
+
+option(BUILD_TESTS "Build unit tests" OFF)
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
