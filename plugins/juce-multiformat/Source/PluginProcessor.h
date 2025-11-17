@@ -42,6 +42,10 @@ class OctobIRProcessor : public juce::AudioProcessor {
 
   juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
 
+  float getCurrentInputLevel() const { return irProcessor_.getCurrentInputLevel(); }
+  float getCurrentBlend() const { return irProcessor_.getCurrentBlend(); }
+  octob::IRProcessor& getIRProcessor() { return irProcessor_; }
+
  private:
   octob::IRProcessor irProcessor_;
   juce::String currentIRPath_;

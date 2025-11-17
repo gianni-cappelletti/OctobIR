@@ -23,11 +23,30 @@ class IRProcessor {
   void setSampleRate(SampleRate sampleRate);
   void setBlend(float blend);
 
+  void setDynamicModeEnabled(bool enabled);
+  void setSidechainEnabled(bool enabled);
+  void setMinBlend(float minBlend);
+  void setMaxBlend(float maxBlend);
+  void setLowThreshold(float thresholdDb);
+  void setHighThreshold(float thresholdDb);
+  void setAttackTime(float attackTimeMs);
+  void setReleaseTime(float releaseTimeMs);
+  void setOutputGain(float gainDb);
+
   void processMono(const Sample* input, Sample* output, FrameCount numFrames);
   void processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
                      FrameCount numFrames);
   void processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
                        FrameCount numFrames);
+
+  void processMonoWithSidechain(const Sample* input, const Sample* sidechain, Sample* output,
+                                FrameCount numFrames);
+  void processStereoWithSidechain(const Sample* inputL, const Sample* inputR,
+                                  const Sample* sidechainL, const Sample* sidechainR,
+                                  Sample* outputL, Sample* outputR, FrameCount numFrames);
+  void processDualMonoWithSidechain(const Sample* inputL, const Sample* inputR,
+                                    const Sample* sidechainL, const Sample* sidechainR,
+                                    Sample* outputL, Sample* outputR, FrameCount numFrames);
 
   bool isIRLoaded() const { return irLoaded_; }
   bool isIR2Loaded() const { return ir2Loaded_; }
@@ -41,6 +60,18 @@ class IRProcessor {
   int getNumIR2Channels() const;
   int getLatencySamples() const;
   float getBlend() const { return blend_; }
+
+  bool getDynamicModeEnabled() const { return dynamicModeEnabled_; }
+  bool getSidechainEnabled() const { return sidechainEnabled_; }
+  float getMinBlend() const { return minBlend_; }
+  float getMaxBlend() const { return maxBlend_; }
+  float getLowThreshold() const { return lowThresholdDb_; }
+  float getHighThreshold() const { return highThresholdDb_; }
+  float getAttackTime() const { return attackTimeMs_; }
+  float getReleaseTime() const { return releaseTimeMs_; }
+  float getOutputGain() const { return outputGainDb_; }
+  float getCurrentInputLevel() const { return currentInputLevelDb_; }
+  float getCurrentBlend() const { return currentBlend_; }
 
   void reset();
 
@@ -61,6 +92,28 @@ class IRProcessor {
   int latencySamples_ = 0;
   int latencySamples2_ = 0;
   float blend_ = 0.0f;
+
+  bool dynamicModeEnabled_ = false;
+  bool sidechainEnabled_ = false;
+  float minBlend_ = -1.0f;
+  float maxBlend_ = 1.0f;
+  float lowThresholdDb_ = -40.0f;
+  float highThresholdDb_ = -10.0f;
+  float attackTimeMs_ = 50.0f;
+  float releaseTimeMs_ = 200.0f;
+  float outputGainDb_ = 0.0f;
+
+  float currentInputLevelDb_ = -96.0f;
+  float currentBlend_ = 0.0f;
+  float smoothedBlend_ = 0.0f;
+  float outputGainLinear_ = 1.0f;
+  float attackCoeff_ = 0.0f;
+  float releaseCoeff_ = 0.0f;
+
+  float calculateDynamicBlend(float inputLevelDb) const;
+  float detectPeakLevel(const Sample* buffer, FrameCount numFrames) const;
+  void updateSmoothingCoefficients();
+  void applyOutputGain(Sample* buffer, FrameCount numFrames) const;
 };
 
 }  // namespace octob
