@@ -25,8 +25,8 @@ class IRProcessor {
 
   void setDynamicModeEnabled(bool enabled);
   void setSidechainEnabled(bool enabled);
-  void setMinBlend(float minBlend);
-  void setMaxBlend(float maxBlend);
+  void setLowBlend(float lowBlend);
+  void setHighBlend(float highBlend);
   void setLowThreshold(float thresholdDb);
   void setHighThreshold(float thresholdDb);
   void setAttackTime(float attackTimeMs);
@@ -63,8 +63,8 @@ class IRProcessor {
 
   bool getDynamicModeEnabled() const { return dynamicModeEnabled_; }
   bool getSidechainEnabled() const { return sidechainEnabled_; }
-  float getMinBlend() const { return minBlend_; }
-  float getMaxBlend() const { return maxBlend_; }
+  float getLowBlend() const { return lowBlend_; }
+  float getHighBlend() const { return highBlend_; }
   float getLowThreshold() const { return lowThresholdDb_; }
   float getHighThreshold() const { return highThresholdDb_; }
   float getAttackTime() const { return attackTimeMs_; }
@@ -95,8 +95,8 @@ class IRProcessor {
 
   bool dynamicModeEnabled_ = false;
   bool sidechainEnabled_ = false;
-  float minBlend_ = -1.0f;
-  float maxBlend_ = 1.0f;
+  float lowBlend_ = -1.0f;
+  float highBlend_ = 1.0f;
   float lowThresholdDb_ = -40.0f;
   float highThresholdDb_ = -10.0f;
   float attackTimeMs_ = 50.0f;

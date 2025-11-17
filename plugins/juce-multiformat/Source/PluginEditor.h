@@ -65,17 +65,19 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer {
   juce::ToggleButton sidechainEnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> sidechainEnableAttachment_;
 
+  juce::TextButton swapIROrderButton_;
+
   juce::Label blendLabel_;
   juce::Slider blendSlider_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> blendAttachment_;
 
-  juce::Label minBlendLabel_;
-  juce::Slider minBlendSlider_;
-  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> minBlendAttachment_;
+  juce::Label lowBlendLabel_;
+  juce::Slider lowBlendSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowBlendAttachment_;
 
-  juce::Label maxBlendLabel_;
-  juce::Slider maxBlendSlider_;
-  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> maxBlendAttachment_;
+  juce::Label highBlendLabel_;
+  juce::Slider highBlendSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highBlendAttachment_;
 
   juce::Label lowThresholdLabel_;
   juce::Slider lowThresholdSlider_;
@@ -101,6 +103,7 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer {
 
   void loadButtonClicked();
   void loadButton2Clicked();
+  void swapIROrderClicked();
   void updateLatencyDisplay();
   void updateMeters();
 

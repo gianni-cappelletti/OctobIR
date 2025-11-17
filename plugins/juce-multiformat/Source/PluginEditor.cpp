@@ -88,7 +88,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       inputLevelMeter_("Input Level", -96.0f, 0.0f),
       blendMeter_("Blend", -1.0f, 1.0f) {
   addAndMakeVisible(ir1TitleLabel_);
-  ir1TitleLabel_.setText("IR 1", juce::dontSendNotification);
+  ir1TitleLabel_.setText("IR A (-1.0)", juce::dontSendNotification);
   ir1TitleLabel_.setJustificationType(juce::Justification::centredLeft);
   ir1TitleLabel_.setFont(juce::FontOptions(14.0f, juce::Font::bold));
   ir1TitleLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -107,7 +107,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
   addAndMakeVisible(ir2TitleLabel_);
-  ir2TitleLabel_.setText("IR 2", juce::dontSendNotification);
+  ir2TitleLabel_.setText("IR B (+1.0)", juce::dontSendNotification);
   ir2TitleLabel_.setJustificationType(juce::Justification::centredLeft);
   ir2TitleLabel_.setFont(juce::FontOptions(14.0f, juce::Font::bold));
   ir2TitleLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -139,6 +139,10 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
           audioProcessor.getAPVTS(), "sidechainEnable", sidechainEnableButton_);
 
+  addAndMakeVisible(swapIROrderButton_);
+  swapIROrderButton_.setButtonText("Swap IR Order");
+  swapIROrderButton_.onClick = [this] { swapIROrderClicked(); };
+
   addAndMakeVisible(blendLabel_);
   blendLabel_.setText("Static Blend", juce::dontSendNotification);
   blendLabel_.setJustificationType(juce::Justification::centredLeft);
@@ -150,27 +154,27 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   blendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "blend", blendSlider_);
 
-  addAndMakeVisible(minBlendLabel_);
-  minBlendLabel_.setText("Min Blend", juce::dontSendNotification);
-  minBlendLabel_.setJustificationType(juce::Justification::centredLeft);
-  minBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  addAndMakeVisible(lowBlendLabel_);
+  lowBlendLabel_.setText("Low Blend", juce::dontSendNotification);
+  lowBlendLabel_.setJustificationType(juce::Justification::centredLeft);
+  lowBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
-  addAndMakeVisible(minBlendSlider_);
-  minBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  minBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-  minBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "minBlend", minBlendSlider_);
+  addAndMakeVisible(lowBlendSlider_);
+  lowBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+  lowBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+  lowBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "lowBlend", lowBlendSlider_);
 
-  addAndMakeVisible(maxBlendLabel_);
-  maxBlendLabel_.setText("Max Blend", juce::dontSendNotification);
-  maxBlendLabel_.setJustificationType(juce::Justification::centredLeft);
-  maxBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  addAndMakeVisible(highBlendLabel_);
+  highBlendLabel_.setText("High Blend", juce::dontSendNotification);
+  highBlendLabel_.setJustificationType(juce::Justification::centredLeft);
+  highBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
-  addAndMakeVisible(maxBlendSlider_);
-  maxBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  maxBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-  maxBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "maxBlend", maxBlendSlider_);
+  addAndMakeVisible(highBlendSlider_);
+  highBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+  highBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+  highBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "highBlend", highBlendSlider_);
 
   addAndMakeVisible(lowThresholdLabel_);
   lowThresholdLabel_.setText("Low Threshold", juce::dontSendNotification);
@@ -271,9 +275,11 @@ void OctobIREditor::resized() {
   topSection.removeFromTop(10);
 
   auto modeButtonRow = topSection.removeFromTop(30);
-  dynamicModeButton_.setBounds(modeButtonRow.removeFromLeft(180).reduced(2));
-  modeButtonRow.removeFromLeft(10);
-  sidechainEnableButton_.setBounds(modeButtonRow.removeFromLeft(180).reduced(2));
+  dynamicModeButton_.setBounds(modeButtonRow.removeFromLeft(140).reduced(2));
+  modeButtonRow.removeFromLeft(5);
+  sidechainEnableButton_.setBounds(modeButtonRow.removeFromLeft(140).reduced(2));
+  modeButtonRow.removeFromLeft(5);
+  swapIROrderButton_.setBounds(modeButtonRow.removeFromLeft(120).reduced(2));
 
   bounds.removeFromTop(10);
 
@@ -298,15 +304,15 @@ void OctobIREditor::resized() {
 
   bounds.removeFromTop(15);
 
-  auto minBlendRow = bounds.removeFromTop(25);
-  minBlendLabel_.setBounds(minBlendRow.removeFromLeft(120));
-  minBlendSlider_.setBounds(minBlendRow);
+  auto lowBlendRow = bounds.removeFromTop(25);
+  lowBlendLabel_.setBounds(lowBlendRow.removeFromLeft(120));
+  lowBlendSlider_.setBounds(lowBlendRow);
 
   bounds.removeFromTop(5);
 
-  auto maxBlendRow = bounds.removeFromTop(25);
-  maxBlendLabel_.setBounds(maxBlendRow.removeFromLeft(120));
-  maxBlendSlider_.setBounds(maxBlendRow);
+  auto highBlendRow = bounds.removeFromTop(25);
+  highBlendLabel_.setBounds(highBlendRow.removeFromLeft(120));
+  highBlendSlider_.setBounds(highBlendRow);
 
   bounds.removeFromTop(5);
 
@@ -355,9 +361,9 @@ void OctobIREditor::updateMeters() {
     float highThresh = audioProcessor.getAPVTS().getRawParameterValue("highThreshold")->load();
     inputLevelMeter_.setThresholdMarkers(lowThresh, highThresh);
 
-    float minBlend = audioProcessor.getAPVTS().getRawParameterValue("minBlend")->load();
-    float maxBlend = audioProcessor.getAPVTS().getRawParameterValue("maxBlend")->load();
-    blendMeter_.setBlendRangeMarkers(minBlend, maxBlend);
+    float lowBlend = audioProcessor.getAPVTS().getRawParameterValue("lowBlend")->load();
+    float highBlend = audioProcessor.getAPVTS().getRawParameterValue("highBlend")->load();
+    blendMeter_.setBlendRangeMarkers(lowBlend, highBlend);
   }
 }
 
@@ -410,6 +416,21 @@ void OctobIREditor::loadButton2Clicked() {
       }
     }
   });
+}
+
+void OctobIREditor::swapIROrderClicked() {
+  auto& apvts = audioProcessor.getAPVTS();
+
+  float currentLowBlend = apvts.getRawParameterValue("lowBlend")->load();
+  float currentHighBlend = apvts.getRawParameterValue("highBlend")->load();
+
+  if (auto* lowParam = apvts.getParameter("lowBlend")) {
+    lowParam->setValueNotifyingHost(lowParam->convertTo0to1(currentHighBlend));
+  }
+
+  if (auto* highParam = apvts.getParameter("highBlend")) {
+    highParam->setValueNotifyingHost(highParam->convertTo0to1(currentLowBlend));
+  }
 }
 
 void OctobIREditor::updateLatencyDisplay() {

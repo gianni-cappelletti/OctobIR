@@ -163,12 +163,12 @@ void IRProcessor::setSidechainEnabled(bool enabled) {
   sidechainEnabled_ = enabled;
 }
 
-void IRProcessor::setMinBlend(float minBlend) {
-  minBlend_ = std::max(-1.0f, std::min(1.0f, minBlend));
+void IRProcessor::setLowBlend(float lowBlend) {
+  lowBlend_ = std::max(-1.0f, std::min(1.0f, lowBlend));
 }
 
-void IRProcessor::setMaxBlend(float maxBlend) {
-  maxBlend_ = std::max(-1.0f, std::min(1.0f, maxBlend));
+void IRProcessor::setHighBlend(float highBlend) {
+  highBlend_ = std::max(-1.0f, std::min(1.0f, highBlend));
 }
 
 void IRProcessor::setLowThreshold(float thresholdDb) {
@@ -604,16 +604,16 @@ void IRProcessor::processDualMonoWithSidechain(const Sample* inputL, const Sampl
 
 float IRProcessor::calculateDynamicBlend(float inputLevelDb) const {
   if (lowThresholdDb_ == highThresholdDb_) {
-    return inputLevelDb >= lowThresholdDb_ ? maxBlend_ : minBlend_;
+    return inputLevelDb >= lowThresholdDb_ ? highBlend_ : lowBlend_;
   }
 
   if (inputLevelDb <= lowThresholdDb_) {
-    return minBlend_;
+    return lowBlend_;
   } else if (inputLevelDb >= highThresholdDb_) {
-    return maxBlend_;
+    return highBlend_;
   } else {
     float t = (inputLevelDb - lowThresholdDb_) / (highThresholdDb_ - lowThresholdDb_);
-    return minBlend_ + (maxBlend_ - minBlend_) * t;
+    return lowBlend_ + (highBlend_ - lowBlend_) * t;
   }
 }
 

@@ -25,12 +25,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
       [](float value, int) { return juce::String(value, 2); }));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "minBlend", "Min Blend", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), -1.0f,
+      "lowBlend", "Low Blend", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), -1.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(value, 2); }));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "maxBlend", "Max Blend", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), 1.0f,
+      "highBlend", "High Blend", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), 1.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(value, 2); }));
 
@@ -142,8 +142,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   bool dynamicMode = apvts_.getRawParameterValue("dynamicMode")->load() > 0.5f;
   bool sidechainEnabled = apvts_.getRawParameterValue("sidechainEnable")->load() > 0.5f;
   float blend = apvts_.getRawParameterValue("blend")->load();
-  float minBlend = apvts_.getRawParameterValue("minBlend")->load();
-  float maxBlend = apvts_.getRawParameterValue("maxBlend")->load();
+  float lowBlend = apvts_.getRawParameterValue("lowBlend")->load();
+  float highBlend = apvts_.getRawParameterValue("highBlend")->load();
   float lowThreshold = apvts_.getRawParameterValue("lowThreshold")->load();
   float highThreshold = apvts_.getRawParameterValue("highThreshold")->load();
   float attackTime = apvts_.getRawParameterValue("attackTime")->load();
@@ -153,8 +153,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   irProcessor_.setDynamicModeEnabled(dynamicMode);
   irProcessor_.setSidechainEnabled(sidechainEnabled);
   irProcessor_.setBlend(blend);
-  irProcessor_.setMinBlend(minBlend);
-  irProcessor_.setMaxBlend(maxBlend);
+  irProcessor_.setLowBlend(lowBlend);
+  irProcessor_.setHighBlend(highBlend);
   irProcessor_.setLowThreshold(lowThreshold);
   irProcessor_.setHighThreshold(highThreshold);
   irProcessor_.setAttackTime(attackTime);
