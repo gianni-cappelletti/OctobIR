@@ -122,7 +122,7 @@ class IRProcessor {
   float releaseCoeff_ = 0.0f;
 
   float calculateDynamicBlend(float inputLevelDb) const;
-  float detectPeakLevel(const Sample* buffer, FrameCount numFrames) const;
+  static float detectPeakLevel(const Sample* buffer, FrameCount numFrames);
   float detectRMSLevel(const Sample* buffer, FrameCount numFrames);
   void updateSmoothingCoefficients();
   void updateRMSBufferSize();

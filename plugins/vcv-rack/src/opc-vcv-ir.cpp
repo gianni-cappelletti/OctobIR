@@ -243,7 +243,7 @@ struct IrFileDisplay : app::LedDisplayChoice {
   bool isIR2;
 
   IrFileDisplay(bool ir2 = false) : module(nullptr), isIR2(ir2) {
-    fontPath = asset::plugin(plugin_instance, "res/font/Inconsolata_Condensed-Bold.ttf");
+    fontPath = asset::plugin(pluginInstance, "res/font/Inconsolata_Condensed-Bold.ttf");
     color = nvgRGB(0x12, 0x12, 0x12);
     bgColor = nvgRGB(0xd9, 0x81, 0x29);
     text = "<No IR selected>";
@@ -259,21 +259,21 @@ struct IrFileDisplay : app::LedDisplayChoice {
     osdialog_filters* filters = osdialog_filters_parse("Audio files:wav,aiff,flac;All files:*");
     char* path = osdialog_file(OSDIALOG_OPEN, nullptr, nullptr, filters);
 
-    if (path) {
+    if (path != nullptr) {
       if (isIR2) {
         module->LoadIR2(std::string(path));
       } else {
         module->LoadIR(std::string(path));
       }
       updateDisplayText();
-      std::free(path);
+      free(path);
     }
 
     osdialog_filters_free(filters);
   }
 
   void updateDisplayText() {
-    if (!module) {
+    if (module == nullptr) {
       text = "<No IR selected>";
       return;
     }
@@ -282,7 +282,7 @@ struct IrFileDisplay : app::LedDisplayChoice {
     if (path.empty()) {
       text = "<No IR selected>";
     } else {
-      size_t pos = path.find_last_of("/\\");
+      const size_t pos = path.find_last_of("/\\");
       std::string filename = (pos != std::string::npos) ? path.substr(pos + 1) : path;
 
       if (filename.length() > 20) {
@@ -301,7 +301,7 @@ struct IrFileDisplay : app::LedDisplayChoice {
 struct OpcVcvIrWidget final : ModuleWidget {
   explicit OpcVcvIrWidget(OpcVcvIr* module) {
     setModule(module);
-    setPanel(createPanel(asset::plugin(plugin_instance, "res/opc-vcv-ir-panel.svg")));
+    setPanel(createPanel(asset::plugin(pluginInstance, "res/opc-vcv-ir-panel.svg")));
 
     addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
     addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
@@ -363,8 +363,8 @@ struct OpcVcvIrWidget final : ModuleWidget {
   }
 
   void appendContextMenu(Menu* menu) override {
-    OpcVcvIr* module = dynamic_cast<OpcVcvIr*>(this->module);
-    if (!module) {
+    auto* module = dynamic_cast<OpcVcvIr*>(this->module);
+    if (module == nullptr) {
       return;
     }
 
@@ -384,4 +384,4 @@ struct OpcVcvIrWidget final : ModuleWidget {
   }
 };
 
-Model* model_opc_vcv_ir = createModel<OpcVcvIr, OpcVcvIrWidget>("opc-vcv-ir");
+Model* modelOpcVcvIr = createModel<OpcVcvIr, OpcVcvIrWidget>("opc-vcv-ir");

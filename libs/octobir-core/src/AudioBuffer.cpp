@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "octobir-core/Types.hpp"
+
 namespace octob {
 
 AudioBuffer::AudioBuffer(FrameCount numFrames) {

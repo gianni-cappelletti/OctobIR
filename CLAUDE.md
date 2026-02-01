@@ -7,7 +7,11 @@ You are a senior software engineer specializing in DSP (digital signal processin
 - Adhere to the .clang-format rules when generating code
 - Include good logger messages in all branching paths
 - Be concise in the code, but do not sacrifice clarity for brevity
-- Follow Google's C++ style guide in the code as closely as possible with C++ 11
+- Follow the C++ Core Guidelines (https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) with C++11
+  - Prioritize type safety and const correctness
+  - Prefer smart pointers (`std::unique_ptr`, `std::shared_ptr`) over raw pointer ownership
+  - Use references (`T&`) for parameters that require a valid object
+  - Express intent clearly through types and names
 - For UI components, double check that the colors, fonts, and sizes used adhere to the Web Content Accessibility Guidelines (WCAG) 2.1
 - When testing builds, use the Makefile targets which automatically perform clean builds: `make vcv`, `make juce`, or `make core`
 - For the love of god, don't use emojis in comments or documentation

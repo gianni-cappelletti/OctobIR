@@ -2,7 +2,10 @@
 
 #include <convoengine.h>
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <string>
 
 namespace octob {
 
@@ -17,7 +20,7 @@ IRProcessor::IRProcessor()
 IRProcessor::~IRProcessor() = default;
 
 bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& errorMessage) {
-  IRLoadResult result = irLoader_->loadFromFile(filepath);
+  const IRLoadResult result = irLoader_->loadFromFile(filepath);
 
   if (!result.success) {
     errorMessage = result.errorMessage;
@@ -31,9 +34,9 @@ bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& 
     return false;
   }
 
-  int irLength = impulseBuffer_->GetLength();
-  int irChannels = impulseBuffer_->GetNumChannels();
-  double irSampleRate = impulseBuffer_->samplerate;
+  const int irLength = impulseBuffer_->GetLength();
+  const int irChannels = impulseBuffer_->GetNumChannels();
+  const double irSampleRate = impulseBuffer_->samplerate;
 
   if (irLength <= 0) {
     errorMessage = "IR buffer length is invalid: " + std::to_string(irLength);
@@ -72,7 +75,7 @@ bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& 
 }
 
 bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string& errorMessage) {
-  IRLoadResult result = irLoader2_->loadFromFile(filepath);
+  const IRLoadResult result = irLoader2_->loadFromFile(filepath);
 
   if (!result.success) {
     errorMessage = result.errorMessage;
@@ -86,9 +89,9 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
     return false;
   }
 
-  int irLength = impulseBuffer2_->GetLength();
-  int irChannels = impulseBuffer2_->GetNumChannels();
-  double irSampleRate = impulseBuffer2_->samplerate;
+  const int irLength = impulseBuffer2_->GetLength();
+  const int irChannels = impulseBuffer2_->GetNumChannels();
+  const double irSampleRate = impulseBuffer2_->samplerate;
 
   if (irLength <= 0) {
     errorMessage = "IR2 buffer length is invalid: " + std::to_string(irLength);
@@ -376,12 +379,12 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   float gain1 = std::sqrt(1.0f - normalizedBlend);
   float gain2 = std::sqrt(normalizedBlend);
 
-  WDL_FFT_REAL* inputPtrs[2] = {const_cast<WDL_FFT_REAL*>(inputL),
-                                const_cast<WDL_FFT_REAL*>(inputR)};
+  std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
+                                            const_cast<WDL_FFT_REAL*>(inputR)};
 
   if (hasIR1 && hasIR2) {
-    convolutionEngine_->Add(inputPtrs, static_cast<int>(numFrames), 2);
-    convolutionEngine2_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
@@ -402,7 +405,7 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
   } else if (hasIR1) {
-    convolutionEngine_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames)) {
@@ -417,7 +420,7 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
   } else {
-    convolutionEngine2_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames)) {
@@ -565,12 +568,12 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
   float gain1 = std::sqrt(1.0f - normalizedBlend);
   float gain2 = std::sqrt(normalizedBlend);
 
-  WDL_FFT_REAL* inputPtrs[2] = {const_cast<WDL_FFT_REAL*>(inputL),
-                                const_cast<WDL_FFT_REAL*>(inputR)};
+  std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
+                                            const_cast<WDL_FFT_REAL*>(inputR)};
 
   if (hasIR1 && hasIR2) {
-    convolutionEngine_->Add(inputPtrs, static_cast<int>(numFrames), 2);
-    convolutionEngine2_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
@@ -591,7 +594,7 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
   } else if (hasIR1) {
-    convolutionEngine_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames)) {
@@ -606,7 +609,7 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
   } else {
-    convolutionEngine2_->Add(inputPtrs, static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames)) {
@@ -658,7 +661,7 @@ float IRProcessor::calculateDynamicBlend(float inputLevelDb) const {
   return lowBlend_ + (highBlend_ - lowBlend_) * blendPosition;
 }
 
-float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) const {
+float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) {
   if (numFrames == 0) {
     return -96.0f;
   }
@@ -666,9 +669,7 @@ float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) c
   float peak = 0.0f;
   for (FrameCount i = 0; i < numFrames; ++i) {
     float absSample = std::abs(buffer[i]);
-    if (absSample > peak) {
-      peak = absSample;
-    }
+    peak = std::max(peak, absSample);
   }
 
   if (peak < 1e-6f) {
