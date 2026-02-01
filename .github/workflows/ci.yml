@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  # VCV Rack SDK configuration
+  # To update: download new SDK from https://vcvrack.com/downloads/
+  # Then run: sha256sum Rack-SDK-<version>-lin-x64.zip
+  VCV_SDK_VERSION: "2.5.2"
+  VCV_SDK_SHA256: "228e6a415b09fbd5536cdd588a01472d81d470ea2fc747cf05e5e56ef25d5c09"
+
 jobs:
   lint:
     name: Code Quality Checks
@@ -17,10 +24,41 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install tools
+    - name: Install all build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-format clang-tidy
+        sudo apt-get install -y \
+          clang-format \
+          clang-tidy \
+          build-essential \
+          cmake \
+          ninja-build \
+          libglu1-mesa-dev \
+          libx11-dev \
+          libxext-dev \
+          libxcursor-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libxcomposite-dev \
+          libxrender-dev \
+          libasound2-dev \
+          libjack-jackd2-dev \
+          libcurl4-openssl-dev \
+          libfreetype6-dev \
+          libwebkit2gtk-4.1-dev \
+          mesa-common-dev \
+          zlib1g-dev \
+          wget \
+          unzip
+
+    - name: Download and verify Rack SDK
+      run: |
+        cd ..
+        wget -q https://vcvrack.com/downloads/Rack-SDK-${VCV_SDK_VERSION}-lin-x64.zip
+        echo "${VCV_SDK_SHA256}  Rack-SDK-${VCV_SDK_VERSION}-lin-x64.zip" | sha256sum -c -
+        unzip -q Rack-SDK-*.zip
+        mv Rack-SDK Rack
 
     - name: Check formatting
       run: |
@@ -37,6 +75,8 @@ jobs:
             -I./libs/octobir-core/include \
             -I./third_party/WDL/WDL \
             -I./third_party \
+            -I../Rack/include \
+            -I../Rack/dep/include \
             -std=c++11
 
   test:
@@ -86,10 +126,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential libglu1-mesa-dev libx11-dev libxext-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev zlib1g-dev wget unzip
 
-    - name: Download and extract Rack SDK
+    - name: Download and verify Rack SDK
       run: |
         cd ..
-        wget -q https://vcvrack.com/downloads/Rack-SDK-2.5.2-lin-x64.zip
+        wget -q https://vcvrack.com/downloads/Rack-SDK-${VCV_SDK_VERSION}-lin-x64.zip
+        echo "${VCV_SDK_SHA256}  Rack-SDK-${VCV_SDK_VERSION}-lin-x64.zip" | sha256sum -c -
         unzip -q Rack-SDK-*.zip
         mv Rack-SDK Rack
 
