@@ -41,8 +41,8 @@ test:
 	@echo "Running tests..."
 	@./build/test/libs/octobir-core/tests/octobir-core-tests
 
-# Clean targets
-clean-all:
+# Clean target
+clean:
 	@rm -rf build
 	@echo "All build artifacts cleaned"
 
