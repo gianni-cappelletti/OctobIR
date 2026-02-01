@@ -53,7 +53,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
                                                           juce::StringArray("Peak", "RMS"), 0));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "attackTime", "Attack Time", juce::NormalisableRange<float>(1.0f, 1000.0f, 1.0f), 50.0f,
+      "attackTime", "Attack Time", juce::NormalisableRange<float>(1.0f, 500.0f, 1.0f), 50.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(static_cast<int>(value)) + " ms"; }));
 

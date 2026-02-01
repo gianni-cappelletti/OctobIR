@@ -177,7 +177,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       audioProcessor.getAPVTS(), "rangeDb", rangeDbSlider_);
 
   addAndMakeVisible(kneeWidthDbLabel_);
-  kneeWidthDbLabel_.setText("Knee Width", juce::dontSendNotification);
+  kneeWidthDbLabel_.setText("Knee", juce::dontSendNotification);
   kneeWidthDbLabel_.setJustificationType(juce::Justification::centredLeft);
   kneeWidthDbLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 

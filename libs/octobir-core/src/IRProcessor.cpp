@@ -203,7 +203,7 @@ void IRProcessor::updateRMSBufferSize() {
 }
 
 void IRProcessor::setAttackTime(float attackTimeMs) {
-  attackTimeMs_ = std::max(1.0f, std::min(1000.0f, attackTimeMs));
+  attackTimeMs_ = std::max(1.0f, std::min(500.0f, attackTimeMs));
   updateSmoothingCoefficients();
 }
 
