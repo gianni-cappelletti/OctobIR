@@ -1,30 +1,38 @@
 ---
 # Clang-Tidy configuration for OctobIR
-# Based on Google C++ Style Guide with DSP-specific adjustments
+# Based on C++ Core Guidelines with DSP-specific adjustments
+# See: https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines
 
 Checks: >
   bugprone-*,
   clang-analyzer-*,
   cppcoreguidelines-*,
-  google-*,
   misc-*,
   modernize-*,
   performance-*,
   readability-*,
   -bugprone-easily-swappable-parameters,
   -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-const-cast,
   -cppcoreguidelines-pro-type-reinterpret-cast,
-  -google-readability-braces-around-statements,
-  -google-readability-todo,
+  -misc-const-correctness,
+  -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
+  -modernize-use-auto,
   -modernize-use-trailing-return-type,
   -readability-braces-around-statements,
+  -readability-function-cognitive-complexity,
   -readability-identifier-length,
   -readability-magic-numbers,
+  -readability-math-missing-parentheses,
   -readability-uppercase-literal-suffix
+
+# Note: Raw pointer usage in audio DSP is acceptable for performance-critical
+# buffer processing. const_cast is sometimes necessary for C library interfaces.
 
 WarningsAsErrors: ''
 
@@ -35,11 +43,17 @@ CheckOptions:
     value: camelBack
   - key: readability-identifier-naming.VariableCase
     value: camelBack
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.LocalConstantCase
+    value: camelBack
   - key: readability-identifier-naming.PrivateMemberSuffix
     value: '_'
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
-  - key: readability-identifier-naming.ConstantCase
-    value: CamelCase
-  - key: readability-identifier-naming.ConstantPrefix
-    value: 'k'
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: 1

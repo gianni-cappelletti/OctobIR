@@ -1,5 +1,7 @@
 ---
-# Google C++ Style Guide configuration for clang-format
+# C++ Core Guidelines configuration for clang-format
+# Core Guidelines intentionally avoid prescribing formatting details,
+# so we maintain a clean, readable style that emphasizes clarity
 BasedOnStyle: Google
 
 # Language settings
