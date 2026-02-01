@@ -1,0 +1,217 @@
+name: Release JUCE Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-macos:
+    name: Build JUCE Plugin - macOS
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        brew install cmake ninja
+
+    - name: Build plugin
+      run: |
+        cmake -B build/release \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_JUCE_PLUGIN=ON \
+          -DBUILD_VCV_PLUGIN=OFF \
+          -DBUILD_TESTS=OFF \
+          -G Ninja
+        cmake --build build/release --target OctobIR --config Release -j
+
+    - name: Create package directory
+      run: |
+        mkdir -p package/OctobIR
+
+        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3" ]; then
+          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
+        fi
+
+        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/AU/OctobIR.component" ]; then
+          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/AU/OctobIR.component package/OctobIR/
+        fi
+
+        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.app" ]; then
+          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.app package/OctobIR/
+        fi
+
+        cp LICENSE package/OctobIR/
+        cp README.md package/OctobIR/
+
+    - name: Create DMG (macOS)
+      run: |
+        hdiutil create -volname "OctobIR" -srcfolder package/OctobIR -ov -format UDZO OctobIR-macOS.dmg
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: juce-plugin-macos
+        path: OctobIR-macOS.dmg
+
+  build-windows:
+    name: Build JUCE Plugin - Windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
+
+    - name: Build plugin
+      shell: bash
+      run: |
+        cmake -B build/release \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_JUCE_PLUGIN=ON \
+          -DBUILD_VCV_PLUGIN=OFF \
+          -DBUILD_TESTS=OFF \
+          -G "Visual Studio 17 2022" \
+          -A x64
+        cmake --build build/release --config Release -j
+
+    - name: Create package directory
+      shell: bash
+      run: |
+        mkdir -p package/OctobIR
+
+        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3" ]; then
+          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
+        fi
+
+        if [ -f "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.exe" ]; then
+          cp build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.exe package/OctobIR/
+        fi
+
+        cp LICENSE package/OctobIR/
+        cp README.md package/OctobIR/
+
+    - name: Create ZIP archive
+      shell: bash
+      run: |
+        cd package
+        7z a -tzip ../OctobIR-Windows.zip OctobIR
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: juce-plugin-windows
+        path: OctobIR-Windows.zip
+
+  build-linux:
+    name: Build JUCE Plugin - Linux
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          libasound2-dev \
+          libjack-jackd2-dev \
+          libcurl4-openssl-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxcomposite-dev \
+          libxcursor-dev \
+          libxext-dev \
+          libxinerama-dev \
+          libxrandr-dev \
+          libxrender-dev \
+          libwebkit2gtk-4.0-dev \
+          libglu1-mesa-dev \
+          mesa-common-dev
+
+    - name: Build plugin
+      run: |
+        cmake -B build/release \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_JUCE_PLUGIN=ON \
+          -DBUILD_VCV_PLUGIN=OFF \
+          -DBUILD_TESTS=OFF \
+          -G Ninja
+        cmake --build build/release --target OctobIR --config Release -j
+
+    - name: Create package directory
+      run: |
+        mkdir -p package/OctobIR
+
+        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3" ]; then
+          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
+        fi
+
+        if [ -f "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR" ]; then
+          cp build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR package/OctobIR/
+        fi
+
+        cp LICENSE package/OctobIR/
+        cp README.md package/OctobIR/
+
+    - name: Create tarball
+      run: |
+        cd package
+        tar -czf ../OctobIR-Linux.tar.gz OctobIR
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: juce-plugin-linux
+        path: OctobIR-Linux.tar.gz
+
+  release:
+    name: Create GitHub Release
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Display structure of downloaded files
+      run: ls -R artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/juce-plugin-macos/*.dmg
+          artifacts/juce-plugin-windows/*.zip
+          artifacts/juce-plugin-linux/*.tar.gz
+        draft: true
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

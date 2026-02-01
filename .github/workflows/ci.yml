@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up build dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+
+    - name: Set up build dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake ninja
+
+    - name: Configure CMake
+      run: |
+        cmake -B build/test \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_JUCE_PLUGIN=OFF \
+          -DBUILD_VCV_PLUGIN=OFF \
+          -DBUILD_TESTS=ON \
+          -G Ninja
+
+    - name: Build tests
+      run: cmake --build build/test --target octobir-core-tests -j
+
+    - name: Run tests
+      run: ./build/test/libs/octobir-core/tests/octobir-core-tests
+
+  build-vcv:
+    name: Build VCV Plugin on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up build dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+
+    - name: Set up build dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake ninja
+
+    - name: Checkout VCV Rack SDK
+      run: |
+        cd ..
+        git clone https://github.com/VCVRack/Rack.git --depth 1 --branch v2
+        cd Rack
+        make dep
+
+    - name: Build VCV Plugin
+      run: |
+        cmake -B build/vcv-ci \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_JUCE_PLUGIN=OFF \
+          -DBUILD_VCV_PLUGIN=ON \
+          -G Ninja
+        cmake --build build/vcv-ci --target vcv-plugin -j
+
+  build-juce:
+    name: Build JUCE Plugin on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up build dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          libasound2-dev \
+          libjack-jackd2-dev \
+          libcurl4-openssl-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxcomposite-dev \
+          libxcursor-dev \
+          libxext-dev \
+          libxinerama-dev \
+          libxrandr-dev \
+          libxrender-dev \
+          libwebkit2gtk-4.0-dev \
+          libglu1-mesa-dev \
+          mesa-common-dev
+
+    - name: Set up build dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake ninja
+
+    - name: Build JUCE Plugin
+      run: |
+        cmake -B build/juce-ci \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_JUCE_PLUGIN=ON \
+          -DBUILD_VCV_PLUGIN=OFF \
+          -G Ninja
+        cmake --build build/juce-ci --target OctobIR -j

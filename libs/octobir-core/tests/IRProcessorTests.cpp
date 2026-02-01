@@ -44,31 +44,42 @@ TEST_F(IRProcessorTest, ParameterClamping_HighBlend) {
   EXPECT_FLOAT_EQ(processor.getHighBlend(), 0.8f);
 }
 
-TEST_F(IRProcessorTest, ParameterClamping_LowThreshold) {
-  processor.setLowThreshold(10.0f);
-  EXPECT_FLOAT_EQ(processor.getLowThreshold(), 0.0f);
+TEST_F(IRProcessorTest, ParameterClamping_Threshold) {
+  processor.setThreshold(10.0f);
+  EXPECT_FLOAT_EQ(processor.getThreshold(), 0.0f);
 
-  processor.setLowThreshold(-80.0f);
-  EXPECT_FLOAT_EQ(processor.getLowThreshold(), -60.0f);
+  processor.setThreshold(-80.0f);
+  EXPECT_FLOAT_EQ(processor.getThreshold(), -60.0f);
 
-  processor.setLowThreshold(-30.0f);
-  EXPECT_FLOAT_EQ(processor.getLowThreshold(), -30.0f);
+  processor.setThreshold(-30.0f);
+  EXPECT_FLOAT_EQ(processor.getThreshold(), -30.0f);
 }
 
-TEST_F(IRProcessorTest, ParameterClamping_HighThreshold) {
-  processor.setHighThreshold(10.0f);
-  EXPECT_FLOAT_EQ(processor.getHighThreshold(), 0.0f);
+TEST_F(IRProcessorTest, ParameterClamping_RangeDb) {
+  processor.setRangeDb(100.0f);
+  EXPECT_FLOAT_EQ(processor.getRangeDb(), 60.0f);
 
-  processor.setHighThreshold(-80.0f);
-  EXPECT_FLOAT_EQ(processor.getHighThreshold(), -60.0f);
+  processor.setRangeDb(0.5f);
+  EXPECT_FLOAT_EQ(processor.getRangeDb(), 1.0f);
 
-  processor.setHighThreshold(-15.0f);
-  EXPECT_FLOAT_EQ(processor.getHighThreshold(), -15.0f);
+  processor.setRangeDb(20.0f);
+  EXPECT_FLOAT_EQ(processor.getRangeDb(), 20.0f);
+}
+
+TEST_F(IRProcessorTest, ParameterClamping_KneeWidthDb) {
+  processor.setKneeWidthDb(30.0f);
+  EXPECT_FLOAT_EQ(processor.getKneeWidthDb(), 20.0f);
+
+  processor.setKneeWidthDb(-5.0f);
+  EXPECT_FLOAT_EQ(processor.getKneeWidthDb(), 0.0f);
+
+  processor.setKneeWidthDb(10.0f);
+  EXPECT_FLOAT_EQ(processor.getKneeWidthDb(), 10.0f);
 }
 
 TEST_F(IRProcessorTest, ParameterClamping_AttackTime) {
   processor.setAttackTime(2000.0f);
-  EXPECT_FLOAT_EQ(processor.getAttackTime(), 1000.0f);
+  EXPECT_FLOAT_EQ(processor.getAttackTime(), 500.0f);
 
   processor.setAttackTime(0.5f);
   EXPECT_FLOAT_EQ(processor.getAttackTime(), 1.0f);

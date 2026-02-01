@@ -9,10 +9,10 @@ struct OpcVcvIr final : Module {
   enum ParamId {
     GAIN_PARAM,
     BLEND_PARAM,
-    LOW_BLEND_PARAM,
-    HIGH_BLEND_PARAM,
-    LOW_THRESHOLD_PARAM,
-    HIGH_THRESHOLD_PARAM,
+    THRESHOLD_PARAM,
+    RANGE_DB_PARAM,
+    KNEE_WIDTH_DB_PARAM,
+    DETECTION_MODE_PARAM,
     ATTACK_TIME_PARAM,
     RELEASE_TIME_PARAM,
     OUTPUT_GAIN_PARAM,
@@ -39,11 +39,11 @@ struct OpcVcvIr final : Module {
     paramQuantities[GAIN_PARAM]->snapEnabled = true;
 
     configParam(BLEND_PARAM, -1.f, 1.f, 0.f, "Static Blend");
-    configParam(LOW_BLEND_PARAM, -1.f, 1.f, -1.f, "Low Blend");
-    configParam(HIGH_BLEND_PARAM, -1.f, 1.f, 1.f, "High Blend");
-    configParam(LOW_THRESHOLD_PARAM, -60.f, 0.f, -40.f, "Low Threshold", " dB");
-    configParam(HIGH_THRESHOLD_PARAM, -60.f, 0.f, -10.f, "High Threshold", " dB");
-    configParam(ATTACK_TIME_PARAM, 1.f, 1000.f, 50.f, "Attack Time", " ms");
+    configParam(THRESHOLD_PARAM, -60.f, 0.f, -30.f, "Threshold", " dB");
+    configParam(RANGE_DB_PARAM, 1.f, 60.f, 20.f, "Range", " dB");
+    configParam(KNEE_WIDTH_DB_PARAM, 0.f, 20.f, 5.f, "Knee", " dB");
+    configSwitch(DETECTION_MODE_PARAM, 0.f, 1.f, 0.f, "Detection Mode", {"Peak", "RMS"});
+    configParam(ATTACK_TIME_PARAM, 1.f, 500.f, 50.f, "Attack Time", " ms");
     configParam(RELEASE_TIME_PARAM, 1.f, 1000.f, 200.f, "Release Time", " ms");
     configParam(OUTPUT_GAIN_PARAM, -24.f, 24.f, 0.f, "Output Gain", " dB");
 
@@ -110,10 +110,12 @@ struct OpcVcvIr final : Module {
     irProcessor_.setDynamicModeEnabled(dynamicModeEnabled_);
     irProcessor_.setSidechainEnabled(sidechainEnabled_);
     irProcessor_.setBlend(params[BLEND_PARAM].getValue());
-    irProcessor_.setLowBlend(params[LOW_BLEND_PARAM].getValue());
-    irProcessor_.setHighBlend(params[HIGH_BLEND_PARAM].getValue());
-    irProcessor_.setLowThreshold(params[LOW_THRESHOLD_PARAM].getValue());
-    irProcessor_.setHighThreshold(params[HIGH_THRESHOLD_PARAM].getValue());
+    irProcessor_.setLowBlend(-1.0f);
+    irProcessor_.setHighBlend(1.0f);
+    irProcessor_.setThreshold(params[THRESHOLD_PARAM].getValue());
+    irProcessor_.setRangeDb(params[RANGE_DB_PARAM].getValue());
+    irProcessor_.setKneeWidthDb(params[KNEE_WIDTH_DB_PARAM].getValue());
+    irProcessor_.setDetectionMode(static_cast<int>(params[DETECTION_MODE_PARAM].getValue()));
     irProcessor_.setAttackTime(params[ATTACK_TIME_PARAM].getValue());
     irProcessor_.setReleaseTime(params[RELEASE_TIME_PARAM].getValue());
     irProcessor_.setOutputGain(params[OUTPUT_GAIN_PARAM].getValue());
@@ -330,14 +332,14 @@ struct OpcVcvIrWidget final : ModuleWidget {
                                                  OpcVcvIr::BLEND_PARAM));
 
     addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(10.16, 65.0)), module,
-                                                      OpcVcvIr::LOW_BLEND_PARAM));
+                                                      OpcVcvIr::THRESHOLD_PARAM));
     addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(30.48, 65.0)), module,
-                                                      OpcVcvIr::HIGH_BLEND_PARAM));
+                                                      OpcVcvIr::RANGE_DB_PARAM));
 
     addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(10.16, 78.0)), module,
-                                                      OpcVcvIr::LOW_THRESHOLD_PARAM));
+                                                      OpcVcvIr::KNEE_WIDTH_DB_PARAM));
     addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(30.48, 78.0)), module,
-                                                      OpcVcvIr::HIGH_THRESHOLD_PARAM));
+                                                      OpcVcvIr::DETECTION_MODE_PARAM));
 
     addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(10.16, 91.0)), module,
                                                       OpcVcvIr::ATTACK_TIME_PARAM));
@@ -370,6 +372,15 @@ struct OpcVcvIrWidget final : ModuleWidget {
 
     menu->addChild(createBoolPtrMenuItem("Dynamic Mode", "", &module->dynamicModeEnabled_));
     menu->addChild(createBoolPtrMenuItem("Sidechain Enable", "", &module->sidechainEnabled_));
+
+    menu->addChild(new MenuSeparator);
+
+    menu->addChild(createMenuItem("Swap IR Order", "", [module]() {
+      float currentLow = module->irProcessor_.getLowBlend();
+      float currentHigh = module->irProcessor_.getHighBlend();
+      module->irProcessor_.setLowBlend(currentHigh);
+      module->irProcessor_.setHighBlend(currentLow);
+    }));
   }
 };
 
