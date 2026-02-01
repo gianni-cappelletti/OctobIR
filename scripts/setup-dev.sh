@@ -20,37 +20,59 @@ fi
 echo "✓ Submodules initialized"
 
 echo ""
-echo "Checking development tools..."
+echo "Installing required development tools..."
 
-MISSING_TOOLS=()
-
+# Check for clang-format
 if ! command -v clang-format &> /dev/null; then
-    echo "⚠ clang-format not found"
-    MISSING_TOOLS+=("clang-format")
-else
-    echo "✓ clang-format installed"
-fi
-
-if ! command -v clang-tidy &> /dev/null; then
-    echo "⚠ clang-tidy not found"
-    MISSING_TOOLS+=("clang-tidy")
-else
-    echo "✓ clang-tidy installed"
-fi
-
-if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
-    echo ""
-    echo "Optional development tools are missing. Install them with:"
+    echo "Installing clang-format..."
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "  brew install llvm"
+        if ! command -v brew &> /dev/null; then
+            echo "Error: Homebrew is required but not installed"
+            echo "Install from: https://brew.sh"
+            exit 1
+        fi
+        brew install clang-format
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        echo "  sudo apt-get install clang-format clang-tidy"
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+    else
+        echo "Error: Unsupported platform for automatic installation"
+        echo "Please manually install clang-format"
+        exit 1
     fi
-    echo ""
-    echo "These tools enable:"
-    echo "  - clang-format: Automatic code formatting"
-    echo "  - clang-tidy: Static analysis and linting"
+else
+    echo "✓ clang-format already installed"
 fi
+
+# Check for clang-tidy
+if ! command -v clang-tidy &> /dev/null; then
+    echo "Installing clang-tidy..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        brew install llvm
+        echo "Note: You may need to add LLVM to your PATH:"
+        echo "  export PATH=\"/opt/homebrew/opt/llvm/bin:\$PATH\""
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        sudo apt-get install -y clang-tidy
+    else
+        echo "Error: Unsupported platform for automatic installation"
+        echo "Please manually install clang-tidy"
+        exit 1
+    fi
+else
+    echo "✓ clang-tidy already installed"
+fi
+
+# Verify both tools are now available
+if ! command -v clang-format &> /dev/null || ! command -v clang-tidy &> /dev/null; then
+    echo ""
+    echo "Error: Required tools are not available after installation"
+    echo "Please install manually:"
+    echo "  - clang-format: Code formatting"
+    echo "  - clang-tidy: Static analysis"
+    exit 1
+fi
+
+echo "✓ All development tools installed"
 
 echo ""
 echo "Installing git hooks..."
