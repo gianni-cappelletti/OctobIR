@@ -79,13 +79,25 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer {
   juce::Slider highBlendSlider_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highBlendAttachment_;
 
-  juce::Label lowThresholdLabel_;
-  juce::Slider lowThresholdSlider_;
-  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowThresholdAttachment_;
+  juce::Label thresholdLabel_;
+  juce::Slider thresholdSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment_;
 
-  juce::Label highThresholdLabel_;
-  juce::Slider highThresholdSlider_;
-  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highThresholdAttachment_;
+  juce::Label rangeDbLabel_;
+  juce::Slider rangeDbSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rangeDbAttachment_;
+
+  juce::Label kneeWidthDbLabel_;
+  juce::Slider kneeWidthDbSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> kneeWidthDbAttachment_;
+
+  juce::Label detectionModeLabel_;
+  juce::ComboBox detectionModeCombo_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> detectionModeAttachment_;
+
+  juce::Label rmsWindowMsLabel_;
+  juce::Slider rmsWindowMsSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rmsWindowMsAttachment_;
 
   juce::Label attackTimeLabel_;
   juce::Slider attackTimeSlider_;

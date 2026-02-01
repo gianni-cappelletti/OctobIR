@@ -35,14 +35,27 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
       [](float value, int) { return juce::String(value, 2); }));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "lowThreshold", "Low Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -40.0f,
+      "threshold", "Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -30.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(value, 1) + " dB"; }));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "highThreshold", "High Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -10.0f,
+      "rangeDb", "Range", juce::NormalisableRange<float>(1.0f, 60.0f, 0.1f), 20.0f, juce::String(),
+      juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "kneeWidthDb", "Knee Width", juce::NormalisableRange<float>(0.0f, 20.0f, 0.1f), 5.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterChoice>("detectionMode", "Detection Mode",
+                                                          juce::StringArray("Peak", "RMS"), 0));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "rmsWindowMs", "RMS Window", juce::NormalisableRange<float>(1.0f, 100.0f, 1.0f), 20.0f,
+      juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(static_cast<int>(value)) + " ms"; }));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "attackTime", "Attack Time", juce::NormalisableRange<float>(1.0f, 1000.0f, 1.0f), 50.0f,
@@ -144,8 +157,11 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   float blend = apvts_.getRawParameterValue("blend")->load();
   float lowBlend = apvts_.getRawParameterValue("lowBlend")->load();
   float highBlend = apvts_.getRawParameterValue("highBlend")->load();
-  float lowThreshold = apvts_.getRawParameterValue("lowThreshold")->load();
-  float highThreshold = apvts_.getRawParameterValue("highThreshold")->load();
+  float threshold = apvts_.getRawParameterValue("threshold")->load();
+  float rangeDb = apvts_.getRawParameterValue("rangeDb")->load();
+  float kneeWidthDb = apvts_.getRawParameterValue("kneeWidthDb")->load();
+  int detectionMode = static_cast<int>(apvts_.getRawParameterValue("detectionMode")->load());
+  float rmsWindowMs = apvts_.getRawParameterValue("rmsWindowMs")->load();
   float attackTime = apvts_.getRawParameterValue("attackTime")->load();
   float releaseTime = apvts_.getRawParameterValue("releaseTime")->load();
   float outputGain = apvts_.getRawParameterValue("outputGain")->load();
@@ -155,8 +171,11 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   irProcessor_.setBlend(blend);
   irProcessor_.setLowBlend(lowBlend);
   irProcessor_.setHighBlend(highBlend);
-  irProcessor_.setLowThreshold(lowThreshold);
-  irProcessor_.setHighThreshold(highThreshold);
+  irProcessor_.setThreshold(threshold);
+  irProcessor_.setRangeDb(rangeDb);
+  irProcessor_.setKneeWidthDb(kneeWidthDb);
+  irProcessor_.setDetectionMode(detectionMode);
+  irProcessor_.setRMSWindowMs(rmsWindowMs);
   irProcessor_.setAttackTime(attackTime);
   irProcessor_.setReleaseTime(releaseTime);
   irProcessor_.setOutputGain(outputGain);
@@ -224,6 +243,21 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
 
   if (state.isValid()) {
     apvts_.replaceState(state);
+
+    if (!state.hasProperty("threshold") && state.hasProperty("lowThreshold")) {
+      float oldLow = state.getProperty("lowThreshold", -40.0f);
+      float oldHigh = state.getProperty("highThreshold", -10.0f);
+
+      float newThreshold = oldLow;
+      float newRange = std::max(1.0f, oldHigh - oldLow);
+
+      if (auto* param = apvts_.getParameter("threshold")) {
+        param->setValueNotifyingHost(param->convertTo0to1(newThreshold));
+      }
+      if (auto* param = apvts_.getParameter("rangeDb")) {
+        param->setValueNotifyingHost(param->convertTo0to1(newRange));
+      }
+    }
 
     juce::String path = state.getProperty("irPath").toString();
     if (path.isNotEmpty()) {

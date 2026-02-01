@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "AudioBuffer.hpp"
 #include "IRLoader.hpp"
@@ -27,8 +28,11 @@ class IRProcessor {
   void setSidechainEnabled(bool enabled);
   void setLowBlend(float lowBlend);
   void setHighBlend(float highBlend);
-  void setLowThreshold(float thresholdDb);
-  void setHighThreshold(float thresholdDb);
+  void setThreshold(float thresholdDb);
+  void setRangeDb(float rangeDb);
+  void setKneeWidthDb(float kneeDb);
+  void setDetectionMode(int mode);
+  void setRMSWindowMs(float windowMs);
   void setAttackTime(float attackTimeMs);
   void setReleaseTime(float releaseTimeMs);
   void setOutputGain(float gainDb);
@@ -65,8 +69,11 @@ class IRProcessor {
   bool getSidechainEnabled() const { return sidechainEnabled_; }
   float getLowBlend() const { return lowBlend_; }
   float getHighBlend() const { return highBlend_; }
-  float getLowThreshold() const { return lowThresholdDb_; }
-  float getHighThreshold() const { return highThresholdDb_; }
+  float getThreshold() const { return thresholdDb_; }
+  float getRangeDb() const { return rangeDb_; }
+  float getKneeWidthDb() const { return kneeWidthDb_; }
+  int getDetectionMode() const { return detectionMode_; }
+  float getRMSWindowMs() const { return rmsWindowMs_; }
   float getAttackTime() const { return attackTimeMs_; }
   float getReleaseTime() const { return releaseTimeMs_; }
   float getOutputGain() const { return outputGainDb_; }
@@ -97,8 +104,14 @@ class IRProcessor {
   bool sidechainEnabled_ = false;
   float lowBlend_ = -1.0f;
   float highBlend_ = 1.0f;
-  float lowThresholdDb_ = -40.0f;
-  float highThresholdDb_ = -10.0f;
+  float thresholdDb_ = -30.0f;
+  float rangeDb_ = 20.0f;
+  float kneeWidthDb_ = 5.0f;
+  int detectionMode_ = 0;
+  float rmsWindowMs_ = 20.0f;
+  std::vector<float> rmsBuffer_;
+  size_t rmsBufferIndex_ = 0;
+  size_t rmsBufferSize_ = 0;
   float attackTimeMs_ = 50.0f;
   float releaseTimeMs_ = 200.0f;
   float outputGainDb_ = 0.0f;
@@ -112,7 +125,9 @@ class IRProcessor {
 
   float calculateDynamicBlend(float inputLevelDb) const;
   float detectPeakLevel(const Sample* buffer, FrameCount numFrames) const;
+  float detectRMSLevel(const Sample* buffer, FrameCount numFrames);
   void updateSmoothingCoefficients();
+  void updateRMSBufferSize();
   void applyOutputGain(Sample* buffer, FrameCount numFrames) const;
 };
 

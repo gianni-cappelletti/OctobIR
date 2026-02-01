@@ -128,6 +128,7 @@ void IRProcessor::setSampleRate(SampleRate sampleRate) {
   if (sampleRate_ != sampleRate) {
     sampleRate_ = sampleRate;
     updateSmoothingCoefficients();
+    updateRMSBufferSize();
 
     if (irLoaded_) {
       irLoader_->resampleAndInitialize(*impulseBuffer_, sampleRate_);
@@ -171,12 +172,38 @@ void IRProcessor::setHighBlend(float highBlend) {
   highBlend_ = std::max(-1.0f, std::min(1.0f, highBlend));
 }
 
-void IRProcessor::setLowThreshold(float thresholdDb) {
-  lowThresholdDb_ = std::max(-60.0f, std::min(0.0f, thresholdDb));
+void IRProcessor::setThreshold(float thresholdDb) {
+  thresholdDb_ = std::max(-60.0f, std::min(0.0f, thresholdDb));
 }
 
-void IRProcessor::setHighThreshold(float thresholdDb) {
-  highThresholdDb_ = std::max(-60.0f, std::min(0.0f, thresholdDb));
+void IRProcessor::setRangeDb(float rangeDb) {
+  rangeDb_ = std::max(1.0f, std::min(60.0f, rangeDb));
+}
+
+void IRProcessor::setKneeWidthDb(float kneeDb) {
+  kneeWidthDb_ = std::max(0.0f, std::min(20.0f, kneeDb));
+}
+
+void IRProcessor::setDetectionMode(int mode) {
+  detectionMode_ = std::max(0, std::min(1, mode));
+}
+
+void IRProcessor::setRMSWindowMs(float windowMs) {
+  rmsWindowMs_ = std::max(1.0f, std::min(100.0f, windowMs));
+  updateRMSBufferSize();
+}
+
+void IRProcessor::updateRMSBufferSize() {
+  if (sampleRate_ <= 0.0) {
+    return;
+  }
+
+  size_t newSize = static_cast<size_t>((rmsWindowMs_ / 1000.0f) * sampleRate_);
+  if (newSize != rmsBufferSize_) {
+    rmsBufferSize_ = std::max(size_t(1), newSize);
+    rmsBuffer_.resize(rmsBufferSize_, 0.0f);
+    rmsBufferIndex_ = 0;
+  }
 }
 
 void IRProcessor::setAttackTime(float attackTimeMs) {
@@ -206,7 +233,8 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
 
   float blendToUse = blend_;
   if (dynamicModeEnabled_ && !sidechainEnabled_) {
-    currentInputLevelDb_ = detectPeakLevel(input, numFrames);
+    currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(input, numFrames)
+                                                 : detectRMSLevel(input, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
@@ -329,9 +357,11 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 
   float blendToUse = blend_;
   if (dynamicModeEnabled_ && !sidechainEnabled_) {
-    float peakL = detectPeakLevel(inputL, numFrames);
-    float peakR = detectPeakLevel(inputR, numFrames);
-    currentInputLevelDb_ = std::max(peakL, peakR);
+    float levelL = (detectionMode_ == 0) ? detectPeakLevel(inputL, numFrames)
+                                         : detectRMSLevel(inputL, numFrames);
+    float levelR = (detectionMode_ == 0) ? detectPeakLevel(inputR, numFrames)
+                                         : detectRMSLevel(inputR, numFrames);
+    currentInputLevelDb_ = std::max(levelL, levelR);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
@@ -427,7 +457,8 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
   float blendToUse = blend_;
   if (dynamicModeEnabled_ && sidechainEnabled_) {
-    currentInputLevelDb_ = detectPeakLevel(sidechain, numFrames);
+    currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(sidechain, numFrames)
+                                                 : detectRMSLevel(sidechain, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
@@ -515,9 +546,11 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
   float blendToUse = blend_;
   if (dynamicModeEnabled_ && sidechainEnabled_) {
-    float peakL = detectPeakLevel(sidechainL, numFrames);
-    float peakR = detectPeakLevel(sidechainR, numFrames);
-    currentInputLevelDb_ = std::max(peakL, peakR);
+    float levelL = (detectionMode_ == 0) ? detectPeakLevel(sidechainL, numFrames)
+                                         : detectRMSLevel(sidechainL, numFrames);
+    float levelR = (detectionMode_ == 0) ? detectPeakLevel(sidechainR, numFrames)
+                                         : detectRMSLevel(sidechainR, numFrames);
+    currentInputLevelDb_ = std::max(levelL, levelR);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
@@ -603,18 +636,28 @@ void IRProcessor::processDualMonoWithSidechain(const Sample* inputL, const Sampl
 }
 
 float IRProcessor::calculateDynamicBlend(float inputLevelDb) const {
-  if (lowThresholdDb_ == highThresholdDb_) {
-    return inputLevelDb >= lowThresholdDb_ ? highBlend_ : lowBlend_;
+  float kneeStart = thresholdDb_ - (kneeWidthDb_ / 2.0f);
+  float kneeEnd = thresholdDb_ + (kneeWidthDb_ / 2.0f);
+
+  float blendPosition = 0.0f;
+
+  if (inputLevelDb <= kneeStart) {
+    blendPosition = 0.0f;
+  } else if (inputLevelDb >= kneeEnd && inputLevelDb >= thresholdDb_ + rangeDb_) {
+    blendPosition = 1.0f;
+  } else if (inputLevelDb < kneeEnd) {
+    float kneeInput = inputLevelDb - kneeStart;
+    float kneeOvershoot = kneeInput / kneeWidthDb_;
+    blendPosition = (kneeOvershoot * kneeOvershoot) / 2.0f;
+  } else {
+    float aboveKnee = inputLevelDb - kneeEnd;
+    float effectiveRange = rangeDb_ - (kneeWidthDb_ / 2.0f);
+    float kneeContribution = (kneeWidthDb_ > 0.0f) ? 0.5f : 0.0f;
+    blendPosition = kneeContribution + ((aboveKnee / effectiveRange) * (1.0f - kneeContribution));
+    blendPosition = std::min(1.0f, blendPosition);
   }
 
-  if (inputLevelDb <= lowThresholdDb_) {
-    return lowBlend_;
-  } else if (inputLevelDb >= highThresholdDb_) {
-    return highBlend_;
-  } else {
-    float t = (inputLevelDb - lowThresholdDb_) / (highThresholdDb_ - lowThresholdDb_);
-    return lowBlend_ + (highBlend_ - lowBlend_) * t;
-  }
+  return lowBlend_ + (highBlend_ - lowBlend_) * blendPosition;
 }
 
 float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) const {
@@ -635,6 +678,30 @@ float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) c
   }
 
   return 20.0f * std::log10(peak);
+}
+
+float IRProcessor::detectRMSLevel(const Sample* buffer, FrameCount numFrames) {
+  if (numFrames == 0 || rmsBufferSize_ == 0) {
+    return -96.0f;
+  }
+
+  for (FrameCount i = 0; i < numFrames; ++i) {
+    float sample = buffer[i];
+    rmsBuffer_[rmsBufferIndex_] = sample * sample;
+    rmsBufferIndex_ = (rmsBufferIndex_ + 1) % rmsBufferSize_;
+  }
+
+  float sumSquares = 0.0f;
+  for (size_t i = 0; i < rmsBufferSize_; ++i) {
+    sumSquares += rmsBuffer_[i];
+  }
+  float rms = std::sqrt(sumSquares / static_cast<float>(rmsBufferSize_));
+
+  if (rms < 1e-6f) {
+    return -96.0f;
+  }
+
+  return 20.0f * std::log10(rms);
 }
 
 void IRProcessor::updateSmoothingCoefficients() {
