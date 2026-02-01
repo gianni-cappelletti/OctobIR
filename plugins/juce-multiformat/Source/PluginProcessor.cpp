@@ -53,11 +53,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
                                                           juce::StringArray("Peak", "RMS"), 0));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "rmsWindowMs", "RMS Window", juce::NormalisableRange<float>(1.0f, 100.0f, 1.0f), 20.0f,
-      juce::String(), juce::AudioProcessorParameter::genericParameter,
-      [](float value, int) { return juce::String(static_cast<int>(value)) + " ms"; }));
-
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
       "attackTime", "Attack Time", juce::NormalisableRange<float>(1.0f, 1000.0f, 1.0f), 50.0f,
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(static_cast<int>(value)) + " ms"; }));
@@ -161,7 +156,6 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   float rangeDb = apvts_.getRawParameterValue("rangeDb")->load();
   float kneeWidthDb = apvts_.getRawParameterValue("kneeWidthDb")->load();
   int detectionMode = static_cast<int>(apvts_.getRawParameterValue("detectionMode")->load());
-  float rmsWindowMs = apvts_.getRawParameterValue("rmsWindowMs")->load();
   float attackTime = apvts_.getRawParameterValue("attackTime")->load();
   float releaseTime = apvts_.getRawParameterValue("releaseTime")->load();
   float outputGain = apvts_.getRawParameterValue("outputGain")->load();
@@ -175,7 +169,6 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   irProcessor_.setRangeDb(rangeDb);
   irProcessor_.setKneeWidthDb(kneeWidthDb);
   irProcessor_.setDetectionMode(detectionMode);
-  irProcessor_.setRMSWindowMs(rmsWindowMs);
   irProcessor_.setAttackTime(attackTime);
   irProcessor_.setReleaseTime(releaseTime);
   irProcessor_.setOutputGain(outputGain);

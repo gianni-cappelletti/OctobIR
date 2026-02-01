@@ -32,7 +32,6 @@ class IRProcessor {
   void setRangeDb(float rangeDb);
   void setKneeWidthDb(float kneeDb);
   void setDetectionMode(int mode);
-  void setRMSWindowMs(float windowMs);
   void setAttackTime(float attackTimeMs);
   void setReleaseTime(float releaseTimeMs);
   void setOutputGain(float gainDb);
@@ -73,7 +72,6 @@ class IRProcessor {
   float getRangeDb() const { return rangeDb_; }
   float getKneeWidthDb() const { return kneeWidthDb_; }
   int getDetectionMode() const { return detectionMode_; }
-  float getRMSWindowMs() const { return rmsWindowMs_; }
   float getAttackTime() const { return attackTimeMs_; }
   float getReleaseTime() const { return releaseTimeMs_; }
   float getOutputGain() const { return outputGainDb_; }
@@ -108,10 +106,10 @@ class IRProcessor {
   float rangeDb_ = 20.0f;
   float kneeWidthDb_ = 5.0f;
   int detectionMode_ = 0;
-  float rmsWindowMs_ = 20.0f;
   std::vector<float> rmsBuffer_;
   size_t rmsBufferIndex_ = 0;
   size_t rmsBufferSize_ = 0;
+  static constexpr float kRMSWindowMs_ = 10.0f;
   float attackTimeMs_ = 50.0f;
   float releaseTimeMs_ = 200.0f;
   float outputGainDb_ = 0.0f;

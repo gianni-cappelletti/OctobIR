@@ -186,10 +186,6 @@ void IRProcessor::setKneeWidthDb(float kneeDb) {
 
 void IRProcessor::setDetectionMode(int mode) {
   detectionMode_ = std::max(0, std::min(1, mode));
-}
-
-void IRProcessor::setRMSWindowMs(float windowMs) {
-  rmsWindowMs_ = std::max(1.0f, std::min(100.0f, windowMs));
   updateRMSBufferSize();
 }
 
@@ -198,7 +194,7 @@ void IRProcessor::updateRMSBufferSize() {
     return;
   }
 
-  size_t newSize = static_cast<size_t>((rmsWindowMs_ / 1000.0f) * sampleRate_);
+  size_t newSize = static_cast<size_t>((kRMSWindowMs_ / 1000.0f) * sampleRate_);
   if (newSize != rmsBufferSize_) {
     rmsBufferSize_ = std::max(size_t(1), newSize);
     rmsBuffer_.resize(rmsBufferSize_, 0.0f);

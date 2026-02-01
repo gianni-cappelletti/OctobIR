@@ -154,28 +154,6 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   blendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "blend", blendSlider_);
 
-  addAndMakeVisible(lowBlendLabel_);
-  lowBlendLabel_.setText("Low Blend", juce::dontSendNotification);
-  lowBlendLabel_.setJustificationType(juce::Justification::centredLeft);
-  lowBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(lowBlendSlider_);
-  lowBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  lowBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-  lowBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "lowBlend", lowBlendSlider_);
-
-  addAndMakeVisible(highBlendLabel_);
-  highBlendLabel_.setText("High Blend", juce::dontSendNotification);
-  highBlendLabel_.setJustificationType(juce::Justification::centredLeft);
-  highBlendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(highBlendSlider_);
-  highBlendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  highBlendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-  highBlendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "highBlend", highBlendSlider_);
-
   addAndMakeVisible(thresholdLabel_);
   thresholdLabel_.setText("Threshold", juce::dontSendNotification);
   thresholdLabel_.setJustificationType(juce::Justification::centredLeft);
@@ -221,17 +199,6 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
           audioProcessor.getAPVTS(), "detectionMode", detectionModeCombo_);
 
-  addAndMakeVisible(rmsWindowMsLabel_);
-  rmsWindowMsLabel_.setText("RMS Window", juce::dontSendNotification);
-  rmsWindowMsLabel_.setJustificationType(juce::Justification::centredLeft);
-  rmsWindowMsLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(rmsWindowMsSlider_);
-  rmsWindowMsSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  rmsWindowMsSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-  rmsWindowMsAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "rmsWindowMs", rmsWindowMsSlider_);
-
   addAndMakeVisible(attackTimeLabel_);
   attackTimeLabel_.setText("Attack Time", juce::dontSendNotification);
   attackTimeLabel_.setJustificationType(juce::Justification::centredLeft);
@@ -272,7 +239,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
 
   startTimerHz(30);
 
-  setSize(700, 850);
+  setSize(700, 760);
 }
 
 OctobIREditor::~OctobIREditor() {
@@ -338,18 +305,6 @@ void OctobIREditor::resized() {
 
   bounds.removeFromTop(15);
 
-  auto lowBlendRow = bounds.removeFromTop(25);
-  lowBlendLabel_.setBounds(lowBlendRow.removeFromLeft(120));
-  lowBlendSlider_.setBounds(lowBlendRow);
-
-  bounds.removeFromTop(5);
-
-  auto highBlendRow = bounds.removeFromTop(25);
-  highBlendLabel_.setBounds(highBlendRow.removeFromLeft(120));
-  highBlendSlider_.setBounds(highBlendRow);
-
-  bounds.removeFromTop(5);
-
   auto thresholdRow = bounds.removeFromTop(25);
   thresholdLabel_.setBounds(thresholdRow.removeFromLeft(120));
   thresholdSlider_.setBounds(thresholdRow);
@@ -371,12 +326,6 @@ void OctobIREditor::resized() {
   auto detectionModeRow = bounds.removeFromTop(25);
   detectionModeLabel_.setBounds(detectionModeRow.removeFromLeft(120));
   detectionModeCombo_.setBounds(detectionModeRow);
-
-  bounds.removeFromTop(5);
-
-  auto rmsWindowMsRow = bounds.removeFromTop(25);
-  rmsWindowMsLabel_.setBounds(rmsWindowMsRow.removeFromLeft(120));
-  rmsWindowMsSlider_.setBounds(rmsWindowMsRow);
 
   bounds.removeFromTop(5);
 
@@ -413,9 +362,7 @@ void OctobIREditor::updateMeters() {
     float rangeDb = audioProcessor.getAPVTS().getRawParameterValue("rangeDb")->load();
     inputLevelMeter_.setThresholdMarkers(threshold, threshold + rangeDb);
 
-    float lowBlend = audioProcessor.getAPVTS().getRawParameterValue("lowBlend")->load();
-    float highBlend = audioProcessor.getAPVTS().getRawParameterValue("highBlend")->load();
-    blendMeter_.setBlendRangeMarkers(lowBlend, highBlend);
+    blendMeter_.setBlendRangeMarkers(-1.0f, 1.0f);
   }
 }
 
