@@ -1,5 +1,7 @@
 #include "octobir-core/IRLoader.hpp"
 
+#include <cmath>
+
 #define DR_WAV_IMPLEMENTATION
 #include <convoengine.h>
 #include <resample.h>

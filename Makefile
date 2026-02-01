@@ -1,4 +1,4 @@
-.PHONY: help vcv juce core test clean-all release
+.PHONY: help vcv juce core test clean release
 
 help:
 	@echo "Development build targets (always clean build):"
@@ -6,7 +6,7 @@ help:
 	@echo "  make juce        - Clean and build JUCE plugin (debug)"
 	@echo "  make core        - Clean and build core library only"
 	@echo "  make test        - Build and run unit tests"
-	@echo "  make clean-all   - Remove all build artifacts"
+	@echo "  make clean       - Remove all build artifacts"
 	@echo ""
 	@echo "Release builds:"
 	@echo "  make release     - Build all plugins (release)"

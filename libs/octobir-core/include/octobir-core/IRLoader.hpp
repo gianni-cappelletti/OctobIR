@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Types.hpp"
-
 #include <string>
 #include <vector>
+
+#include "Types.hpp"
 
 class WDL_ImpulseBuffer;
 

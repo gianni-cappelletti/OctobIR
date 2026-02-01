@@ -20,6 +20,39 @@ fi
 echo "✓ Submodules initialized"
 
 echo ""
+echo "Checking development tools..."
+
+MISSING_TOOLS=()
+
+if ! command -v clang-format &> /dev/null; then
+    echo "⚠ clang-format not found"
+    MISSING_TOOLS+=("clang-format")
+else
+    echo "✓ clang-format installed"
+fi
+
+if ! command -v clang-tidy &> /dev/null; then
+    echo "⚠ clang-tidy not found"
+    MISSING_TOOLS+=("clang-tidy")
+else
+    echo "✓ clang-tidy installed"
+fi
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo ""
+    echo "Optional development tools are missing. Install them with:"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "  brew install llvm"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "  sudo apt-get install clang-format clang-tidy"
+    fi
+    echo ""
+    echo "These tools enable:"
+    echo "  - clang-format: Automatic code formatting"
+    echo "  - clang-tidy: Static analysis and linting"
+fi
+
+echo ""
 echo "Installing git hooks..."
 if [ -f "scripts/hooks/pre-commit" ]; then
     cp scripts/hooks/pre-commit .git/hooks/pre-commit

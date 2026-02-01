@@ -2,6 +2,8 @@
 
 #include <convoengine.h>
 
+#include <cmath>
+
 namespace octob {
 
 IRProcessor::IRProcessor()

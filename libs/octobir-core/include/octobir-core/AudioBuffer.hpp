@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Types.hpp"
-
 #include <vector>
+
+#include "Types.hpp"
 
 namespace octob {
 

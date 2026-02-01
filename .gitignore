@@ -2,6 +2,7 @@
 .*
 !.git*
 !.clang-format
+!.clang-tidy
 !.github
 
 # Binaries and build targets
