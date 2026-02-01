@@ -12,12 +12,14 @@
 
 #include "dr_wav.h"
 
-namespace octob {
+namespace octob
+{
 
 IRLoader::IRLoader() = default;
 IRLoader::~IRLoader() = default;
 
-IRLoadResult IRLoader::loadFromFile(const std::string& filepath) {
+IRLoadResult IRLoader::loadFromFile(const std::string& filepath)
+{
   IRLoadResult result;
 
   uint32_t channels = 0;
@@ -27,7 +29,8 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath) {
   float* sampleData = drwav_open_file_and_read_pcm_frames_f32(
       filepath.c_str(), &channels, &sampleRate, &totalPCMFrameCount, nullptr);
 
-  if (sampleData == nullptr) {
+  if (sampleData == nullptr)
+  {
     result.success = false;
     result.errorMessage = "Failed to open or read WAV file";
     return result;
@@ -36,20 +39,28 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath) {
   const auto irLength = static_cast<size_t>(totalPCMFrameCount);
   irBuffer_.clear();
 
-  if (channels == 1) {
+  if (channels == 1)
+  {
     irBuffer_.resize(irLength);
-    for (size_t i = 0; i < irLength; i++) {
+    for (size_t i = 0; i < irLength; i++)
+    {
       irBuffer_[i] = sampleData[i];
     }
-  } else if (channels == 2) {
+  }
+  else if (channels == 2)
+  {
     irBuffer_.resize(irLength * 2);
-    for (size_t i = 0; i < irLength; i++) {
+    for (size_t i = 0; i < irLength; i++)
+    {
       irBuffer_[(i * 2)] = sampleData[(i * 2)];
       irBuffer_[(i * 2) + 1] = sampleData[(i * 2) + 1];
     }
-  } else {
+  }
+  else
+  {
     irBuffer_.resize(irLength);
-    for (size_t i = 0; i < irLength; i++) {
+    for (size_t i = 0; i < irLength; i++)
+    {
       irBuffer_[i] = sampleData[i * channels];
     }
   }
@@ -59,7 +70,8 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath) {
   constexpr float IrCompensationGainDb = -17.0f;
   constexpr float KDbToLinear = 0.1151292546497023f;
   const float irCompensationGain = std::exp(IrCompensationGainDb * KDbToLinear);
-  for (auto& sample : irBuffer_) {
+  for (auto& sample : irBuffer_)
+  {
     sample *= irCompensationGain;
   }
 
@@ -75,9 +87,10 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath) {
   return result;
 }
 
-bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
-                                     SampleRate targetSampleRate) {
-  if (irBuffer_.empty()) {
+bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRate targetSampleRate)
+{
+  if (irBuffer_.empty())
+  {
     return false;
   }
 
@@ -85,24 +98,28 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
 
   const bool needsResampling = (irSampleRate_ != targetSampleRate);
 
-  if (needsResampling) {
+  if (needsResampling)
+  {
     const size_t outFrames = (numSamples_ * static_cast<size_t>(targetSampleRate) +
                               static_cast<size_t>(irSampleRate_) / 2) /
                              static_cast<size_t>(irSampleRate_);
 
     const int actualLength = impulseBuffer.SetLength(static_cast<int>(outFrames));
-    if (actualLength <= 0) {
+    if (actualLength <= 0)
+    {
       return false;
     }
 
     impulseBuffer.SetNumChannels(outputChannels);
-    if (impulseBuffer.GetNumChannels() != outputChannels) {
+    if (impulseBuffer.GetNumChannels() != outputChannels)
+    {
       return false;
     }
 
     impulseBuffer.samplerate = targetSampleRate;
 
-    for (int ch = 0; ch < outputChannels; ch++) {
+    for (int ch = 0; ch < outputChannels; ch++)
+    {
       WDL_Resampler resampler;
       resampler.SetMode(false, 1, false);
       resampler.SetRates(irSampleRate_, targetSampleRate);
@@ -116,9 +133,11 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
 
       int actualOutSamples = 0;
       while (inSamples > 0 || resampler.ResampleOut(resampledIr.data() + actualOutSamples,
-                                                    inSamples, outSamples, 1) > 0) {
+                                                    inSamples, outSamples, 1) > 0)
+      {
         const int needed = resampler.ResamplePrepare(inSamples, 1, &rsinbuf);
-        for (int i = 0; i < needed && inSamples > 0; i++) {
+        for (int i = 0; i < needed && inSamples > 0; i++)
+        {
           const int srcCh = (numChannels_ == 1) ? 0 : ch;
           const size_t srcIdx = ((numSamples_ - inSamples) * numChannels_) + srcCh;
           rsinbuf[i] = irBuffer_[srcIdx];
@@ -133,11 +152,13 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
       }
 
       WDL_FFT_REAL* irBufferPtr = impulseBuffer.impulses[ch].Get();
-      if (irBufferPtr == nullptr) {
+      if (irBufferPtr == nullptr)
+      {
         return false;
       }
 
-      for (int i = 0; i < actualLength; i++) {
+      for (int i = 0; i < actualLength; i++)
+      {
         irBufferPtr[i] = (i < actualOutSamples) ? static_cast<WDL_FFT_REAL>(resampledIr[i]) : 0.0f;
       }
     }
@@ -146,29 +167,37 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer,
   }
 
   const int actualLength = impulseBuffer.SetLength(static_cast<int>(numSamples_));
-  if (actualLength <= 0) {
+  if (actualLength <= 0)
+  {
     return false;
   }
 
   impulseBuffer.SetNumChannels(outputChannels);
-  if (impulseBuffer.GetNumChannels() != outputChannels) {
+  if (impulseBuffer.GetNumChannels() != outputChannels)
+  {
     return false;
   }
 
   impulseBuffer.samplerate = targetSampleRate;
 
-  for (int ch = 0; ch < outputChannels; ch++) {
+  for (int ch = 0; ch < outputChannels; ch++)
+  {
     WDL_FFT_REAL* irBufferPtr = impulseBuffer.impulses[ch].Get();
-    if (irBufferPtr == nullptr) {
+    if (irBufferPtr == nullptr)
+    {
       return false;
     }
 
-    for (int i = 0; i < actualLength; i++) {
-      if (i < static_cast<int>(numSamples_)) {
+    for (int i = 0; i < actualLength; i++)
+    {
+      if (i < static_cast<int>(numSamples_))
+      {
         const int srcCh = (numChannels_ == 1) ? 0 : ch;
         const size_t srcIdx = (i * numChannels_) + srcCh;
         irBufferPtr[i] = static_cast<WDL_FFT_REAL>(irBuffer_[srcIdx]);
-      } else {
+      }
+      else
+      {
         irBufferPtr[i] = 0.0f;
       }
     }

@@ -7,11 +7,14 @@ OctobIRProcessor::OctobIRProcessor()
                          .withInput("Input", juce::AudioChannelSet::stereo(), true)
                          .withInput("Sidechain", juce::AudioChannelSet::stereo(), false)
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts_(*this, nullptr, "Parameters", createParameterLayout()) {}
+      apvts_(*this, nullptr, "Parameters", createParameterLayout())
+{
+}
 
 OctobIRProcessor::~OctobIRProcessor() {}
 
-juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createParameterLayout() {
+juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createParameterLayout()
+{
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
   layout.add(std::make_unique<juce::AudioParameterBool>("dynamicMode", "Dynamic Mode", false));
@@ -70,57 +73,70 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
   return layout;
 }
 
-const juce::String OctobIRProcessor::getName() const {
+const juce::String OctobIRProcessor::getName() const
+{
   return JucePlugin_Name;
 }
 
-bool OctobIRProcessor::acceptsMidi() const {
+bool OctobIRProcessor::acceptsMidi() const
+{
   return false;
 }
 
-bool OctobIRProcessor::producesMidi() const {
+bool OctobIRProcessor::producesMidi() const
+{
   return false;
 }
 
-bool OctobIRProcessor::isMidiEffect() const {
+bool OctobIRProcessor::isMidiEffect() const
+{
   return false;
 }
 
-double OctobIRProcessor::getTailLengthSeconds() const {
+double OctobIRProcessor::getTailLengthSeconds() const
+{
   return 0.0;
 }
 
-int OctobIRProcessor::getNumPrograms() {
+int OctobIRProcessor::getNumPrograms()
+{
   return 1;
 }
 
-int OctobIRProcessor::getCurrentProgram() {
+int OctobIRProcessor::getCurrentProgram()
+{
   return 0;
 }
 
-void OctobIRProcessor::setCurrentProgram(int index) {
+void OctobIRProcessor::setCurrentProgram(int index)
+{
   juce::ignoreUnused(index);
 }
 
-const juce::String OctobIRProcessor::getProgramName(int index) {
+const juce::String OctobIRProcessor::getProgramName(int index)
+{
   juce::ignoreUnused(index);
   return {};
 }
 
-void OctobIRProcessor::changeProgramName(int index, const juce::String& newName) {
+void OctobIRProcessor::changeProgramName(int index, const juce::String& newName)
+{
   juce::ignoreUnused(index, newName);
 }
 
-void OctobIRProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void OctobIRProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+{
   juce::ignoreUnused(samplesPerBlock);
   irProcessor_.setSampleRate(sampleRate);
 }
 
-void OctobIRProcessor::releaseResources() {
+void OctobIRProcessor::releaseResources()
+{
   irProcessor_.reset();
 }
 
-bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
+bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+{
   if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
       layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
     return false;
@@ -137,7 +153,8 @@ bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const 
 }
 
 void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
-                                    juce::MidiBuffer& midiMessages) {
+                                    juce::MidiBuffer& midiMessages)
+{
   juce::ignoreUnused(midiMessages);
   juce::ScopedNoDenormals noDenormals;
 
@@ -177,8 +194,10 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   auto sidechainBuffer = getBusBuffer(buffer, true, 1);
   bool hasSidechain = sidechainBuffer.getNumChannels() != 0;
 
-  if (dynamicMode && sidechainEnabled && hasSidechain) {
-    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2) {
+  if (dynamicMode && sidechainEnabled && hasSidechain)
+  {
+    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2)
+    {
       float* mainL = mainInputChannels.getWritePointer(0);
       float* mainR = mainInputChannels.getWritePointer(1);
       const float* scL =
@@ -191,7 +210,9 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
       irProcessor_.processStereoWithSidechain(mainL, mainR, scL, scR, outL, outR,
                                               static_cast<size_t>(buffer.getNumSamples()));
-    } else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1) {
+    }
+    else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1)
+    {
       float* main = mainInputChannels.getWritePointer(0);
       const float* sc =
           sidechainBuffer.getNumChannels() >= 1 ? sidechainBuffer.getReadPointer(0) : main;
@@ -200,13 +221,18 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
       irProcessor_.processMonoWithSidechain(main, sc, out,
                                             static_cast<size_t>(buffer.getNumSamples()));
     }
-  } else {
-    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2) {
+  }
+  else
+  {
+    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2)
+    {
       float* channelDataL = buffer.getWritePointer(0);
       float* channelDataR = buffer.getWritePointer(1);
       irProcessor_.processStereo(channelDataL, channelDataR, channelDataL, channelDataR,
                                  static_cast<size_t>(buffer.getNumSamples()));
-    } else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1) {
+    }
+    else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1)
+    {
       float* channelData = buffer.getWritePointer(0);
       irProcessor_.processMono(channelData, channelData,
                                static_cast<size_t>(buffer.getNumSamples()));
@@ -214,15 +240,18 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   }
 }
 
-bool OctobIRProcessor::hasEditor() const {
+bool OctobIRProcessor::hasEditor() const
+{
   return true;
 }
 
-juce::AudioProcessorEditor* OctobIRProcessor::createEditor() {
+juce::AudioProcessorEditor* OctobIRProcessor::createEditor()
+{
   return new OctobIREditor(*this);
 }
 
-void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData) {
+void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
   auto state = apvts_.copyState();
   state.setProperty("irPath", currentIRPath_, nullptr);
   state.setProperty("ir2Path", currentIR2Path_, nullptr);
@@ -231,52 +260,62 @@ void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData) {
   state.writeToStream(stream);
 }
 
-void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes) {
+void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
   juce::ValueTree state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
 
-  if (state.isValid()) {
+  if (state.isValid())
+  {
     apvts_.replaceState(state);
 
-    if (!state.hasProperty("threshold") && state.hasProperty("lowThreshold")) {
+    if (!state.hasProperty("threshold") && state.hasProperty("lowThreshold"))
+    {
       float oldLow = state.getProperty("lowThreshold", -40.0f);
       float oldHigh = state.getProperty("highThreshold", -10.0f);
 
       float newThreshold = oldLow;
       float newRange = std::max(1.0f, oldHigh - oldLow);
 
-      if (auto* param = apvts_.getParameter("threshold")) {
+      if (auto* param = apvts_.getParameter("threshold"))
+      {
         param->setValueNotifyingHost(param->convertTo0to1(newThreshold));
       }
-      if (auto* param = apvts_.getParameter("rangeDb")) {
+      if (auto* param = apvts_.getParameter("rangeDb"))
+      {
         param->setValueNotifyingHost(param->convertTo0to1(newRange));
       }
     }
 
     juce::String path = state.getProperty("irPath").toString();
-    if (path.isNotEmpty()) {
+    if (path.isNotEmpty())
+    {
       juce::String error;
       loadImpulseResponse(path, error);
     }
 
     juce::String path2 = state.getProperty("ir2Path").toString();
-    if (path2.isNotEmpty()) {
+    if (path2.isNotEmpty())
+    {
       juce::String error;
       loadImpulseResponse2(path2, error);
     }
   }
 }
 
-bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath,
-                                           juce::String& errorMessage) {
+bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath, juce::String& errorMessage)
+{
   std::string error;
-  if (irProcessor_.loadImpulseResponse(filepath.toStdString(), error)) {
+  if (irProcessor_.loadImpulseResponse(filepath.toStdString(), error))
+  {
     currentIRPath_ = filepath;
     setLatencySamples(irProcessor_.getLatencySamples());
     DBG("Loaded IR1: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
         " samples)");
     errorMessage.clear();
     return true;
-  } else {
+  }
+  else
+  {
     DBG("Failed to load IR1: " + juce::String(error));
     errorMessage = juce::String(error);
     return false;
@@ -284,20 +323,25 @@ bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath,
 }
 
 bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
-                                            juce::String& errorMessage) {
+                                            juce::String& errorMessage)
+{
   std::string error;
-  if (irProcessor_.loadImpulseResponse2(filepath.toStdString(), error)) {
+  if (irProcessor_.loadImpulseResponse2(filepath.toStdString(), error))
+  {
     currentIR2Path_ = filepath;
     DBG("Loaded IR2: " + filepath);
     errorMessage.clear();
     return true;
-  } else {
+  }
+  else
+  {
     DBG("Failed to load IR2: " + juce::String(error));
     errorMessage = juce::String(error);
     return false;
   }
 }
 
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
   return new OctobIRProcessor();
 }

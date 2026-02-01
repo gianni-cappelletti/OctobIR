@@ -4,17 +4,21 @@
 
 #include "octobir-core/Types.hpp"
 
-namespace octob {
+namespace octob
+{
 
-AudioBuffer::AudioBuffer(FrameCount numFrames) {
+AudioBuffer::AudioBuffer(FrameCount numFrames)
+{
   resize(numFrames);
 }
 
-void AudioBuffer::resize(FrameCount numFrames) {
+void AudioBuffer::resize(FrameCount numFrames)
+{
   data_.resize(numFrames);
 }
 
-void AudioBuffer::clear() {
+void AudioBuffer::clear()
+{
   std::fill(data_.begin(), data_.end(), 0.0f);
 }
 

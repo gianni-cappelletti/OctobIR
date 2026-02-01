@@ -3,25 +3,30 @@
 #include "PluginProcessor.h"
 
 VerticalMeter::VerticalMeter(const juce::String& name, float minValue, float maxValue)
-    : name_(name), minValue_(minValue), maxValue_(maxValue) {
+    : name_(name), minValue_(minValue), maxValue_(maxValue)
+{
   startTimerHz(30);
 }
 
-void VerticalMeter::setValue(float value) {
+void VerticalMeter::setValue(float value)
+{
   currentValue_ = value;
 }
 
-void VerticalMeter::setThresholdMarkers(float low, float high) {
+void VerticalMeter::setThresholdMarkers(float low, float high)
+{
   lowThreshold_ = low;
   highThreshold_ = high;
 }
 
-void VerticalMeter::setBlendRangeMarkers(float min, float max) {
+void VerticalMeter::setBlendRangeMarkers(float min, float max)
+{
   minBlend_ = min;
   maxBlend_ = max;
 }
 
-void VerticalMeter::paint(juce::Graphics& g) {
+void VerticalMeter::paint(juce::Graphics& g)
+{
   auto bounds = getLocalBounds();
   int labelHeight = 20;
   auto meterBounds = bounds.removeFromBottom(bounds.getHeight() - labelHeight);
@@ -43,7 +48,8 @@ void VerticalMeter::paint(juce::Graphics& g) {
                                          fillBounds.getX(), fillBounds.getY(), false));
   g.fillRect(fillBounds);
 
-  if (showThresholds_) {
+  if (showThresholds_)
+  {
     float lowNorm = (lowThreshold_ - minValue_) / (maxValue_ - minValue_);
     float highNorm = (highThreshold_ - minValue_) / (maxValue_ - minValue_);
 
@@ -59,7 +65,8 @@ void VerticalMeter::paint(juce::Graphics& g) {
                static_cast<float>(meterBounds.getRight()), static_cast<float>(highY), 2.0f);
   }
 
-  if (showBlendRange_) {
+  if (showBlendRange_)
+  {
     float minNorm = (minBlend_ - minValue_) / (maxValue_ - minValue_);
     float maxNorm = (maxBlend_ - minValue_) / (maxValue_ - minValue_);
 
@@ -78,7 +85,8 @@ void VerticalMeter::paint(juce::Graphics& g) {
   g.drawText(name_, bounds.removeFromTop(labelHeight), juce::Justification::centred, true);
 }
 
-void VerticalMeter::timerCallback() {
+void VerticalMeter::timerCallback()
+{
   repaint();
 }
 
@@ -86,7 +94,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
       inputLevelMeter_("Input Level", -96.0f, 0.0f),
-      blendMeter_("Blend", -1.0f, 1.0f) {
+      blendMeter_("Blend", -1.0f, 1.0f)
+{
   addAndMakeVisible(ir1TitleLabel_);
   ir1TitleLabel_.setText("IR A (-1.0)", juce::dontSendNotification);
   ir1TitleLabel_.setJustificationType(juce::Justification::centredLeft);
@@ -242,11 +251,13 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   setSize(700, 760);
 }
 
-OctobIREditor::~OctobIREditor() {
+OctobIREditor::~OctobIREditor()
+{
   stopTimer();
 }
 
-void OctobIREditor::paint(juce::Graphics& g) {
+void OctobIREditor::paint(juce::Graphics& g)
+{
   g.fillAll(juce::Colour(0xff1a1a1a));
 
   g.setColour(juce::Colours::white);
@@ -254,7 +265,8 @@ void OctobIREditor::paint(juce::Graphics& g) {
   g.drawText("OctobIR", getLocalBounds().removeFromTop(50), juce::Justification::centred, true);
 }
 
-void OctobIREditor::resized() {
+void OctobIREditor::resized()
+{
   auto bounds = getLocalBounds().reduced(15);
   bounds.removeFromTop(50);
 
@@ -344,11 +356,13 @@ void OctobIREditor::resized() {
   latencyLabel_.setBounds(bounds.removeFromTop(25));
 }
 
-void OctobIREditor::timerCallback() {
+void OctobIREditor::timerCallback()
+{
   updateMeters();
 }
 
-void OctobIREditor::updateMeters() {
+void OctobIREditor::updateMeters()
+{
   inputLevelMeter_.setValue(audioProcessor.getCurrentInputLevel());
   blendMeter_.setValue(audioProcessor.getCurrentBlend());
 
@@ -357,7 +371,8 @@ void OctobIREditor::updateMeters() {
   inputLevelMeter_.setShowThresholds(dynamicMode);
   blendMeter_.setShowBlendRange(dynamicMode);
 
-  if (dynamicMode) {
+  if (dynamicMode)
+  {
     float threshold = audioProcessor.getAPVTS().getRawParameterValue("threshold")->load();
     float rangeDb = audioProcessor.getAPVTS().getRawParameterValue("rangeDb")->load();
     inputLevelMeter_.setThresholdMarkers(threshold, threshold + rangeDb);
@@ -366,81 +381,104 @@ void OctobIREditor::updateMeters() {
   }
 }
 
-void OctobIREditor::loadButtonClicked() {
+void OctobIREditor::loadButtonClicked()
+{
   auto chooser = std::make_shared<juce::FileChooser>(
       "Select impulse response WAV file for IR 1",
       juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*.wav");
 
   auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
-  chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
-    auto file = fc.getResult();
-    if (file.existsAsFile()) {
-      juce::String error;
-      bool success = audioProcessor.loadImpulseResponse(file.getFullPathName(), error);
-      if (success) {
-        irPathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-        irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-        updateLatencyDisplay();
-      } else {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                                               "Failed to Load IR 1", error, "OK");
-        irPathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-        irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
-      }
-    }
-  });
+  chooser->launchAsync(
+      flags,
+      [this, chooser](const juce::FileChooser& fc)
+      {
+        auto file = fc.getResult();
+        if (file.existsAsFile())
+        {
+          juce::String error;
+          bool success = audioProcessor.loadImpulseResponse(file.getFullPathName(), error);
+          if (success)
+          {
+            irPathLabel_.setText(file.getFileName(), juce::dontSendNotification);
+            irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+            updateLatencyDisplay();
+          }
+          else
+          {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                   "Failed to Load IR 1", error, "OK");
+            irPathLabel_.setText("Failed to load IR", juce::dontSendNotification);
+            irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+          }
+        }
+      });
 }
 
-void OctobIREditor::loadButton2Clicked() {
+void OctobIREditor::loadButton2Clicked()
+{
   auto chooser = std::make_shared<juce::FileChooser>(
       "Select impulse response WAV file for IR 2",
       juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*.wav");
 
   auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
-  chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
-    auto file = fc.getResult();
-    if (file.existsAsFile()) {
-      juce::String error;
-      bool success = audioProcessor.loadImpulseResponse2(file.getFullPathName(), error);
-      if (success) {
-        ir2PathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-        ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-      } else {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                                               "Failed to Load IR 2", error, "OK");
-        ir2PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-        ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
-      }
-    }
-  });
+  chooser->launchAsync(
+      flags,
+      [this, chooser](const juce::FileChooser& fc)
+      {
+        auto file = fc.getResult();
+        if (file.existsAsFile())
+        {
+          juce::String error;
+          bool success = audioProcessor.loadImpulseResponse2(file.getFullPathName(), error);
+          if (success)
+          {
+            ir2PathLabel_.setText(file.getFileName(), juce::dontSendNotification);
+            ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+          }
+          else
+          {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                   "Failed to Load IR 2", error, "OK");
+            ir2PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
+            ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+          }
+        }
+      });
 }
 
-void OctobIREditor::swapIROrderClicked() {
+void OctobIREditor::swapIROrderClicked()
+{
   auto& apvts = audioProcessor.getAPVTS();
 
   float currentLowBlend = apvts.getRawParameterValue("lowBlend")->load();
   float currentHighBlend = apvts.getRawParameterValue("highBlend")->load();
 
-  if (auto* lowParam = apvts.getParameter("lowBlend")) {
+  if (auto* lowParam = apvts.getParameter("lowBlend"))
+  {
     lowParam->setValueNotifyingHost(lowParam->convertTo0to1(currentHighBlend));
   }
 
-  if (auto* highParam = apvts.getParameter("highBlend")) {
+  if (auto* highParam = apvts.getParameter("highBlend"))
+  {
     highParam->setValueNotifyingHost(highParam->convertTo0to1(currentLowBlend));
   }
 }
 
-void OctobIREditor::updateLatencyDisplay() {
+void OctobIREditor::updateLatencyDisplay()
+{
   int latency = audioProcessor.getLatencySamples();
   double sampleRate = audioProcessor.getSampleRate();
-  if (sampleRate > 0) {
+  if (sampleRate > 0)
+  {
     double latencyMs = (latency / sampleRate) * 1000.0;
     latencyLabel_.setText(juce::String("Latency: ") + juce::String(latency) + " samples (" +
                               juce::String(latencyMs, 2) + " ms)",
                           juce::dontSendNotification);
-  } else {
+  }
+  else
+  {
     latencyLabel_.setText(juce::String("Latency: ") + juce::String(latency) + " samples",
                           juce::dontSendNotification);
   }

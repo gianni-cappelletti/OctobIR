@@ -14,15 +14,20 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-const-cast,
   -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-no-malloc,
   -misc-const-correctness,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -modernize-use-auto,
+  -modernize-use-default-member-init,
   -modernize-use-trailing-return-type,
   -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
@@ -33,6 +38,9 @@ Checks: >
 
 # Note: Raw pointer usage in audio DSP is acceptable for performance-critical
 # buffer processing. const_cast is sometimes necessary for C library interfaces.
+# VCV Rack framework requires global variables (modelOpcVcvIr, pluginInstance),
+# C-style vararg functions (INFO/WARN logging macros), and manages widget memory
+# internally. osdialog uses malloc/free for C interop.
 
 WarningsAsErrors: ''
 

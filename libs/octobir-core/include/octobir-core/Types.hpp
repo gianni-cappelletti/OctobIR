@@ -2,7 +2,8 @@
 
 #include <cstddef>
 
-namespace octob {
+namespace octob
+{
 
 using SampleRate = double;
 using Sample = float;

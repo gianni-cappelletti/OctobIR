@@ -11,9 +11,11 @@
 class WDL_ImpulseBuffer;
 class WDL_ConvolutionEngine_Div;
 
-namespace octob {
+namespace octob
+{
 
-class IRProcessor {
+class IRProcessor
+{
  public:
   IRProcessor();
   ~IRProcessor();

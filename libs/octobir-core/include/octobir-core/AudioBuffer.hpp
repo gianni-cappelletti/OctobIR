@@ -4,9 +4,11 @@
 
 #include "Types.hpp"
 
-namespace octob {
+namespace octob
+{
 
-class AudioBuffer {
+class AudioBuffer
+{
  public:
   AudioBuffer() = default;
   explicit AudioBuffer(FrameCount numFrames);

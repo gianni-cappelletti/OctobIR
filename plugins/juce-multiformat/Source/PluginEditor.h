@@ -4,17 +4,20 @@
 
 #include "PluginProcessor.h"
 
-class VerticalMeter : public juce::Component, private juce::Timer {
+class VerticalMeter : public juce::Component, private juce::Timer
+{
  public:
   VerticalMeter(const juce::String& name, float minValue, float maxValue);
   void setValue(float value);
   void setThresholdMarkers(float low, float high);
   void setBlendRangeMarkers(float min, float max);
-  void setShowThresholds(bool show) {
+  void setShowThresholds(bool show)
+  {
     showThresholds_ = show;
     repaint();
   }
-  void setShowBlendRange(bool show) {
+  void setShowBlendRange(bool show)
+  {
     showBlendRange_ = show;
     repaint();
   }
@@ -35,7 +38,8 @@ class VerticalMeter : public juce::Component, private juce::Timer {
   bool showBlendRange_ = false;
 };
 
-class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer {
+class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
+{
  public:
   explicit OctobIREditor(OctobIRProcessor&);
   ~OctobIREditor() override;

@@ -4,7 +4,8 @@
 
 #include <octobir-core/IRProcessor.hpp>
 
-class OctobIRProcessor : public juce::AudioProcessor {
+class OctobIRProcessor : public juce::AudioProcessor
+{
  public:
   OctobIRProcessor();
   ~OctobIRProcessor() override;

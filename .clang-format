@@ -22,18 +22,8 @@ AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments: true
 
-# Braces
-BreakBeforeBraces: Attach
-BraceWrapping:
-  AfterClass: false
-  AfterControlStatement: false
-  AfterEnum: false
-  AfterFunction: false
-  AfterNamespace: false
-  AfterStruct: false
-  AfterUnion: false
-  BeforeCatch: false
-  BeforeElse: false
+# Braces - Allman style (braces on new lines)
+BreakBeforeBraces: Allman
 
 # Breaking
 AllowShortFunctionsOnASingleLine: Inline

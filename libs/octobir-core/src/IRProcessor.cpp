@@ -7,7 +7,8 @@
 #include <cmath>
 #include <string>
 
-namespace octob {
+namespace octob
+{
 
 IRProcessor::IRProcessor()
     : impulseBuffer_(new WDL_ImpulseBuffer()),
@@ -15,20 +16,25 @@ IRProcessor::IRProcessor()
       irLoader_(new IRLoader()),
       impulseBuffer2_(new WDL_ImpulseBuffer()),
       convolutionEngine2_(new WDL_ConvolutionEngine_Div()),
-      irLoader2_(new IRLoader()) {}
+      irLoader2_(new IRLoader())
+{
+}
 
 IRProcessor::~IRProcessor() = default;
 
-bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& errorMessage) {
+bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& errorMessage)
+{
   const IRLoadResult result = irLoader_->loadFromFile(filepath);
 
-  if (!result.success) {
+  if (!result.success)
+  {
     errorMessage = result.errorMessage;
     irLoaded_ = false;
     return false;
   }
 
-  if (!irLoader_->resampleAndInitialize(*impulseBuffer_, sampleRate_)) {
+  if (!irLoader_->resampleAndInitialize(*impulseBuffer_, sampleRate_))
+  {
     errorMessage = "Failed to resample IR to target sample rate";
     irLoaded_ = false;
     return false;
@@ -38,26 +44,30 @@ bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& 
   const int irChannels = impulseBuffer_->GetNumChannels();
   const double irSampleRate = impulseBuffer_->samplerate;
 
-  if (irLength <= 0) {
+  if (irLength <= 0)
+  {
     errorMessage = "IR buffer length is invalid: " + std::to_string(irLength);
     irLoaded_ = false;
     return false;
   }
 
-  if (irChannels <= 0) {
+  if (irChannels <= 0)
+  {
     errorMessage = "IR buffer channels is invalid: " + std::to_string(irChannels);
     irLoaded_ = false;
     return false;
   }
 
-  if (irSampleRate <= 0) {
+  if (irSampleRate <= 0)
+  {
     errorMessage = "IR sample rate is invalid: " + std::to_string(irSampleRate);
     irLoaded_ = false;
     return false;
   }
 
   latencySamples_ = convolutionEngine_->SetImpulse(impulseBuffer_.get(), 64);
-  if (latencySamples_ < 0) {
+  if (latencySamples_ < 0)
+  {
     errorMessage = "Failed to initialize convolution engine with IR (returned " +
                    std::to_string(latencySamples_) + "). IR: " + std::to_string(irLength) +
                    " samples, " + std::to_string(irChannels) + " channels, " +
@@ -74,16 +84,19 @@ bool IRProcessor::loadImpulseResponse(const std::string& filepath, std::string& 
   return true;
 }
 
-bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string& errorMessage) {
+bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string& errorMessage)
+{
   const IRLoadResult result = irLoader2_->loadFromFile(filepath);
 
-  if (!result.success) {
+  if (!result.success)
+  {
     errorMessage = result.errorMessage;
     ir2Loaded_ = false;
     return false;
   }
 
-  if (!irLoader2_->resampleAndInitialize(*impulseBuffer2_, sampleRate_)) {
+  if (!irLoader2_->resampleAndInitialize(*impulseBuffer2_, sampleRate_))
+  {
     errorMessage = "Failed to resample IR2 to target sample rate";
     ir2Loaded_ = false;
     return false;
@@ -93,26 +106,30 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
   const int irChannels = impulseBuffer2_->GetNumChannels();
   const double irSampleRate = impulseBuffer2_->samplerate;
 
-  if (irLength <= 0) {
+  if (irLength <= 0)
+  {
     errorMessage = "IR2 buffer length is invalid: " + std::to_string(irLength);
     ir2Loaded_ = false;
     return false;
   }
 
-  if (irChannels <= 0) {
+  if (irChannels <= 0)
+  {
     errorMessage = "IR2 buffer channels is invalid: " + std::to_string(irChannels);
     ir2Loaded_ = false;
     return false;
   }
 
-  if (irSampleRate <= 0) {
+  if (irSampleRate <= 0)
+  {
     errorMessage = "IR2 sample rate is invalid: " + std::to_string(irSampleRate);
     ir2Loaded_ = false;
     return false;
   }
 
   latencySamples2_ = convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64);
-  if (latencySamples2_ < 0) {
+  if (latencySamples2_ < 0)
+  {
     errorMessage = "Failed to initialize convolution engine with IR2 (returned " +
                    std::to_string(latencySamples2_) + "). IR2: " + std::to_string(irLength) +
                    " samples, " + std::to_string(irChannels) + " channels, " +
@@ -129,19 +146,23 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
   return true;
 }
 
-void IRProcessor::setSampleRate(SampleRate sampleRate) {
-  if (sampleRate_ != sampleRate) {
+void IRProcessor::setSampleRate(SampleRate sampleRate)
+{
+  if (sampleRate_ != sampleRate)
+  {
     sampleRate_ = sampleRate;
     updateSmoothingCoefficients();
     updateRMSBufferSize();
 
-    if (irLoaded_) {
+    if (irLoaded_)
+    {
       irLoader_->resampleAndInitialize(*impulseBuffer_, sampleRate_);
       convolutionEngine_->Reset();
       latencySamples_ = convolutionEngine_->SetImpulse(impulseBuffer_.get(), 64);
     }
 
-    if (ir2Loaded_) {
+    if (ir2Loaded_)
+    {
       irLoader2_->resampleAndInitialize(*impulseBuffer2_, sampleRate_);
       convolutionEngine2_->Reset();
       latencySamples2_ = convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64);
@@ -149,91 +170,111 @@ void IRProcessor::setSampleRate(SampleRate sampleRate) {
   }
 }
 
-void IRProcessor::setBlend(float blend) {
+void IRProcessor::setBlend(float blend)
+{
   blend_ = std::max(-1.0f, std::min(1.0f, blend));
-  if (!dynamicModeEnabled_) {
+  if (!dynamicModeEnabled_)
+  {
     currentBlend_ = blend_;
     smoothedBlend_ = blend_;
   }
 }
 
-void IRProcessor::setDynamicModeEnabled(bool enabled) {
+void IRProcessor::setDynamicModeEnabled(bool enabled)
+{
   dynamicModeEnabled_ = enabled;
-  if (!enabled) {
+  if (!enabled)
+  {
     currentBlend_ = blend_;
     smoothedBlend_ = blend_;
   }
 }
 
-void IRProcessor::setSidechainEnabled(bool enabled) {
+void IRProcessor::setSidechainEnabled(bool enabled)
+{
   sidechainEnabled_ = enabled;
 }
 
-void IRProcessor::setLowBlend(float lowBlend) {
+void IRProcessor::setLowBlend(float lowBlend)
+{
   lowBlend_ = std::max(-1.0f, std::min(1.0f, lowBlend));
 }
 
-void IRProcessor::setHighBlend(float highBlend) {
+void IRProcessor::setHighBlend(float highBlend)
+{
   highBlend_ = std::max(-1.0f, std::min(1.0f, highBlend));
 }
 
-void IRProcessor::setThreshold(float thresholdDb) {
+void IRProcessor::setThreshold(float thresholdDb)
+{
   thresholdDb_ = std::max(-60.0f, std::min(0.0f, thresholdDb));
 }
 
-void IRProcessor::setRangeDb(float rangeDb) {
+void IRProcessor::setRangeDb(float rangeDb)
+{
   rangeDb_ = std::max(1.0f, std::min(60.0f, rangeDb));
 }
 
-void IRProcessor::setKneeWidthDb(float kneeDb) {
+void IRProcessor::setKneeWidthDb(float kneeDb)
+{
   kneeWidthDb_ = std::max(0.0f, std::min(20.0f, kneeDb));
 }
 
-void IRProcessor::setDetectionMode(int mode) {
+void IRProcessor::setDetectionMode(int mode)
+{
   detectionMode_ = std::max(0, std::min(1, mode));
   updateRMSBufferSize();
 }
 
-void IRProcessor::updateRMSBufferSize() {
-  if (sampleRate_ <= 0.0) {
+void IRProcessor::updateRMSBufferSize()
+{
+  if (sampleRate_ <= 0.0)
+  {
     return;
   }
 
   size_t newSize = static_cast<size_t>((kRMSWindowMs_ / 1000.0f) * sampleRate_);
-  if (newSize != rmsBufferSize_) {
+  if (newSize != rmsBufferSize_)
+  {
     rmsBufferSize_ = std::max(size_t(1), newSize);
     rmsBuffer_.resize(rmsBufferSize_, 0.0f);
     rmsBufferIndex_ = 0;
   }
 }
 
-void IRProcessor::setAttackTime(float attackTimeMs) {
+void IRProcessor::setAttackTime(float attackTimeMs)
+{
   attackTimeMs_ = std::max(1.0f, std::min(500.0f, attackTimeMs));
   updateSmoothingCoefficients();
 }
 
-void IRProcessor::setReleaseTime(float releaseTimeMs) {
+void IRProcessor::setReleaseTime(float releaseTimeMs)
+{
   releaseTimeMs_ = std::max(1.0f, std::min(1000.0f, releaseTimeMs));
   updateSmoothingCoefficients();
 }
 
-void IRProcessor::setOutputGain(float gainDb) {
+void IRProcessor::setOutputGain(float gainDb)
+{
   outputGainDb_ = std::max(-24.0f, std::min(24.0f, gainDb));
   outputGainLinear_ = std::pow(10.0f, outputGainDb_ / 20.0f);
 }
 
-void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount numFrames) {
+void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount numFrames)
+{
   bool hasIR1 = irLoaded_;
   bool hasIR2 = ir2Loaded_;
 
-  if (!hasIR1 && !hasIR2) {
+  if (!hasIR1 && !hasIR2)
+  {
     std::copy(input, input + numFrames, output);
     applyOutputGain(output, numFrames);
     return;
   }
 
   float blendToUse = blend_;
-  if (dynamicModeEnabled_ && !sidechainEnabled_) {
+  if (dynamicModeEnabled_ && !sidechainEnabled_)
+  {
     currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(input, numFrames)
                                                  : detectRMSLevel(input, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
@@ -241,10 +282,14 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else if (dynamicModeEnabled_) {
+  }
+  else if (dynamicModeEnabled_)
+  {
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else {
+  }
+  else
+  {
     currentBlend_ = blend_;
   }
 
@@ -252,7 +297,8 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   float gain1 = std::sqrt(1.0f - normalizedBlend);
   float gain2 = std::sqrt(normalizedBlend);
 
-  if (hasIR1 && hasIR2) {
+  if (hasIR1 && hasIR2)
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine_->Add(&inputPtr, static_cast<int>(numFrames), 1);
     convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
@@ -260,45 +306,61 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
 
-    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames)) {
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** output1Ptr = convolutionEngine_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
 
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
       }
 
       convolutionEngine_->Advance(static_cast<int>(numFrames));
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
-  } else if (hasIR1) {
+  }
+  else if (hasIR1)
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine_->Add(&inputPtr, static_cast<int>(numFrames), 1);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * outputPtr[0][i] + gain2 * input[i];
       }
       convolutionEngine_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
-  } else {
+  }
+  else
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * input[i] + gain2 * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
   }
@@ -306,49 +368,61 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   applyOutputGain(output, numFrames);
 }
 
-void IRProcessor::reset() {
-  if (convolutionEngine_) {
+void IRProcessor::reset()
+{
+  if (convolutionEngine_)
+  {
     convolutionEngine_->Reset();
   }
-  if (convolutionEngine2_) {
+  if (convolutionEngine2_)
+  {
     convolutionEngine2_->Reset();
   }
 }
 
-SampleRate IRProcessor::getIRSampleRate() const {
+SampleRate IRProcessor::getIRSampleRate() const
+{
   return irLoader_ ? irLoader_->getIRSampleRate() : 0.0;
 }
 
-SampleRate IRProcessor::getIR2SampleRate() const {
+SampleRate IRProcessor::getIR2SampleRate() const
+{
   return irLoader2_ ? irLoader2_->getIRSampleRate() : 0.0;
 }
 
-size_t IRProcessor::getIRNumSamples() const {
+size_t IRProcessor::getIRNumSamples() const
+{
   return irLoader_ ? irLoader_->getNumSamples() : 0;
 }
 
-size_t IRProcessor::getIR2NumSamples() const {
+size_t IRProcessor::getIR2NumSamples() const
+{
   return irLoader2_ ? irLoader2_->getNumSamples() : 0;
 }
 
-int IRProcessor::getNumIRChannels() const {
+int IRProcessor::getNumIRChannels() const
+{
   return irLoader_ ? irLoader_->getNumChannels() : 0;
 }
 
-int IRProcessor::getNumIR2Channels() const {
+int IRProcessor::getNumIR2Channels() const
+{
   return irLoader2_ ? irLoader2_->getNumChannels() : 0;
 }
 
-int IRProcessor::getLatencySamples() const {
+int IRProcessor::getLatencySamples() const
+{
   return latencySamples_;
 }
 
 void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL,
-                                Sample* outputR, FrameCount numFrames) {
+                                Sample* outputR, FrameCount numFrames)
+{
   bool hasIR1 = irLoaded_;
   bool hasIR2 = ir2Loaded_;
 
-  if (!hasIR1 && !hasIR2) {
+  if (!hasIR1 && !hasIR2)
+  {
     std::copy(inputL, inputL + numFrames, outputL);
     std::copy(inputR, inputR + numFrames, outputR);
     applyOutputGain(outputL, numFrames);
@@ -357,7 +431,8 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   }
 
   float blendToUse = blend_;
-  if (dynamicModeEnabled_ && !sidechainEnabled_) {
+  if (dynamicModeEnabled_ && !sidechainEnabled_)
+  {
     float levelL = (detectionMode_ == 0) ? detectPeakLevel(inputL, numFrames)
                                          : detectRMSLevel(inputL, numFrames);
     float levelR = (detectionMode_ == 0) ? detectPeakLevel(inputR, numFrames)
@@ -368,10 +443,14 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else if (dynamicModeEnabled_) {
+  }
+  else if (dynamicModeEnabled_)
+  {
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else {
+  }
+  else
+  {
     currentBlend_ = blend_;
   }
 
@@ -382,55 +461,72 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
 
-  if (hasIR1 && hasIR2) {
+  if (hasIR1 && hasIR2)
+  {
     convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
     convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
 
-    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames)) {
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** output1Ptr = convolutionEngine_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
 
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
         outputR[i] = gain1 * output1Ptr[1][i] + gain2 * output2Ptr[1][i];
       }
 
       convolutionEngine_->Advance(static_cast<int>(numFrames));
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
-  } else if (hasIR1) {
+  }
+  else if (hasIR1)
+  {
     convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * outputPtr[0][i] + gain2 * inputL[i];
         outputR[i] = gain1 * outputPtr[1][i] + gain2 * inputR[i];
       }
       convolutionEngine_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
-  } else {
+  }
+  else
+  {
     convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * inputL[i] + gain2 * outputPtr[0][i];
         outputR[i] = gain1 * inputR[i] + gain2 * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
@@ -441,23 +537,27 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 }
 
 void IRProcessor::processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL,
-                                  Sample* outputR, FrameCount numFrames) {
+                                  Sample* outputR, FrameCount numFrames)
+{
   processStereo(inputL, inputR, outputL, outputR, numFrames);
 }
 
 void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* sidechain,
-                                           Sample* output, FrameCount numFrames) {
+                                           Sample* output, FrameCount numFrames)
+{
   bool hasIR1 = irLoaded_;
   bool hasIR2 = ir2Loaded_;
 
-  if (!hasIR1 && !hasIR2) {
+  if (!hasIR1 && !hasIR2)
+  {
     std::copy(input, input + numFrames, output);
     applyOutputGain(output, numFrames);
     return;
   }
 
   float blendToUse = blend_;
-  if (dynamicModeEnabled_ && sidechainEnabled_) {
+  if (dynamicModeEnabled_ && sidechainEnabled_)
+  {
     currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(sidechain, numFrames)
                                                  : detectRMSLevel(sidechain, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
@@ -465,10 +565,14 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else if (dynamicModeEnabled_) {
+  }
+  else if (dynamicModeEnabled_)
+  {
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else {
+  }
+  else
+  {
     currentBlend_ = blend_;
   }
 
@@ -476,7 +580,8 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   float gain1 = std::sqrt(1.0f - normalizedBlend);
   float gain2 = std::sqrt(normalizedBlend);
 
-  if (hasIR1 && hasIR2) {
+  if (hasIR1 && hasIR2)
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine_->Add(&inputPtr, static_cast<int>(numFrames), 1);
     convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
@@ -484,45 +589,61 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
 
-    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames)) {
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** output1Ptr = convolutionEngine_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
 
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
       }
 
       convolutionEngine_->Advance(static_cast<int>(numFrames));
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
-  } else if (hasIR1) {
+  }
+  else if (hasIR1)
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine_->Add(&inputPtr, static_cast<int>(numFrames), 1);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * outputPtr[0][i] + gain2 * input[i];
       }
       convolutionEngine_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
-  } else {
+  }
+  else
+  {
     WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
     convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         output[i] = gain1 * input[i] + gain2 * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(output, output + numFrames, 0.0f);
     }
   }
@@ -532,12 +653,13 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
 void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample* inputR,
                                              const Sample* sidechainL, const Sample* sidechainR,
-                                             Sample* outputL, Sample* outputR,
-                                             FrameCount numFrames) {
+                                             Sample* outputL, Sample* outputR, FrameCount numFrames)
+{
   bool hasIR1 = irLoaded_;
   bool hasIR2 = ir2Loaded_;
 
-  if (!hasIR1 && !hasIR2) {
+  if (!hasIR1 && !hasIR2)
+  {
     std::copy(inputL, inputL + numFrames, outputL);
     std::copy(inputR, inputR + numFrames, outputR);
     applyOutputGain(outputL, numFrames);
@@ -546,7 +668,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
   }
 
   float blendToUse = blend_;
-  if (dynamicModeEnabled_ && sidechainEnabled_) {
+  if (dynamicModeEnabled_ && sidechainEnabled_)
+  {
     float levelL = (detectionMode_ == 0) ? detectPeakLevel(sidechainL, numFrames)
                                          : detectRMSLevel(sidechainL, numFrames);
     float levelR = (detectionMode_ == 0) ? detectPeakLevel(sidechainR, numFrames)
@@ -557,10 +680,14 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
     smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else if (dynamicModeEnabled_) {
+  }
+  else if (dynamicModeEnabled_)
+  {
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
-  } else {
+  }
+  else
+  {
     currentBlend_ = blend_;
   }
 
@@ -571,55 +698,72 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
 
-  if (hasIR1 && hasIR2) {
+  if (hasIR1 && hasIR2)
+  {
     convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
     convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
 
-    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames)) {
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** output1Ptr = convolutionEngine_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
 
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
         outputR[i] = gain1 * output1Ptr[1][i] + gain2 * output2Ptr[1][i];
       }
 
       convolutionEngine_->Advance(static_cast<int>(numFrames));
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
-  } else if (hasIR1) {
+  }
+  else if (hasIR1)
+  {
     convolutionEngine_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * outputPtr[0][i] + gain2 * inputL[i];
         outputR[i] = gain1 * outputPtr[1][i] + gain2 * inputR[i];
       }
       convolutionEngine_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
-  } else {
+  }
+  else
+  {
     convolutionEngine2_->Add(inputPtrs.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
-    if (available >= static_cast<int>(numFrames)) {
+    if (available >= static_cast<int>(numFrames))
+    {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
-      for (FrameCount i = 0; i < numFrames; ++i) {
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
         outputL[i] = gain1 * inputL[i] + gain2 * outputPtr[0][i];
         outputR[i] = gain1 * inputR[i] + gain2 * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
-    } else {
+    }
+    else
+    {
       std::fill(outputL, outputL + numFrames, 0.0f);
       std::fill(outputR, outputR + numFrames, 0.0f);
     }
@@ -632,25 +776,34 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 void IRProcessor::processDualMonoWithSidechain(const Sample* inputL, const Sample* inputR,
                                                const Sample* sidechainL, const Sample* sidechainR,
                                                Sample* outputL, Sample* outputR,
-                                               FrameCount numFrames) {
+                                               FrameCount numFrames)
+{
   processStereoWithSidechain(inputL, inputR, sidechainL, sidechainR, outputL, outputR, numFrames);
 }
 
-float IRProcessor::calculateDynamicBlend(float inputLevelDb) const {
+float IRProcessor::calculateDynamicBlend(float inputLevelDb) const
+{
   float kneeStart = thresholdDb_ - (kneeWidthDb_ / 2.0f);
   float kneeEnd = thresholdDb_ + (kneeWidthDb_ / 2.0f);
 
   float blendPosition = 0.0f;
 
-  if (inputLevelDb <= kneeStart) {
+  if (inputLevelDb <= kneeStart)
+  {
     blendPosition = 0.0f;
-  } else if (inputLevelDb >= kneeEnd && inputLevelDb >= thresholdDb_ + rangeDb_) {
+  }
+  else if (inputLevelDb >= kneeEnd && inputLevelDb >= thresholdDb_ + rangeDb_)
+  {
     blendPosition = 1.0f;
-  } else if (inputLevelDb < kneeEnd) {
+  }
+  else if (inputLevelDb < kneeEnd)
+  {
     float kneeInput = inputLevelDb - kneeStart;
     float kneeOvershoot = kneeInput / kneeWidthDb_;
     blendPosition = (kneeOvershoot * kneeOvershoot) / 2.0f;
-  } else {
+  }
+  else
+  {
     float aboveKnee = inputLevelDb - kneeEnd;
     float effectiveRange = rangeDb_ - (kneeWidthDb_ / 2.0f);
     float kneeContribution = (kneeWidthDb_ > 0.0f) ? 0.5f : 0.0f;
@@ -661,76 +814,96 @@ float IRProcessor::calculateDynamicBlend(float inputLevelDb) const {
   return lowBlend_ + (highBlend_ - lowBlend_) * blendPosition;
 }
 
-float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames) {
-  if (numFrames == 0) {
+float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames)
+{
+  if (numFrames == 0)
+  {
     return -96.0f;
   }
 
   float peak = 0.0f;
-  for (FrameCount i = 0; i < numFrames; ++i) {
+  for (FrameCount i = 0; i < numFrames; ++i)
+  {
     float absSample = std::abs(buffer[i]);
     peak = std::max(peak, absSample);
   }
 
-  if (peak < 1e-6f) {
+  if (peak < 1e-6f)
+  {
     return -96.0f;
   }
 
   return 20.0f * std::log10(peak);
 }
 
-float IRProcessor::detectRMSLevel(const Sample* buffer, FrameCount numFrames) {
-  if (numFrames == 0 || rmsBufferSize_ == 0) {
+float IRProcessor::detectRMSLevel(const Sample* buffer, FrameCount numFrames)
+{
+  if (numFrames == 0 || rmsBufferSize_ == 0)
+  {
     return -96.0f;
   }
 
-  for (FrameCount i = 0; i < numFrames; ++i) {
+  for (FrameCount i = 0; i < numFrames; ++i)
+  {
     float sample = buffer[i];
     rmsBuffer_[rmsBufferIndex_] = sample * sample;
     rmsBufferIndex_ = (rmsBufferIndex_ + 1) % rmsBufferSize_;
   }
 
   float sumSquares = 0.0f;
-  for (size_t i = 0; i < rmsBufferSize_; ++i) {
+  for (size_t i = 0; i < rmsBufferSize_; ++i)
+  {
     sumSquares += rmsBuffer_[i];
   }
   float rms = std::sqrt(sumSquares / static_cast<float>(rmsBufferSize_));
 
-  if (rms < 1e-6f) {
+  if (rms < 1e-6f)
+  {
     return -96.0f;
   }
 
   return 20.0f * std::log10(rms);
 }
 
-void IRProcessor::updateSmoothingCoefficients() {
-  if (sampleRate_ <= 0.0) {
+void IRProcessor::updateSmoothingCoefficients()
+{
+  if (sampleRate_ <= 0.0)
+  {
     attackCoeff_ = 0.0f;
     releaseCoeff_ = 0.0f;
     return;
   }
 
-  if (attackTimeMs_ > 0.0f) {
+  if (attackTimeMs_ > 0.0f)
+  {
     float attackTimeSeconds = attackTimeMs_ / 1000.0f;
     attackCoeff_ = std::exp(-1.0f / (attackTimeSeconds * static_cast<float>(sampleRate_)));
-  } else {
+  }
+  else
+  {
     attackCoeff_ = 0.0f;
   }
 
-  if (releaseTimeMs_ > 0.0f) {
+  if (releaseTimeMs_ > 0.0f)
+  {
     float releaseTimeSeconds = releaseTimeMs_ / 1000.0f;
     releaseCoeff_ = std::exp(-1.0f / (releaseTimeSeconds * static_cast<float>(sampleRate_)));
-  } else {
+  }
+  else
+  {
     releaseCoeff_ = 0.0f;
   }
 }
 
-void IRProcessor::applyOutputGain(Sample* buffer, FrameCount numFrames) const {
-  if (outputGainLinear_ == 1.0f) {
+void IRProcessor::applyOutputGain(Sample* buffer, FrameCount numFrames) const
+{
+  if (outputGainLinear_ == 1.0f)
+  {
     return;
   }
 
-  for (FrameCount i = 0; i < numFrames; ++i) {
+  for (FrameCount i = 0; i < numFrames; ++i)
+  {
     buffer[i] *= outputGainLinear_;
   }
 }

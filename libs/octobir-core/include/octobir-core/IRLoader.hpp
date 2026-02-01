@@ -7,9 +7,11 @@
 
 class WDL_ImpulseBuffer;
 
-namespace octob {
+namespace octob
+{
 
-struct IRLoadResult {
+struct IRLoadResult
+{
   bool success = false;
   std::string errorMessage;
   size_t numSamples = 0;
@@ -17,7 +19,8 @@ struct IRLoadResult {
   SampleRate sampleRate = 0.0;
 };
 
-class IRLoader {
+class IRLoader
+{
  public:
   IRLoader();
   ~IRLoader();
