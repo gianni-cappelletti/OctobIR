@@ -110,7 +110,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: static-analysis
+    needs: [static-analysis]
 
     steps:
     - name: Checkout code
@@ -170,7 +170,7 @@ jobs:
   build-juce:
     name: Build JUCE Plugin
     runs-on: ubuntu-latest
-    needs: static-analysis
+    needs: [static-analysis]
 
     steps:
     - name: Checkout code
