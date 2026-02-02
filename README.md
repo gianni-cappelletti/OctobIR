@@ -201,11 +201,30 @@ The repository uses GitHub Actions for automated testing and releases:
 
 ### Creating a Release
 
+#### Version Management
+
+**All components use a centralized version from the `VERSION` file at the project root.**
+
+The version is automatically propagated to:
+- CMake builds (core library, JUCE plugin)
+- Windows installer (Inno Setup)
+- macOS installer (PKG/DMG)
+
+For VCV Rack, run the sync script to update `plugin.json`:
+```bash
+./scripts/sync-vcv-version.sh
+```
+
 #### JUCE Plugin Release (Automated)
 
-1. **Update version numbers** in relevant files:
-   - Update version in `CMakeLists.txt` (JUCE plugin section)
-   - Update any version strings in plugin metadata
+1. **Update the version number:**
+   - Edit the `VERSION` file in the project root (e.g., change to `2.1.0`)
+   - Sync VCV plugin version: `./scripts/sync-vcv-version.sh`
+   - Commit the changes:
+     ```bash
+     git add VERSION plugins/vcv-rack/plugin.json
+     git commit -m "Bump version to 2.1.0"
+     ```
 
 2. **Test the release build locally:**
    ```bash

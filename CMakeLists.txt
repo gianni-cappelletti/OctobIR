@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.15)
-project(OctobIR-Monorepo VERSION 2.0.0)
+
+# Read version from VERSION file
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" PROJECT_VERSION)
+string(STRIP "${PROJECT_VERSION}" PROJECT_VERSION)
+
+project(OctobIR-Monorepo VERSION ${PROJECT_VERSION})
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Make version available to subprojects
+set(OCTOBIR_VERSION ${PROJECT_VERSION} CACHE STRING "OctobIR version" FORCE)
 
 option(BUILD_CORE_LIB "Build octobir-core library" ON)
 option(BUILD_JUCE_PLUGIN "Build JUCE plugin (VST3/AU/Standalone)" ON)

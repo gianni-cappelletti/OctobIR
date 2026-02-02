@@ -1,6 +1,18 @@
+; Read version from VERSION file (two directories up from this script)
+; Using SourcePath ensures proper path resolution (see ISPP docs)
+#define VersionFile SourcePath + "\..\..\VERSION"
+#define FileHandle FileOpen(VersionFile)
+#if FileHandle
+  #define AppVersion Trim(FileRead(FileHandle))
+  #expr FileClose(FileHandle)
+#else
+  #pragma error "Could not open VERSION file at: " + VersionFile
+  #define AppVersion "2.0.0"
+#endif
+
 [Setup]
 AppName=OctobIR
-AppVersion=1.0.0
+AppVersion={#AppVersion}
 AppPublisher=OctobIR
 AppPublisherURL=https://github.com/gianteagle/OctobIR
 DefaultDirName={autopf}\OctobIR

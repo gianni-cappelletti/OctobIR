@@ -1,11 +1,12 @@
-.PHONY: help vcv juce core test clean tidy format install-juce install-vcv
+.PHONY: help vcv juce core test clean tidy format install-juce install-vcv header
+
+# Display ASCII art header with colors
+header:
+	@./scripts/show-header.sh
 
 # Default target - display available make targets
 # Run 'make' or 'make help' to see this message
-help:
-	@echo "OctobIR Build System"
-	@echo "===================="
-	@echo ""
+help: header
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Development build targets (always clean build):"
@@ -29,7 +30,7 @@ help:
 	@echo "Note: GitHub releases provide pre-built installers for end users"
 
 # VCV Plugin Development (always clean build)
-vcv:
+vcv: header
 	@if cmake --preset dev-vcv; then \
 		echo "Using CMake preset: dev-vcv"; \
 	else \
@@ -42,7 +43,7 @@ vcv:
 	@echo "VCV plugin cleaned, built, and installed"
 
 # JUCE Plugin Development (always clean build)
-juce:
+juce: header
 	@rm -rf build/dev-juce
 	@if cmake --preset dev-juce; then \
 		echo "Using CMake preset: dev-juce"; \
@@ -54,7 +55,7 @@ juce:
 	@echo "JUCE plugin cleaned and built: build/dev-juce/plugins/juce-multiformat/OctobIR_artefacts/"
 
 # Core Library (always clean build)
-core:
+core: header
 	@rm -rf build/dev
 	@if cmake --preset dev; then \
 		echo "Using CMake preset: dev"; \

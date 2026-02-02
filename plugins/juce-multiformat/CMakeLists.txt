@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
-project(OctobIR VERSION 2.0.0)
+
+# Use version from parent project (read from VERSION file)
+if(NOT DEFINED OCTOBIR_VERSION)
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../VERSION" OCTOBIR_VERSION)
+    string(STRIP "${OCTOBIR_VERSION}" OCTOBIR_VERSION)
+endif()
+
+project(OctobIR VERSION ${OCTOBIR_VERSION})
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

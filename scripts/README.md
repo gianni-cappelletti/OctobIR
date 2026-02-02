@@ -143,6 +143,20 @@ Creates distributable package (DMG/ZIP/tarball) for JUCE plugins. These are uplo
 Other useful scripts in this directory:
 
 - `setup-dev.sh` - Install development dependencies (clang-format, clang-tidy, etc.)
+- `sync-vcv-version.sh` - Sync VCV Rack plugin.json version with VERSION file
+
+## Version Management
+
+All components read from a centralized `VERSION` file at the project root:
+- **CMake builds**: Automatically read VERSION during configuration
+- **Windows installer**: Reads VERSION at Inno Setup compile time
+- **macOS installer**: Reads VERSION during build-pkg.sh execution
+- **VCV Rack**: Manually sync with `./scripts/sync-vcv-version.sh`
+
+To bump the version:
+1. Edit `VERSION` file (e.g., `2.1.0`)
+2. Run `./scripts/sync-vcv-version.sh` to update VCV plugin.json
+3. Commit both files together
 
 ## Notes
 

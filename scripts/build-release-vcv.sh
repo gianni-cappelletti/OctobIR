@@ -38,6 +38,10 @@ fi
 echo "✓ unzip found"
 
 echo ""
+echo "Syncing plugin version from VERSION file..."
+"$SCRIPT_DIR/sync-vcv-version.sh"
+
+echo ""
 # Check if RACK_DIR is set
 if [ -z "$RACK_DIR" ]
 then

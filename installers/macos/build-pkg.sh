@@ -5,7 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build/release/plugins/juce-multiformat/OctobIR_artefacts/Release"
 DIST_DIR="$PROJECT_DIR/dist"
-VERSION="1.0.0"
+
+# Read version from VERSION file
+VERSION=$(cat "$PROJECT_DIR/VERSION" | tr -d '[:space:]')
+if [ -z "$VERSION" ]; then
+  echo "Error: Could not read version from VERSION file"
+  exit 1
+fi
+echo "Building version: $VERSION"
 
 SIGNING_IDENTITY="${SIGNING_IDENTITY:--}"
 
