@@ -174,4 +174,4 @@ jobs:
           -DBUILD_JUCE_PLUGIN=ON \
           -DBUILD_VCV_PLUGIN=OFF \
           -G Ninja
-        cmake --build build/juce-ci --target OctobIR -j
+        cmake --build build/juce-ci --target OctobIR_All -j

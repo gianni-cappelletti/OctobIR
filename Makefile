@@ -1,4 +1,4 @@
-.PHONY: help vcv juce core test clean tidy format release installers
+.PHONY: help vcv juce core test clean tidy format install-juce install-vcv
 
 help:
 	@echo "Development build targets (always clean build):"
@@ -7,16 +7,18 @@ help:
 	@echo "  make core        - Clean and build core library only"
 	@echo "  make test        - Build and run unit tests"
 	@echo ""
+	@echo "Install targets (release builds):"
+	@echo "  make install-juce - Build and install JUCE plugin (release)"
+	@echo "  make install-vcv  - Build and install VCV plugin (release)"
+	@echo ""
 	@echo "Code quality:"
 	@echo "  make tidy        - Run formatting and static analysis checks"
 	@echo "  make format      - Auto-format all code with clang-format"
 	@echo ""
-	@echo "Release builds:"
-	@echo "  make release     - Build and install release versions locally"
-	@echo "  make installers  - Build JUCE distributable installers (DMG/ZIP/tarball)"
-	@echo ""
 	@echo "Other:"
 	@echo "  make clean       - Remove all build artifacts"
+	@echo ""
+	@echo "Note: GitHub releases provide pre-built installers for end users"
 
 # VCV Plugin Development (always clean build)
 vcv:
@@ -30,7 +32,7 @@ vcv:
 juce:
 	@rm -rf build/dev-juce
 	@cmake --preset dev-juce 2>/dev/null || cmake -B build/dev-juce -DCMAKE_BUILD_TYPE=Debug -DBUILD_VCV_PLUGIN=OFF
-	@cmake --build build/dev-juce --target OctobIR -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@cmake --build build/dev-juce --target OctobIR_All -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo "JUCE plugin cleaned and built: build/dev-juce/plugins/juce-multiformat/OctobIR_artefacts/"
 
 # Core Library (always clean build)
@@ -105,34 +107,56 @@ format:
 		xargs clang-format -i --style=file
 	@echo "Code formatted"
 
-# Build and install release versions locally (for testing)
-release:
-	@echo "Building release versions of all plugins..."
+# Install JUCE plugin (release build)
+install-juce:
+	@echo "Building and installing JUCE plugin (Release)..."
+	@rm -rf build/release-juce
+	@cmake -B build/release-juce \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_JUCE_PLUGIN=ON \
+		-DBUILD_VCV_PLUGIN=OFF \
+		-DBUILD_TESTS=OFF
+	@cmake --build build/release-juce --target OctobIR_All --config Release -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo ""
-	@echo "Building JUCE plugin (Release)..."
-	@cmake -B build/release -DCMAKE_BUILD_TYPE=Release
-	@cmake --build build/release --config Release -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
-	@echo "✓ JUCE plugin built"
+	@echo "Installing plugins to system directories..."
+	@if [ -e ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3 ] && [ ! -w ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3 ]; then \
+		echo ""; \
+		echo "Error: Existing VST3 plugin is not writable (may be owned by root)."; \
+		echo "Please remove it first:"; \
+		echo "  sudo rm -rf ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3"; \
+		echo "  sudo rm -rf ~/Library/Audio/Plug-Ins/Components/OctobIR.component"; \
+		echo "Then run: make install-juce"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@cp -rf build/release-juce/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 \
+		~/Library/Audio/Plug-Ins/VST3/
+	@echo "  ✓ VST3 installed"
+	@cp -rf build/release-juce/plugins/juce-multiformat/OctobIR_artefacts/Release/AU/OctobIR.component \
+		~/Library/Audio/Plug-Ins/Components/
+	@echo "  ✓ AU installed"
+	@echo ""
+	@echo "✓ JUCE plugin installed:"
 	@echo "  VST3: ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3"
 	@echo "  AU:   ~/Library/Audio/Plug-Ins/Components/OctobIR.component"
-	@echo ""
-	@if [ -n "$$RACK_DIR" ] || [ -d "../Rack" ]; then \
-		echo "Building VCV plugin (Release)..."; \
-		cd plugins/vcv-rack && \
-		export RACK_DIR=$${RACK_DIR:-../../../Rack} && \
-		make clean && make -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4) && \
-		make install && \
-		echo "✓ VCV plugin built and installed"; \
-	else \
-		echo "⚠ Skipping VCV plugin (RACK_DIR not set)"; \
-		echo "  Set RACK_DIR or run: ./scripts/build-release-vcv.sh"; \
-	fi
-	@echo ""
-	@echo "✓ Release builds complete"
 
-# Build JUCE distributable installers (DMG/ZIP/tarball)
-installers:
-	@./scripts/build-release-juce.sh
+# Install VCV Rack plugin (release build)
+install-vcv:
+	@if [ -z "$$RACK_DIR" ] && [ ! -d "../Rack" ] && [ ! -d "../../Rack" ]; then \
+		echo "Error: RACK_DIR not set and VCV Rack SDK not found"; \
+		echo ""; \
+		echo "Please set RACK_DIR to your VCV Rack SDK location:"; \
+		echo "  export RACK_DIR=/path/to/Rack"; \
+		echo "  make install-vcv"; \
+		echo ""; \
+		echo "Or download the SDK to ../Rack or ../../Rack"; \
+		exit 1; \
+	fi
+	@echo "Building and installing VCV plugin (Release)..."
+	@cd plugins/vcv-rack && \
+		export RACK_DIR=$${RACK_DIR:-../../../Rack} && \
+		make clean && \
+		make -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4) && \
+		make install
 	@echo ""
-	@echo "Note: VCV Rack plugin is distributed via VCV Library (source submission)."
-	@echo "To test VCV build locally: ./scripts/build-release-vcv.sh"
+	@echo "✓ VCV plugin installed"

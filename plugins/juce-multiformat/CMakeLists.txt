@@ -9,7 +9,7 @@ add_subdirectory(../../third_party/JUCE ${CMAKE_CURRENT_BINARY_DIR}/JUCE)
 # Note: octobir-core is added by root CMakeLists.txt, not here
 # This avoids duplicate target errors when building from root
 
-set(FORMATS VST3 AU Standalone)
+set(FORMATS VST3 AU)
 
 juce_add_plugin(OctobIR
     COMPANY_NAME "OctobIR"
@@ -18,7 +18,7 @@ juce_add_plugin(OctobIR
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD FALSE
     PLUGIN_MANUFACTURER_CODE Octb
     PLUGIN_CODE Obir
     FORMATS ${FORMATS}

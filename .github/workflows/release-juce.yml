@@ -34,36 +34,20 @@ jobs:
           -DBUILD_VCV_PLUGIN=OFF \
           -DBUILD_TESTS=OFF \
           -G Ninja
-        cmake --build build/release --target OctobIR --config Release -j
+        cmake --build build/release --target OctobIR_All --config Release -j
 
-    - name: Create package directory
+    - name: Build installer
+      env:
+        SIGNING_IDENTITY: "-"
       run: |
-        mkdir -p package/OctobIR
-
-        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3" ]; then
-          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
-        fi
-
-        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/AU/OctobIR.component" ]; then
-          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/AU/OctobIR.component package/OctobIR/
-        fi
-
-        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.app" ]; then
-          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.app package/OctobIR/
-        fi
-
-        cp LICENSE package/OctobIR/
-        cp README.md package/OctobIR/
-
-    - name: Create DMG (macOS)
-      run: |
-        hdiutil create -volname "OctobIR" -srcfolder package/OctobIR -ov -format UDZO OctobIR-macOS.dmg
+        chmod +x installers/macos/build-pkg.sh
+        ./installers/macos/build-pkg.sh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: juce-plugin-macos
-        path: OctobIR-macOS.dmg
+        name: juce-plugin-macos-installer
+        path: dist/OctobIR-*-macOS.dmg
 
   build-windows:
     name: Build JUCE Plugin - Windows
@@ -93,33 +77,23 @@ jobs:
           -A x64
         cmake --build build/release --config Release -j
 
-    - name: Create package directory
+    - name: Install Inno Setup
+      run: choco install innosetup -y
+
+    - name: Create dist directory
+      shell: bash
+      run: mkdir -p dist
+
+    - name: Build installer
       shell: bash
       run: |
-        mkdir -p package/OctobIR
-
-        if [ -d "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3" ]; then
-          cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
-        fi
-
-        if [ -f "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.exe" ]; then
-          cp build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR.exe package/OctobIR/
-        fi
-
-        cp LICENSE package/OctobIR/
-        cp README.md package/OctobIR/
-
-    - name: Create ZIP archive
-      shell: bash
-      run: |
-        cd package
-        7z a -tzip ../OctobIR-Windows.zip OctobIR
+        iscc installers/windows/OctobIR.iss
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: juce-plugin-windows
-        path: OctobIR-Windows.zip
+        name: juce-plugin-windows-installer
+        path: dist/OctobIR-*-Windows.exe
 
   build-linux:
     name: Build JUCE Plugin - Linux
@@ -161,7 +135,7 @@ jobs:
           -DBUILD_VCV_PLUGIN=OFF \
           -DBUILD_TESTS=OFF \
           -G Ninja
-        cmake --build build/release --target OctobIR --config Release -j
+        cmake --build build/release --target OctobIR_All --config Release -j
 
     - name: Create package directory
       run: |
@@ -171,12 +145,10 @@ jobs:
           cp -r build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/VST3/OctobIR.vst3 package/OctobIR/
         fi
 
-        if [ -f "build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR" ]; then
-          cp build/release/plugins/juce-multiformat/OctobIR_artefacts/Release/Standalone/OctobIR package/OctobIR/
-        fi
-
         cp LICENSE package/OctobIR/
         cp README.md package/OctobIR/
+        cp installers/linux/install.sh package/OctobIR/
+        chmod +x package/OctobIR/install.sh
 
     - name: Create tarball
       run: |
@@ -208,8 +180,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          artifacts/juce-plugin-macos/*.dmg
-          artifacts/juce-plugin-windows/*.zip
+          artifacts/juce-plugin-macos-installer/*.dmg
+          artifacts/juce-plugin-windows-installer/*.exe
           artifacts/juce-plugin-linux/*.tar.gz
         draft: true
         generate_release_notes: true
