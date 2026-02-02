@@ -76,12 +76,24 @@ echo "✓ All development tools installed"
 
 echo ""
 echo "Installing git hooks..."
+if [ ! -d ".git" ]; then
+    echo "Error: .git directory not found. Are you in a git repository?"
+    exit 1
+fi
+
+if [ ! -d ".git/hooks" ]; then
+    echo "Creating .git/hooks directory..."
+    mkdir -p .git/hooks
+fi
+
 if [ -f "scripts/hooks/pre-commit" ]; then
     cp scripts/hooks/pre-commit .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
     echo "✓ Pre-commit hook installed"
 else
-    echo "Warning: pre-commit hook not found in scripts/hooks/"
+    echo "Error: pre-commit hook not found at scripts/hooks/pre-commit"
+    echo "Expected path: $(pwd)/scripts/hooks/pre-commit"
+    exit 1
 fi
 
 echo ""

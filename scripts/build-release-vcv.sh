@@ -6,33 +6,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# VCV Rack SDK version (should match ci.yml)
-VCV_SDK_VERSION="2.5.2"
+# Load shared utilities
+source "$SCRIPT_DIR/lib/platform.sh"
+source "$SCRIPT_DIR/vcv-sdk-config.sh"
 
 # Detect platform
-PLATFORM=$(uname -s)
-ARCH=$(uname -m)
-
-case "$PLATFORM" in
-  Darwin*)
-    if [ "$ARCH" = "arm64" ]
-    then
-      VCV_PLATFORM="mac-arm64"
-    else
-      VCV_PLATFORM="mac-x64"
-    fi
-    ;;
-  Linux*)
-    VCV_PLATFORM="lin-x64"
-    ;;
-  MINGW*|MSYS*|CYGWIN*)
-    VCV_PLATFORM="win-x64"
-    ;;
-  *)
-    echo "Error: Unsupported platform: $PLATFORM"
-    exit 1
-    ;;
-esac
+VCV_PLATFORM=$(detect_vcv_platform)
+if [ $? -ne 0 ]; then
+  exit 1
+fi
 
 echo "Building VCV Rack plugin release package..."
 echo "==========================================="
@@ -40,6 +22,22 @@ echo "Platform: $VCV_PLATFORM"
 echo "SDK Version: $VCV_SDK_VERSION"
 echo ""
 
+echo "Pre-flight checks..."
+if ! command -v make &> /dev/null
+then
+  echo "Error: make not found. Please install build tools."
+  exit 1
+fi
+echo "✓ make found"
+
+if ! command -v unzip &> /dev/null
+then
+  echo "Error: unzip not found. Please install unzip utility."
+  exit 1
+fi
+echo "✓ unzip found"
+
+echo ""
 # Check if RACK_DIR is set
 if [ -z "$RACK_DIR" ]
 then
@@ -52,6 +50,7 @@ then
     echo ""
     echo "VCV Rack SDK not found. Downloading..."
     SDK_URL="https://vcvrack.com/downloads/Rack-SDK-${VCV_SDK_VERSION}-${VCV_PLATFORM}.zip"
+    SDK_FILE="Rack-SDK-${VCV_SDK_VERSION}-${VCV_PLATFORM}.zip"
 
     mkdir -p "$PROJECT_DIR/../"
     cd "$PROJECT_DIR/../"
@@ -67,10 +66,21 @@ then
       exit 1
     fi
 
+    echo "Verifying SDK integrity..."
+    if command -v sha256sum &> /dev/null
+    then
+      echo "${VCV_SDK_SHA256}  ${SDK_FILE}" | sha256sum -c -
+    elif command -v shasum &> /dev/null
+    then
+      echo "${VCV_SDK_SHA256}  ${SDK_FILE}" | shasum -a 256 -c -
+    else
+      echo "Warning: Neither sha256sum nor shasum found. Skipping integrity check."
+    fi
+
     echo "Extracting SDK..."
-    unzip -q "Rack-SDK-${VCV_SDK_VERSION}-${VCV_PLATFORM}.zip"
+    unzip -q "$SDK_FILE"
     mv Rack-SDK Rack
-    rm "Rack-SDK-${VCV_SDK_VERSION}-${VCV_PLATFORM}.zip"
+    rm "$SDK_FILE"
     echo "✓ SDK downloaded and extracted"
   fi
 else

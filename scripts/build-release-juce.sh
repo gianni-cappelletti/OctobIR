@@ -12,6 +12,15 @@ echo "Building JUCE plugin release package..."
 echo "========================================"
 echo ""
 
+echo "Pre-flight checks..."
+if ! command -v cmake &> /dev/null
+then
+  echo "Error: cmake not found. Please install CMake."
+  exit 1
+fi
+echo "✓ cmake found"
+
+echo ""
 # Clean previous builds
 echo "Cleaning previous builds..."
 rm -rf build/release-juce
@@ -72,22 +81,23 @@ cp README.md package/OctobIR/
 # Create installer based on platform
 echo ""
 echo "Creating installer package..."
-PLATFORM=$(uname -s)
+source "$SCRIPT_DIR/lib/platform.sh"
+OS_TYPE=$(detect_os)
 
-case "$PLATFORM" in
-  Darwin*)
+case "$OS_TYPE" in
+  macos)
     echo "Platform: macOS - Creating DMG..."
     hdiutil create -volname "OctobIR" -srcfolder package/OctobIR -ov -format UDZO OctobIR-macOS.dmg
     echo "✓ Created: OctobIR-macOS.dmg"
     ;;
-  Linux*)
+  linux)
     echo "Platform: Linux - Creating tarball..."
     cd package
     tar -czf ../OctobIR-Linux.tar.gz OctobIR
     cd ..
     echo "✓ Created: OctobIR-Linux.tar.gz"
     ;;
-  MINGW*|MSYS*|CYGWIN*)
+  windows)
     echo "Platform: Windows - Creating ZIP..."
     cd package
     if command -v 7z &> /dev/null
@@ -100,12 +110,8 @@ case "$PLATFORM" in
     echo "✓ Created: OctobIR-Windows.zip"
     ;;
   *)
-    echo "Unknown platform: $PLATFORM"
-    echo "Creating tarball as fallback..."
-    cd package
-    tar -czf ../OctobIR-$PLATFORM.tar.gz OctobIR
-    cd ..
-    echo "✓ Created: OctobIR-$PLATFORM.tar.gz"
+    echo "Error: Unsupported platform for packaging"
+    exit 1
     ;;
 esac
 

@@ -1,6 +1,13 @@
 .PHONY: help vcv juce core test clean tidy format install-juce install-vcv
 
+# Default target - display available make targets
+# Run 'make' or 'make help' to see this message
 help:
+	@echo "OctobIR Build System"
+	@echo "===================="
+	@echo ""
+	@echo "Usage: make <target>"
+	@echo ""
 	@echo "Development build targets (always clean build):"
 	@echo "  make vcv         - Clean, build, and install VCV plugin (debug)"
 	@echo "  make juce        - Clean and build JUCE plugin (debug)"
@@ -17,36 +24,52 @@ help:
 	@echo ""
 	@echo "Other:"
 	@echo "  make clean       - Remove all build artifacts"
+	@echo "  make help        - Show this help message"
 	@echo ""
 	@echo "Note: GitHub releases provide pre-built installers for end users"
 
 # VCV Plugin Development (always clean build)
 vcv:
-	@cmake --preset dev-vcv 2>/dev/null || cmake -B build/dev-vcv -DCMAKE_BUILD_TYPE=Debug -DBUILD_JUCE_PLUGIN=OFF
-	@cmake --build build/dev-vcv --target vcv-plugin-clean 2>/dev/null || true
-	@cmake --build build/dev-vcv --target vcv-plugin -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@if cmake --preset dev-vcv; then \
+		echo "Using CMake preset: dev-vcv"; \
+	else \
+		echo "CMake preset not available, using manual configuration"; \
+		cmake -B build/dev-vcv -DCMAKE_BUILD_TYPE=Debug -DBUILD_JUCE_PLUGIN=OFF; \
+	fi
+	@cmake --build build/dev-vcv --target vcv-plugin-clean || true
+	@cmake --build build/dev-vcv --target vcv-plugin -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@cmake --build build/dev-vcv --target vcv-plugin-install
 	@echo "VCV plugin cleaned, built, and installed"
 
 # JUCE Plugin Development (always clean build)
 juce:
 	@rm -rf build/dev-juce
-	@cmake --preset dev-juce 2>/dev/null || cmake -B build/dev-juce -DCMAKE_BUILD_TYPE=Debug -DBUILD_VCV_PLUGIN=OFF
-	@cmake --build build/dev-juce --target OctobIR_All -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@if cmake --preset dev-juce; then \
+		echo "Using CMake preset: dev-juce"; \
+	else \
+		echo "CMake preset not available, using manual configuration"; \
+		cmake -B build/dev-juce -DCMAKE_BUILD_TYPE=Debug -DBUILD_VCV_PLUGIN=OFF; \
+	fi
+	@cmake --build build/dev-juce --target OctobIR_All -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo "JUCE plugin cleaned and built: build/dev-juce/plugins/juce-multiformat/OctobIR_artefacts/"
 
 # Core Library (always clean build)
 core:
 	@rm -rf build/dev
-	@cmake --preset dev 2>/dev/null || cmake -B build/dev -DCMAKE_BUILD_TYPE=Debug
-	@cmake --build build/dev --target octobir-core -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@if cmake --preset dev; then \
+		echo "Using CMake preset: dev"; \
+	else \
+		echo "CMake preset not available, using manual configuration"; \
+		cmake -B build/dev -DCMAKE_BUILD_TYPE=Debug; \
+	fi
+	@cmake --build build/dev --target octobir-core -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo "Core library cleaned and built"
 
 # Unit Tests (always clean build)
 test:
 	@rm -rf build/test
 	@cmake -B build/test -DCMAKE_BUILD_TYPE=Debug -DBUILD_JUCE_PLUGIN=OFF -DBUILD_VCV_PLUGIN=OFF -DBUILD_TESTS=ON
-	@cmake --build build/test --target octobir-core-tests -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@cmake --build build/test --target octobir-core-tests -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo "Running tests..."
 	@./build/test/libs/octobir-core/tests/octobir-core-tests
 
@@ -116,7 +139,7 @@ install-juce:
 		-DBUILD_JUCE_PLUGIN=ON \
 		-DBUILD_VCV_PLUGIN=OFF \
 		-DBUILD_TESTS=OFF
-	@cmake --build build/release-juce --target OctobIR_All --config Release -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@cmake --build build/release-juce --target OctobIR_All --config Release -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo ""
 	@echo "Installing plugins to system directories..."
 	@if [ -e ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3 ] && [ ! -w ~/Library/Audio/Plug-Ins/VST3/OctobIR.vst3 ]; then \
@@ -156,7 +179,7 @@ install-vcv:
 	@cd plugins/vcv-rack && \
 		export RACK_DIR=$${RACK_DIR:-../../../Rack} && \
 		make clean && \
-		make -j$$(sysctl -n hw.ncpu 2>/dev/null || echo 4) && \
+		make -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) && \
 		make install
 	@echo ""
 	@echo "✓ VCV plugin installed"

@@ -199,32 +199,62 @@ The repository uses GitHub Actions for automated testing and releases:
 - Builds VCV and JUCE plugins to verify compilation
 - All tests must pass before merging
 
-### Release Workflows
+### Creating a Release
 
-Create a release by pushing a git tag:
+#### JUCE Plugin Release (Automated)
 
-```bash
-git tag v2.0.0
-git push origin v2.0.0
-```
+1. **Update version numbers** in relevant files:
+   - Update version in `CMakeLists.txt` (JUCE plugin section)
+   - Update any version strings in plugin metadata
 
-This automatically triggers the JUCE plugin release workflow:
+2. **Test the release build locally:**
+   ```bash
+   make install-juce
+   # Test in your DAW
+   ```
 
-**JUCE Plugin Release**
-- Builds professional installers with component selection
-- macOS: `.pkg` installer in DMG with VST3 and AU options
-- Windows: `.exe` installer with VST3
-- Linux: `.tar.gz` with install script for VST3
-- Uploads to GitHub Releases as a draft for review
+3. **Create and push a git tag:**
+   ```bash
+   git tag -a v2.0.0 -m "Release v2.0.0: Brief description of changes"
+   git push origin v2.0.0
+   ```
 
-**VCV Rack Plugin Distribution**
+4. **Automated build triggers:**
+   - GitHub Actions automatically builds installers for all platforms:
+     - macOS: `.pkg` installer in DMG with VST3 and AU
+     - Windows: `.exe` installer with VST3
+     - Linux: `.tar.gz` with install script for VST3
+   - Creates a **draft** GitHub release with all artifacts attached
+
+5. **Review and publish:**
+   - Go to GitHub Releases page
+   - Find the draft release
+   - Add release notes describing changes
+   - Click "Publish release" to make it public
+
+**Note:** The release stays in draft mode until you manually publish it, allowing you to review artifacts before distribution.
+
+#### VCV Rack Plugin Distribution
 
 VCV Rack plugins are distributed through the [VCV Library](https://library.vcvrack.com/), not GitHub releases:
-1. Update version in `plugins/vcv-rack/plugin.json`
-2. Commit and push changes
-3. Submit to VCV Library (first time) or comment version + commit hash in your plugin's issue
-4. VCV builds for all platforms automatically
-5. Users download via VCV Rack's built-in Plugin Manager
+
+1. **Update version** in `plugins/vcv-rack/plugin.json`
+2. **Test locally:**
+   ```bash
+   ./scripts/build-release-vcv.sh
+   # Install and test in VCV Rack
+   ```
+3. **Commit and push:**
+   ```bash
+   git add plugins/vcv-rack/plugin.json
+   git commit -m "Bump VCV plugin to v2.0.0"
+   git push
+   ```
+4. **Submit to VCV Library:**
+   - First time: Create issue at [VCV Library](https://github.com/VCVRack/library) with plugin info
+   - Updates: Comment in your plugin's issue with version number and commit hash
+   - VCV builds for all platforms automatically
+5. **Users download** via VCV Rack's built-in Plugin Manager
 
 ## License
 

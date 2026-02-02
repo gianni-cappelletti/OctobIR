@@ -8,12 +8,45 @@ on:
 
 env:
   # VCV Rack SDK configuration
-  # To update: download new SDK from https://vcvrack.com/downloads/
-  # Then run: sha256sum Rack-SDK-<version>-lin-x64.zip
+  # To update SDK version, modify scripts/vcv-sdk-config.sh
+  # This file is sourced to ensure version consistency across CI and local builds
   VCV_SDK_VERSION: "2.5.2"
   VCV_SDK_SHA256: "228e6a415b09fbd5536cdd588a01472d81d470ea2fc747cf05e5e56ef25d5c09"
 
 jobs:
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Verify license files exist
+      run: |
+        echo "Checking for required license documentation..."
+
+        if [ ! -f "LICENSE" ]; then
+          echo "Error: LICENSE file not found"
+          exit 1
+        fi
+        echo "✓ LICENSE found"
+
+        if [ ! -f "LICENSING.md" ]; then
+          echo "Error: LICENSING.md file not found"
+          exit 1
+        fi
+        echo "✓ LICENSING.md found"
+
+        if [ ! -f "THIRD_PARTY_NOTICES.txt" ]; then
+          echo "Error: THIRD_PARTY_NOTICES.txt file not found"
+          exit 1
+        fi
+        echo "✓ THIRD_PARTY_NOTICES.txt found"
+
+        echo ""
+        echo "All required license files present"
+
   setup-vcv-sdk:
     name: Setup VCV Rack SDK
     runs-on: ubuntu-latest
@@ -36,7 +69,7 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
-    needs: setup-vcv-sdk
+    needs: [setup-vcv-sdk, license-compliance]
 
     steps:
     - name: Checkout code

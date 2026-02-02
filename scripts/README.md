@@ -5,11 +5,8 @@ Scripts for building OctobIR plugins in release mode.
 ## Quick Start
 
 ```bash
-# Build and install release versions locally (for testing)
-make release
-
-# Build JUCE distributable installers (DMG/ZIP/tarball)
-make installers
+# Build JUCE distributable package (DMG/ZIP/tarball)
+./scripts/build-release-juce.sh
 
 # Test VCV plugin locally (before VCV Library submission)
 ./scripts/build-release-vcv.sh
@@ -18,7 +15,7 @@ make installers
 ## Distribution Model
 
 **JUCE Plugins (Self-Distributed):**
-- Build installers with `make installers`
+- Build installer packages with `./scripts/build-release-juce.sh`
 - Distribute via GitHub releases
 - Users download DMG/ZIP/tarball and install
 
@@ -79,20 +76,23 @@ Builds VCV Rack plugin distribution package exactly as the CI does.
 ### Local Testing
 
 ```bash
-# Build and install release versions
-make release
+# Build and install JUCE plugins locally
+make install-juce
+
+# Build and install VCV plugin locally
+make install-vcv
 ```
 
-Builds release versions of both JUCE and VCV plugins and installs them locally for testing. JUCE plugins install to system directories, VCV installs to your Rack plugins folder.
+Builds release versions and installs them locally for testing. JUCE plugins install to system directories, VCV installs to your Rack plugins folder.
 
 ### Distribution
 
 ```bash
-# Build JUCE installers for distribution
-make installers
+# Build JUCE distributable package for distribution
+./scripts/build-release-juce.sh
 ```
 
-Creates distributable installers (DMG/ZIP/tarball) for JUCE plugins. These are uploaded to GitHub releases.
+Creates distributable package (DMG/ZIP/tarball) for JUCE plugins. These are uploaded to GitHub releases.
 
 ## Release Workflow
 
@@ -100,13 +100,13 @@ Creates distributable installers (DMG/ZIP/tarball) for JUCE plugins. These are u
 
 1. **Test locally:**
    ```bash
-   make release        # Build and install release version
+   make install-juce   # Build and install release version
    # Test in DAW
    ```
 
-2. **Build installers:**
+2. **Build distributable package (optional - CI does this automatically):**
    ```bash
-   make installers     # Creates DMG/ZIP/tarball
+   ./scripts/build-release-juce.sh  # Creates DMG/ZIP/tarball
    ```
 
 3. **Create GitHub release:**
