@@ -5,18 +5,18 @@ Multi-platform impulse response convolution plugin suite.
 ## Supported Platforms
 
 - **VCV Rack** - Eurorack simulator plugin
-- **VST3/AU** - DAW plugins via JUCE
+- **VST3/AU** - DAW plugins via JUCE (macOS/Windows/Linux)
 
 ## Installation
 
 ### Option 1: Pre-built Installers (Recommended)
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/yourusername/OctobIR/releases):
+Download the latest release for your platform from [GitHub Releases](https://github.com/gianni-cappelletti/OctobIR/releases):
 
 **macOS**
 1. Download `OctobIR-macOS.dmg`
 2. Open the DMG and run the installer
-3. Select components to install (AU, VST3)
+3. Select components to install (VST3, AU)
 4. Complete installation
 
 **Windows**
@@ -42,10 +42,10 @@ For the latest development version or to contribute:
 **Quick Install (after cloning):**
 ```bash
 # Clone repository
-git clone --recursive https://github.com/yourusername/OctobIR.git
+git clone --recursive https://github.com/gianni-cappelletti/OctobIR.git
 cd OctobIR
 
-# Install JUCE plugins (VST3 + AU on macOS)
+# Install JUCE plugins (VST3/AU)
 make install-juce
 
 # Install VCV Rack plugin (requires VCV Rack SDK)
@@ -81,7 +81,7 @@ OctobIR/
 
 ```bash
 # Clone with submodules
-git clone --recursive https://github.com/yourusername/OctobIR.git
+git clone --recursive https://github.com/gianni-cappelletti/OctobIR.git
 cd OctobIR
 
 # Or if already cloned
@@ -143,9 +143,9 @@ cmake --build build --config Release
 
 # Build specific targets
 cmake --build build --target octobir-core      # Core library only
-cmake --build build --target OctobIR_All       # JUCE plugins (all formats)
+cmake --build build --target OctobIR_All       # JUCE plugins (VST3 + AU)
 cmake --build build --target OctobIR_VST3      # JUCE VST3 only
-cmake --build build --target OctobIR_AU        # JUCE AU only
+cmake --build build --target OctobIR_AU        # JUCE AU only (macOS)
 cmake --build build --target vcv-plugin        # VCV plugin only
 ```
 
@@ -208,21 +208,23 @@ git tag v2.0.0
 git push origin v2.0.0
 ```
 
-This automatically triggers two release workflows:
-
-**VCV Plugin Release**
-- Builds for Linux (x64), macOS (x64/arm64), and Windows (x64)
-- Creates `.vcvplugin` packages
-- Uploads to GitHub Releases
+This automatically triggers the JUCE plugin release workflow:
 
 **JUCE Plugin Release**
 - Builds professional installers with component selection
-- macOS: `.pkg` installer in DMG with AU and VST3 options
+- macOS: `.pkg` installer in DMG with VST3 and AU options
 - Windows: `.exe` installer with VST3
 - Linux: `.tar.gz` with install script for VST3
-- Uploads to GitHub Releases
+- Uploads to GitHub Releases as a draft for review
 
-Releases are created as drafts for review before publishing.
+**VCV Rack Plugin Distribution**
+
+VCV Rack plugins are distributed through the [VCV Library](https://library.vcvrack.com/), not GitHub releases:
+1. Update version in `plugins/vcv-rack/plugin.json`
+2. Commit and push changes
+3. Submit to VCV Library (first time) or comment version + commit hash in your plugin's issue
+4. VCV builds for all platforms automatically
+5. Users download via VCV Rack's built-in Plugin Manager
 
 ## License
 

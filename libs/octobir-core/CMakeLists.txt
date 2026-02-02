@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(octobir-core VERSION 1.0.0 LANGUAGES CXX C)
+project(octobir-core VERSION 2.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,7 +46,10 @@ endif()
 if(APPLE)
     target_compile_options(octobir-core PRIVATE -Wall -Wextra)
 elseif(WIN32)
-    target_compile_definitions(octobir-core PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(octobir-core PRIVATE
+        _CRT_SECURE_NO_WARNINGS
+        NOMINMAX
+    )
 endif()
 
 set_target_properties(octobir-core PROPERTIES

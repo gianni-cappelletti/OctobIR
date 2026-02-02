@@ -33,9 +33,9 @@ make installers
 Builds JUCE plugin installers exactly as the CI does.
 
 **What it builds:**
-- **macOS**: DMG installer with VST3, AU, and Standalone app
-- **Windows**: ZIP archive with VST3 and Standalone exe
-- **Linux**: Tarball with VST3 and Standalone binary
+- **macOS**: DMG installer with VST3 and AU
+- **Windows**: Installer with VST3
+- **Linux**: Tarball with VST3
 
 **Output:**
 - `OctobIR-macOS.dmg` (macOS)
