@@ -67,7 +67,7 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath)
 
   drwav_free(sampleData, nullptr);
 
-  constexpr float IrCompensationGainDb = -17.0f;
+  constexpr float IrCompensationGainDb = -18.0f;
   constexpr float KDbToLinear = 0.1151292546497023f;
   const float irCompensationGain = std::exp(IrCompensationGainDb * KDbToLinear);
   for (auto& sample : irBuffer_)
@@ -95,6 +95,9 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
   }
 
   const int outputChannels = 2;
+
+  constexpr float kReferenceSampleRate = 48000.0f;
+  const float sampleRateScaling = kReferenceSampleRate / static_cast<float>(targetSampleRate);
 
   const bool needsResampling = (irSampleRate_ != targetSampleRate);
 
@@ -159,7 +162,9 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
 
       for (int i = 0; i < actualLength; i++)
       {
-        irBufferPtr[i] = (i < actualOutSamples) ? static_cast<WDL_FFT_REAL>(resampledIr[i]) : 0.0f;
+        irBufferPtr[i] = (i < actualOutSamples)
+                             ? static_cast<WDL_FFT_REAL>(resampledIr[i] * sampleRateScaling)
+                             : 0.0f;
       }
     }
 
@@ -194,7 +199,7 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
       {
         const int srcCh = (numChannels_ == 1) ? 0 : ch;
         const size_t srcIdx = (i * numChannels_) + srcCh;
-        irBufferPtr[i] = static_cast<WDL_FFT_REAL>(irBuffer_[srcIdx]);
+        irBufferPtr[i] = static_cast<WDL_FFT_REAL>(irBuffer_[srcIdx] * sampleRateScaling);
       }
       else
       {

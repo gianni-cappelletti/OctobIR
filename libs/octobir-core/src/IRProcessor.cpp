@@ -304,8 +304,19 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = std::sqrt(1.0f - normalizedBlend);
-  float gain2 = std::sqrt(normalizedBlend);
+  float gain1;
+  float gain2;
+
+  if (hasIR1 && hasIR2)
+  {
+    gain1 = std::sqrt(1.0f - normalizedBlend);
+    gain2 = std::sqrt(normalizedBlend);
+  }
+  else
+  {
+    gain1 = 1.0f - normalizedBlend;
+    gain2 = normalizedBlend;
+  }
 
   if (hasIR1 && hasIR2)
   {
@@ -465,8 +476,19 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = std::sqrt(1.0f - normalizedBlend);
-  float gain2 = std::sqrt(normalizedBlend);
+  float gain1;
+  float gain2;
+
+  if (hasIR1 && hasIR2)
+  {
+    gain1 = std::sqrt(1.0f - normalizedBlend);
+    gain2 = std::sqrt(normalizedBlend);
+  }
+  else
+  {
+    gain1 = 1.0f - normalizedBlend;
+    gain2 = normalizedBlend;
+  }
 
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
@@ -587,8 +609,19 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = std::sqrt(1.0f - normalizedBlend);
-  float gain2 = std::sqrt(normalizedBlend);
+  float gain1;
+  float gain2;
+
+  if (hasIR1 && hasIR2)
+  {
+    gain1 = std::sqrt(1.0f - normalizedBlend);
+    gain2 = std::sqrt(normalizedBlend);
+  }
+  else
+  {
+    gain1 = 1.0f - normalizedBlend;
+    gain2 = normalizedBlend;
+  }
 
   if (hasIR1 && hasIR2)
   {
@@ -702,8 +735,19 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = std::sqrt(1.0f - normalizedBlend);
-  float gain2 = std::sqrt(normalizedBlend);
+  float gain1;
+  float gain2;
+
+  if (hasIR1 && hasIR2)
+  {
+    gain1 = std::sqrt(1.0f - normalizedBlend);
+    gain2 = std::sqrt(normalizedBlend);
+  }
+  else
+  {
+    gain1 = 1.0f - normalizedBlend;
+    gain2 = normalizedBlend;
+  }
 
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
