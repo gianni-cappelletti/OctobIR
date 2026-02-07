@@ -11,6 +11,8 @@ struct OpcVcvIr final : Module
   {
     GainParam,
     BlendParam,
+    IrAEnableParam,
+    IrBEnableParam,
     ThresholdParam,
     RangeDbParam,
     KneeWidthDbParam,
@@ -60,6 +62,10 @@ struct OpcVcvIr final : Module
     paramQuantities[static_cast<int>(ParamId::GainParam)]->snapEnabled = true;
 
     configParam(static_cast<int>(ParamId::BlendParam), -1.f, 1.f, 0.f, "Static Blend");
+    configSwitch(static_cast<int>(ParamId::IrAEnableParam), 0.f, 1.f, 1.f, "IR A Enable",
+                 {"Disabled", "Enabled"});
+    configSwitch(static_cast<int>(ParamId::IrBEnableParam), 0.f, 1.f, 1.f, "IR B Enable",
+                 {"Disabled", "Enabled"});
     configParam(static_cast<int>(ParamId::ThresholdParam), -60.f, 0.f, -30.f, "Threshold", " dB");
     configParam(static_cast<int>(ParamId::RangeDbParam), 1.f, 60.f, 20.f, "Range", " dB");
     configParam(static_cast<int>(ParamId::KneeWidthDbParam), 0.f, 20.f, 5.f, "Knee", " dB");
@@ -145,6 +151,8 @@ struct OpcVcvIr final : Module
     irProcessor_.setDynamicModeEnabled(dynamicModeEnabled_);
     irProcessor_.setSidechainEnabled(sidechainEnabled_);
     irProcessor_.setBlend(params[static_cast<int>(ParamId::BlendParam)].getValue());
+    irProcessor_.setIRAEnabled(params[static_cast<int>(ParamId::IrAEnableParam)].getValue() > 0.5f);
+    irProcessor_.setIRBEnabled(params[static_cast<int>(ParamId::IrBEnableParam)].getValue() > 0.5f);
     irProcessor_.setLowBlend(-1.0f);
     irProcessor_.setHighBlend(1.0f);
     irProcessor_.setThreshold(params[static_cast<int>(ParamId::ThresholdParam)].getValue());

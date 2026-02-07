@@ -40,49 +40,83 @@ void VerticalMeter::paint(juce::Graphics& g)
   float normalizedValue = (currentValue_ - minValue_) / (maxValue_ - minValue_);
   normalizedValue = std::max(0.0f, std::min(1.0f, normalizedValue));
 
-  int valueHeight = static_cast<int>(normalizedValue * meterBounds.getHeight());
-  auto fillBounds = meterBounds.removeFromBottom(valueHeight);
+  float ledDiameter = (static_cast<float>(meterBounds.getWidth()) - 8.0f) / 2.0f;
+  float totalHeight = numLEDs_ * ledDiameter + (numLEDs_ - 1) * ledSpacing_;
+  float startY = meterBounds.getY() + (meterBounds.getHeight() - totalHeight) / 2.0f;
+  float centerX = meterBounds.getX() + meterBounds.getWidth() / 2.0f;
 
-  g.setGradientFill(juce::ColourGradient(juce::Colour(0xff00ff00), fillBounds.getX(),
-                                         fillBounds.getBottom(), juce::Colour(0xffffff00),
-                                         fillBounds.getX(), fillBounds.getY(), false));
-  g.fillRect(fillBounds);
-
-  if (showThresholds_)
+  for (int i = 0; i < numLEDs_; ++i)
   {
-    float lowNorm = (lowThreshold_ - minValue_) / (maxValue_ - minValue_);
-    float highNorm = (highThreshold_ - minValue_) / (maxValue_ - minValue_);
+    int reversedIndex = numLEDs_ - 1 - i;
+    float ledY = startY + i * (ledDiameter + ledSpacing_);
+    auto ledBounds =
+        juce::Rectangle<float>(centerX - ledDiameter / 2.0f, ledY, ledDiameter, ledDiameter);
 
-    int lowY = static_cast<int>(meterBounds.getBottom() - lowNorm * meterBounds.getHeight());
-    int highY = static_cast<int>(meterBounds.getBottom() - highNorm * meterBounds.getHeight());
+    float ledThreshold = static_cast<float>(reversedIndex) / static_cast<float>(numLEDs_);
+    bool isLit = normalizedValue >= ledThreshold;
 
-    g.setColour(juce::Colour(0xffff6600));
-    g.drawLine(static_cast<float>(meterBounds.getX()), static_cast<float>(lowY),
-               static_cast<float>(meterBounds.getRight()), static_cast<float>(lowY), 2.0f);
+    juce::Colour ledColor;
+    if (name_ == "Blend")
+    {
+      ledColor = getBlendLEDColor(reversedIndex, isLit);
+    }
+    else
+    {
+      ledColor = getLEDColor(reversedIndex, isLit);
+    }
 
-    g.setColour(juce::Colour(0xffff0000));
-    g.drawLine(static_cast<float>(meterBounds.getX()), static_cast<float>(highY),
-               static_cast<float>(meterBounds.getRight()), static_cast<float>(highY), 2.0f);
-  }
+    g.setColour(ledColor);
+    g.fillEllipse(ledBounds);
 
-  if (showBlendRange_)
-  {
-    float minNorm = (minBlend_ - minValue_) / (maxValue_ - minValue_);
-    float maxNorm = (maxBlend_ - minValue_) / (maxValue_ - minValue_);
+    if (isLit)
+    {
+      g.setColour(ledColor.withAlpha(0.3f));
+      g.fillEllipse(ledBounds.expanded(2.0f));
+    }
 
-    int minY = static_cast<int>(meterBounds.getBottom() - minNorm * meterBounds.getHeight());
-    int maxY = static_cast<int>(meterBounds.getBottom() - maxNorm * meterBounds.getHeight());
-
-    g.setColour(juce::Colour(0xff00aaff));
-    g.drawLine(static_cast<float>(meterBounds.getX()), static_cast<float>(minY),
-               static_cast<float>(meterBounds.getRight()), static_cast<float>(minY), 2.0f);
-    g.drawLine(static_cast<float>(meterBounds.getX()), static_cast<float>(maxY),
-               static_cast<float>(meterBounds.getRight()), static_cast<float>(maxY), 2.0f);
+    g.setColour(juce::Colour(0xff444444));
+    g.drawEllipse(ledBounds, 1.0f);
   }
 
   g.setColour(juce::Colours::white);
   g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
   g.drawText(name_, bounds.removeFromTop(labelHeight), juce::Justification::centred, true);
+}
+
+juce::Colour VerticalMeter::getLEDColor(int ledIndex, bool isLit) const
+{
+  float position = static_cast<float>(ledIndex) / static_cast<float>(numLEDs_ - 1);
+
+  if (position < 0.67f)
+  {
+    return isLit ? juce::Colour(0xff00ff00) : juce::Colour(0xff003300);
+  }
+  else if (position < 0.83f)
+  {
+    return isLit ? juce::Colour(0xffffff00) : juce::Colour(0xff333300);
+  }
+  else
+  {
+    return isLit ? juce::Colour(0xffff0000) : juce::Colour(0xff330000);
+  }
+}
+
+juce::Colour VerticalMeter::getBlendLEDColor(int ledIndex, bool isLit) const
+{
+  float position = static_cast<float>(ledIndex) / static_cast<float>(numLEDs_ - 1);
+
+  if (position < 0.33f)
+  {
+    return isLit ? juce::Colour(0xff00aaff) : juce::Colour(0xff003344);
+  }
+  else if (position < 0.67f)
+  {
+    return isLit ? juce::Colour(0xffaaaaaa) : juce::Colour(0xff222222);
+  }
+  else
+  {
+    return isLit ? juce::Colour(0xffff6600) : juce::Colour(0xff331100);
+  }
 }
 
 void VerticalMeter::timerCallback()
@@ -296,14 +330,14 @@ void OctobIREditor::resized()
 
   bounds.removeFromTop(10);
 
-  auto meterSection = bounds.removeFromTop(200);
+  auto meterSection = bounds.removeFromRight(140);
   auto meterLeft = meterSection.removeFromLeft(60);
   inputLevelMeter_.setBounds(meterLeft);
   meterSection.removeFromLeft(10);
   auto meterRight = meterSection.removeFromLeft(60);
   blendMeter_.setBounds(meterRight);
 
-  bounds.removeFromTop(15);
+  bounds.removeFromRight(15);
 
   auto blendRow = bounds.removeFromTop(25);
   blendLabel_.setBounds(blendRow.removeFromLeft(120));

@@ -17,6 +17,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
 {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
+  layout.add(std::make_unique<juce::AudioParameterBool>("irAEnable", "IR A Enable", true));
+
+  layout.add(std::make_unique<juce::AudioParameterBool>("irBEnable", "IR B Enable", true));
+
   layout.add(std::make_unique<juce::AudioParameterBool>("dynamicMode", "Dynamic Mode", false));
 
   layout.add(
@@ -164,6 +168,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
 
+  bool irAEnable = apvts_.getRawParameterValue("irAEnable")->load() > 0.5f;
+  bool irBEnable = apvts_.getRawParameterValue("irBEnable")->load() > 0.5f;
   bool dynamicMode = apvts_.getRawParameterValue("dynamicMode")->load() > 0.5f;
   bool sidechainEnabled = apvts_.getRawParameterValue("sidechainEnable")->load() > 0.5f;
   float blend = apvts_.getRawParameterValue("blend")->load();
@@ -177,6 +183,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   float releaseTime = apvts_.getRawParameterValue("releaseTime")->load();
   float outputGain = apvts_.getRawParameterValue("outputGain")->load();
 
+  irProcessor_.setIRAEnabled(irAEnable);
+  irProcessor_.setIRBEnabled(irBEnable);
   irProcessor_.setDynamicModeEnabled(dynamicMode);
   irProcessor_.setSidechainEnabled(sidechainEnabled);
   irProcessor_.setBlend(blend);

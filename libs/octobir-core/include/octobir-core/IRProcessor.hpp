@@ -26,6 +26,8 @@ class IRProcessor
   void setSampleRate(SampleRate sampleRate);
   void setBlend(float blend);
 
+  void setIRAEnabled(bool enabled);
+  void setIRBEnabled(bool enabled);
   void setDynamicModeEnabled(bool enabled);
   void setSidechainEnabled(bool enabled);
   void setLowBlend(float lowBlend);
@@ -66,6 +68,8 @@ class IRProcessor
   int getLatencySamples() const;
   float getBlend() const { return blend_; }
 
+  bool getIRAEnabled() const { return irAEnabled_; }
+  bool getIRBEnabled() const { return irBEnabled_; }
   bool getDynamicModeEnabled() const { return dynamicModeEnabled_; }
   bool getSidechainEnabled() const { return sidechainEnabled_; }
   float getLowBlend() const { return lowBlend_; }
@@ -100,6 +104,8 @@ class IRProcessor
   int latencySamples2_ = 0;
   float blend_ = 0.0f;
 
+  bool irAEnabled_ = true;
+  bool irBEnabled_ = true;
   bool dynamicModeEnabled_ = false;
   bool sidechainEnabled_ = false;
   float lowBlend_ = -1.0f;

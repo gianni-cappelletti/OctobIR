@@ -260,10 +260,20 @@ void IRProcessor::setOutputGain(float gainDb)
   outputGainLinear_ = std::pow(10.0f, outputGainDb_ / 20.0f);
 }
 
+void IRProcessor::setIRAEnabled(bool enabled)
+{
+  irAEnabled_ = enabled;
+}
+
+void IRProcessor::setIRBEnabled(bool enabled)
+{
+  irBEnabled_ = enabled;
+}
+
 void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount numFrames)
 {
-  bool hasIR1 = irLoaded_;
-  bool hasIR2 = ir2Loaded_;
+  bool hasIR1 = irLoaded_ && irAEnabled_;
+  bool hasIR2 = ir2Loaded_ && irBEnabled_;
 
   if (!hasIR1 && !hasIR2)
   {
@@ -418,8 +428,8 @@ int IRProcessor::getLatencySamples() const
 void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL,
                                 Sample* outputR, FrameCount numFrames)
 {
-  bool hasIR1 = irLoaded_;
-  bool hasIR2 = ir2Loaded_;
+  bool hasIR1 = irLoaded_ && irAEnabled_;
+  bool hasIR2 = ir2Loaded_ && irBEnabled_;
 
   if (!hasIR1 && !hasIR2)
   {
@@ -545,8 +555,8 @@ void IRProcessor::processDualMono(const Sample* inputL, const Sample* inputR, Sa
 void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* sidechain,
                                            Sample* output, FrameCount numFrames)
 {
-  bool hasIR1 = irLoaded_;
-  bool hasIR2 = ir2Loaded_;
+  bool hasIR1 = irLoaded_ && irAEnabled_;
+  bool hasIR2 = ir2Loaded_ && irBEnabled_;
 
   if (!hasIR1 && !hasIR2)
   {
@@ -655,8 +665,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
                                              const Sample* sidechainL, const Sample* sidechainR,
                                              Sample* outputL, Sample* outputR, FrameCount numFrames)
 {
-  bool hasIR1 = irLoaded_;
-  bool hasIR2 = ir2Loaded_;
+  bool hasIR1 = irLoaded_ && irAEnabled_;
+  bool hasIR2 = ir2Loaded_ && irBEnabled_;
 
   if (!hasIR1 && !hasIR2)
   {

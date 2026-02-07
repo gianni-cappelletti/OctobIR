@@ -25,6 +25,8 @@ class VerticalMeter : public juce::Component, private juce::Timer
 
  private:
   void timerCallback() override;
+  juce::Colour getLEDColor(int ledIndex, bool isLit) const;
+  juce::Colour getBlendLEDColor(int ledIndex, bool isLit) const;
 
   juce::String name_;
   float minValue_;
@@ -36,6 +38,10 @@ class VerticalMeter : public juce::Component, private juce::Timer
   float maxBlend_ = 0.0f;
   bool showThresholds_ = false;
   bool showBlendRange_ = false;
+
+  static constexpr int numLEDs_ = 12;
+  static constexpr float ledSpacing_ = 2.0f;
+  static constexpr float ledCornerRadius_ = 3.0f;
 };
 
 class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
