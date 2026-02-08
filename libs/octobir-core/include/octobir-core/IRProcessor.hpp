@@ -129,12 +129,25 @@ class IRProcessor
   float attackCoeff_ = 0.0f;
   float releaseCoeff_ = 0.0f;
 
+  std::vector<Sample> dryDelayBufferL_;
+  std::vector<Sample> dryDelayBufferR_;
+  std::vector<Sample> ir1DelayBufferL_;
+  std::vector<Sample> ir1DelayBufferR_;
+  std::vector<Sample> ir2DelayBufferL_;
+  std::vector<Sample> ir2DelayBufferR_;
+  size_t delayBufferWritePos_ = 0;
+  int maxLatencySamples_ = 0;
+
   float calculateDynamicBlend(float inputLevelDb) const;
   static float detectPeakLevel(const Sample* buffer, FrameCount numFrames);
   float detectRMSLevel(const Sample* buffer, FrameCount numFrames);
   void updateSmoothingCoefficients();
   void updateRMSBufferSize();
   void applyOutputGain(Sample* buffer, FrameCount numFrames) const;
+  void updateDelayBuffers();
+  void writeToDelayBuffer(std::vector<Sample>& buffer, const Sample* input, FrameCount numFrames);
+  void readFromDelayBuffer(const std::vector<Sample>& buffer, Sample* output, FrameCount numFrames,
+                           int delaySamples) const;
 };
 
 }  // namespace octob
