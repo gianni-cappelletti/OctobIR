@@ -65,7 +65,10 @@ bool IRProcessor::loadImpulseResponse1(const std::string& filepath, std::string&
     return false;
   }
 
-  latencySamples1_ = convolutionEngine1_->SetImpulse(impulseBuffer1_.get(), 64);
+  ir1PeakOffset_ = IRLoader::findPeakSampleIndex(*impulseBuffer1_);
+
+  latencySamples1_ =
+      convolutionEngine1_->SetImpulse(impulseBuffer1_.get(), 64, 0, 0, ir1PeakOffset_);
   if (latencySamples1_ < 0)
   {
     errorMessage = "Failed to initialize convolution engine with IR (returned " +
@@ -74,6 +77,7 @@ bool IRProcessor::loadImpulseResponse1(const std::string& filepath, std::string&
                    std::to_string(irSampleRate) + " Hz";
     ir1Loaded_ = false;
     latencySamples1_ = 0;
+    ir1PeakOffset_ = 0;
     return false;
   }
 
@@ -129,7 +133,10 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
     return false;
   }
 
-  latencySamples2_ = convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64);
+  ir2PeakOffset_ = IRLoader::findPeakSampleIndex(*impulseBuffer2_);
+
+  latencySamples2_ =
+      convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64, 0, 0, ir2PeakOffset_);
   if (latencySamples2_ < 0)
   {
     errorMessage = "Failed to initialize convolution engine with IR2 (returned " +
@@ -138,6 +145,7 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
                    std::to_string(irSampleRate) + " Hz";
     ir2Loaded_ = false;
     latencySamples2_ = 0;
+    ir2PeakOffset_ = 0;
     return false;
   }
 
@@ -155,6 +163,7 @@ void IRProcessor::clearImpulseResponse1()
   ir1Loaded_ = false;
   currentIR1Path_.clear();
   latencySamples1_ = 0;
+  ir1PeakOffset_ = 0;
 
   if (convolutionEngine1_)
   {
@@ -169,6 +178,7 @@ void IRProcessor::clearImpulseResponse2()
   ir2Loaded_ = false;
   currentIR2Path_.clear();
   latencySamples2_ = 0;
+  ir2PeakOffset_ = 0;
 
   if (convolutionEngine2_)
   {
@@ -189,15 +199,19 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
     if (ir1Loaded_)
     {
       irLoader1_->resampleAndInitialize(*impulseBuffer1_, sampleRate_);
+      ir1PeakOffset_ = IRLoader::findPeakSampleIndex(*impulseBuffer1_);
       convolutionEngine1_->Reset();
-      latencySamples1_ = convolutionEngine1_->SetImpulse(impulseBuffer1_.get(), 64);
+      latencySamples1_ =
+          convolutionEngine1_->SetImpulse(impulseBuffer1_.get(), 64, 0, 0, ir1PeakOffset_);
     }
 
     if (ir2Loaded_)
     {
       irLoader2_->resampleAndInitialize(*impulseBuffer2_, sampleRate_);
+      ir2PeakOffset_ = IRLoader::findPeakSampleIndex(*impulseBuffer2_);
       convolutionEngine2_->Reset();
-      latencySamples2_ = convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64);
+      latencySamples2_ =
+          convolutionEngine2_->SetImpulse(impulseBuffer2_.get(), 64, 0, 0, ir2PeakOffset_);
     }
   }
 }

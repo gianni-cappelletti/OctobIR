@@ -29,6 +29,8 @@ class IRLoader
 
   bool resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRate targetSampleRate);
 
+  static int findPeakSampleIndex(WDL_ImpulseBuffer& impulseBuffer);
+
   SampleRate getIRSampleRate() const { return irSampleRate_; }
   size_t getNumSamples() const { return numSamples_; }
   int getNumChannels() const { return numChannels_; }

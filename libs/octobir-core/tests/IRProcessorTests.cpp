@@ -155,9 +155,9 @@ TEST_F(IRProcessorTest, OutputGain_ZeroGainProducesSameOutput)
 
 TEST_F(IRProcessorTest, StateManagement_InitialState)
 {
-  EXPECT_FALSE(processor.isIRLoaded());
+  EXPECT_FALSE(processor.isIR1Loaded());
   EXPECT_FALSE(processor.isIR2Loaded());
-  EXPECT_EQ(processor.getCurrentIRPath(), "");
+  EXPECT_EQ(processor.getCurrentIR1Path(), "");
   EXPECT_EQ(processor.getCurrentIR2Path(), "");
   EXPECT_FLOAT_EQ(processor.getBlend(), 0.0f);
   EXPECT_FALSE(processor.getDynamicModeEnabled());

@@ -104,6 +104,8 @@ class IRProcessor
   bool ir2Loaded_ = false;
   int latencySamples1_ = 0;
   int latencySamples2_ = 0;
+  int ir1PeakOffset_ = 0;
+  int ir2PeakOffset_ = 0;
   float blend_ = 0.0f;
 
   bool irAEnabled_ = true;

@@ -312,17 +312,10 @@ TEST_F(LatencyCompensationTest, LargeBuffer_ProcessedCorrectly)
 
   EXPECT_NO_THROW(processor_->processMono(input.data(), output.data(), numFrames));
 
-  bool hasNonZero = false;
   for (int i = 0; i < numFrames; ++i)
   {
-    if (std::abs(output[i]) > 1e-6f)
-    {
-      hasNonZero = true;
-      break;
-    }
+    EXPECT_FLOAT_EQ(output[i], input[i]) << "Passthrough mismatch at sample " << i;
   }
-
-  EXPECT_TRUE(!hasNonZero);
 }
 
 TEST_F(LatencyCompensationTest, NoClipping_NormalizedInput)

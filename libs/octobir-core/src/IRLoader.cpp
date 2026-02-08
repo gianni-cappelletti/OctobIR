@@ -211,4 +211,33 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
   return true;
 }
 
+int IRLoader::findPeakSampleIndex(WDL_ImpulseBuffer& impulseBuffer)
+{
+  const int length = impulseBuffer.GetLength();
+  if (length <= 0 || impulseBuffer.GetNumChannels() <= 0)
+  {
+    return 0;
+  }
+
+  const WDL_FFT_REAL* data = impulseBuffer.impulses[0].Get();
+  if (data == nullptr)
+  {
+    return 0;
+  }
+
+  int peakIndex = 0;
+  WDL_FFT_REAL peakValue = 0.0;
+  for (int i = 0; i < length; ++i)
+  {
+    const WDL_FFT_REAL absVal = std::abs(data[i]);
+    if (absVal > peakValue)
+    {
+      peakValue = absVal;
+      peakIndex = i;
+    }
+  }
+
+  return peakIndex;
+}
+
 }  // namespace octob
