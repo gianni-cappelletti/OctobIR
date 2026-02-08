@@ -97,11 +97,11 @@ struct OpcVcvIr final : Module
   void loadIR(const std::string& file_path)
   {
     std::string error;
-    if (irProcessor_.loadImpulseResponse(file_path, error))
+    if (irProcessor_.loadImpulseResponse1(file_path, error))
     {
       loaded_file_path_ = file_path;
       INFO("Loaded IR A: %s (%zu samples, %.0f Hz)", file_path.c_str(),
-           irProcessor_.getIRNumSamples(), irProcessor_.getIRSampleRate());
+           irProcessor_.getIR1NumSamples(), irProcessor_.getIR1SampleRate());
     }
     else
     {
@@ -132,7 +132,7 @@ struct OpcVcvIr final : Module
     {
       sample_rate_check_counter_ = 0;
 
-      if (irProcessor_.isIRLoaded())
+      if (irProcessor_.isIR1Loaded())
       {
         auto currentSystemSampleRate = static_cast<uint32_t>(args.sampleRate);
         if (currentSystemSampleRate != last_system_sample_rate_)
