@@ -17,9 +17,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
 {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-  layout.add(std::make_unique<juce::AudioParameterBool>("irAEnable", "IR A Enable", true));
+  layout.add(std::make_unique<juce::AudioParameterBool>("irAEnable", "IR A Enable", false));
 
-  layout.add(std::make_unique<juce::AudioParameterBool>("irBEnable", "IR B Enable", true));
+  layout.add(std::make_unique<juce::AudioParameterBool>("irBEnable", "IR B Enable", false));
 
   layout.add(std::make_unique<juce::AudioParameterBool>("dynamicMode", "Dynamic Mode", false));
 
@@ -261,7 +261,7 @@ juce::AudioProcessorEditor* OctobIRProcessor::createEditor()
 void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
   auto state = apvts_.copyState();
-  state.setProperty("irPath", currentIRPath_, nullptr);
+  state.setProperty("irPath", currentIR1Path_, nullptr);
   state.setProperty("ir2Path", currentIR2Path_, nullptr);
 
   juce::MemoryOutputStream stream(destData, false);
@@ -298,7 +298,7 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes)
     if (path.isNotEmpty())
     {
       juce::String error;
-      loadImpulseResponse(path, error);
+      loadImpulseResponse1(path, error);
     }
 
     juce::String path2 = state.getProperty("ir2Path").toString();
@@ -310,15 +310,22 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes)
   }
 }
 
-bool OctobIRProcessor::loadImpulseResponse(const juce::String& filepath, juce::String& errorMessage)
+bool OctobIRProcessor::loadImpulseResponse1(const juce::String& filepath,
+                                            juce::String& errorMessage)
 {
   std::string error;
-  if (irProcessor_.loadImpulseResponse(filepath.toStdString(), error))
+  if (irProcessor_.loadImpulseResponse1(filepath.toStdString(), error))
   {
-    currentIRPath_ = filepath;
+    currentIR1Path_ = filepath;
     setLatencySamples(irProcessor_.getLatencySamples());
     DBG("Loaded IR1: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
         " samples)");
+
+    if (auto* param = apvts_.getParameter("irAEnable"))
+    {
+      param->setValueNotifyingHost(1.0f);
+    }
+
     errorMessage.clear();
     return true;
   }
@@ -338,6 +345,12 @@ bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
   {
     currentIR2Path_ = filepath;
     DBG("Loaded IR2: " + filepath);
+
+    if (auto* param = apvts_.getParameter("irBEnable"))
+    {
+      param->setValueNotifyingHost(1.0f);
+    }
+
     errorMessage.clear();
     return true;
   }
@@ -347,6 +360,33 @@ bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
     errorMessage = juce::String(error);
     return false;
   }
+}
+
+void OctobIRProcessor::clearImpulseResponse1()
+{
+  irProcessor_.clearImpulseResponse1();
+  currentIR1Path_.clear();
+  setLatencySamples(irProcessor_.getLatencySamples());
+
+  if (auto* param = apvts_.getParameter("irAEnable"))
+  {
+    param->setValueNotifyingHost(0.0f);
+  }
+
+  DBG("Cleared IR1");
+}
+
+void OctobIRProcessor::clearImpulseResponse2()
+{
+  irProcessor_.clearImpulseResponse2();
+  currentIR2Path_.clear();
+
+  if (auto* param = apvts_.getParameter("irBEnable"))
+  {
+    param->setValueNotifyingHost(0.0f);
+  }
+
+  DBG("Cleared IR2");
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

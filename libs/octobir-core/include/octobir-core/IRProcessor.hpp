@@ -20,8 +20,10 @@ class IRProcessor
   IRProcessor();
   ~IRProcessor();
 
-  bool loadImpulseResponse(const std::string& filepath, std::string& errorMessage);
+  bool loadImpulseResponse1(const std::string& filepath, std::string& errorMessage);
   bool loadImpulseResponse2(const std::string& filepath, std::string& errorMessage);
+  void clearImpulseResponse1();
+  void clearImpulseResponse2();
 
   void setSampleRate(SampleRate sampleRate);
   void setBlend(float blend);
@@ -55,15 +57,15 @@ class IRProcessor
                                     const Sample* sidechainL, const Sample* sidechainR,
                                     Sample* outputL, Sample* outputR, FrameCount numFrames);
 
-  bool isIRLoaded() const { return irLoaded_; }
+  bool isIR1Loaded() const { return ir1Loaded_; }
   bool isIR2Loaded() const { return ir2Loaded_; }
-  std::string getCurrentIRPath() const { return currentIRPath_; }
+  std::string getCurrentIR1Path() const { return currentIR1Path_; }
   std::string getCurrentIR2Path() const { return currentIR2Path_; }
-  SampleRate getIRSampleRate() const;
+  SampleRate getIR1SampleRate() const;
   SampleRate getIR2SampleRate() const;
-  size_t getIRNumSamples() const;
+  size_t getIR1NumSamples() const;
   size_t getIR2NumSamples() const;
-  int getNumIRChannels() const;
+  int getNumIR1Channels() const;
   int getNumIR2Channels() const;
   int getLatencySamples() const;
   float getBlend() const { return blend_; }
@@ -87,20 +89,20 @@ class IRProcessor
   void reset();
 
  private:
-  std::unique_ptr<WDL_ImpulseBuffer> impulseBuffer_;
-  std::unique_ptr<WDL_ConvolutionEngine_Div> convolutionEngine_;
-  std::unique_ptr<IRLoader> irLoader_;
+  std::unique_ptr<WDL_ImpulseBuffer> impulseBuffer1_;
+  std::unique_ptr<WDL_ConvolutionEngine_Div> convolutionEngine1_;
+  std::unique_ptr<IRLoader> irLoader1_;
 
   std::unique_ptr<WDL_ImpulseBuffer> impulseBuffer2_;
   std::unique_ptr<WDL_ConvolutionEngine_Div> convolutionEngine2_;
   std::unique_ptr<IRLoader> irLoader2_;
 
   SampleRate sampleRate_ = 44100.0;
-  std::string currentIRPath_;
+  std::string currentIR1Path_;
   std::string currentIR2Path_;
-  bool irLoaded_ = false;
+  bool ir1Loaded_ = false;
   bool ir2Loaded_ = false;
-  int latencySamples_ = 0;
+  int latencySamples1_ = 0;
   int latencySamples2_ = 0;
   float blend_ = 0.0f;
 

@@ -36,9 +36,11 @@ class OctobIRProcessor : public juce::AudioProcessor
   void getStateInformation(juce::MemoryBlock& destData) override;
   void setStateInformation(const void* data, int sizeInBytes) override;
 
-  bool loadImpulseResponse(const juce::String& filepath, juce::String& errorMessage);
+  bool loadImpulseResponse1(const juce::String& filepath, juce::String& errorMessage);
   bool loadImpulseResponse2(const juce::String& filepath, juce::String& errorMessage);
-  juce::String getCurrentIRPath() const { return currentIRPath_; }
+  void clearImpulseResponse1();
+  void clearImpulseResponse2();
+  juce::String getCurrentIR1Path() const { return currentIR1Path_; }
   juce::String getCurrentIR2Path() const { return currentIR2Path_; }
 
   juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
@@ -49,7 +51,7 @@ class OctobIRProcessor : public juce::AudioProcessor
 
  private:
   octob::IRProcessor irProcessor_;
-  juce::String currentIRPath_;
+  juce::String currentIR1Path_;
   juce::String currentIR2Path_;
 
   juce::AudioProcessorValueTreeState apvts_;

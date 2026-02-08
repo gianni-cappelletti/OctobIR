@@ -59,12 +59,18 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   OctobIRProcessor& audioProcessor;
 
   juce::Label ir1TitleLabel_;
-  juce::TextButton loadButton_;
-  juce::Label irPathLabel_;
+  juce::TextButton loadButton1_;
+  juce::TextButton clearButton1_;
+  juce::Label ir1PathLabel_;
+  juce::ToggleButton ir1EnableButton_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir1EnableAttachment_;
 
   juce::Label ir2TitleLabel_;
   juce::TextButton loadButton2_;
+  juce::TextButton clearButton2_;
   juce::Label ir2PathLabel_;
+  juce::ToggleButton ir2EnableButton_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir2EnableAttachment_;
 
   VerticalMeter inputLevelMeter_;
   VerticalMeter blendMeter_;
@@ -111,8 +117,10 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
 
   juce::Label latencyLabel_;
 
-  void loadButtonClicked();
+  void loadButton1Clicked();
   void loadButton2Clicked();
+  void clearButton1Clicked();
+  void clearButton2Clicked();
   void swapIROrderClicked();
   void updateLatencyDisplay();
   void updateMeters();

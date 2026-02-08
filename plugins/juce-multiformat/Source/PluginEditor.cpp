@@ -136,18 +136,27 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   ir1TitleLabel_.setFont(juce::FontOptions(14.0f, juce::Font::bold));
   ir1TitleLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
-  addAndMakeVisible(loadButton_);
-  loadButton_.setButtonText("Load");
-  loadButton_.onClick = [this] { loadButtonClicked(); };
+  addAndMakeVisible(loadButton1_);
+  loadButton1_.setButtonText("Load");
+  loadButton1_.onClick = [this] { loadButton1Clicked(); };
 
-  addAndMakeVisible(irPathLabel_);
-  irPathLabel_.setText(audioProcessor.getCurrentIRPath().isEmpty()
-                           ? "No IR loaded"
-                           : audioProcessor.getCurrentIRPath(),
-                       juce::dontSendNotification);
-  irPathLabel_.setJustificationType(juce::Justification::centred);
-  irPathLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff2a2a2a));
-  irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  addAndMakeVisible(clearButton1_);
+  clearButton1_.setButtonText("Clear");
+  clearButton1_.onClick = [this] { clearButton1Clicked(); };
+
+  addAndMakeVisible(ir1PathLabel_);
+  ir1PathLabel_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
+                            ? "No IR loaded"
+                            : audioProcessor.getCurrentIR1Path(),
+                        juce::dontSendNotification);
+  ir1PathLabel_.setJustificationType(juce::Justification::centred);
+  ir1PathLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff2a2a2a));
+  ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+
+  addAndMakeVisible(ir1EnableButton_);
+  ir1EnableButton_.setButtonText("Enable");
+  ir1EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+      audioProcessor.getAPVTS(), "irAEnable", ir1EnableButton_);
 
   addAndMakeVisible(ir2TitleLabel_);
   ir2TitleLabel_.setText("IR B (+1.0)", juce::dontSendNotification);
@@ -159,6 +168,10 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   loadButton2_.setButtonText("Load");
   loadButton2_.onClick = [this] { loadButton2Clicked(); };
 
+  addAndMakeVisible(clearButton2_);
+  clearButton2_.setButtonText("Clear");
+  clearButton2_.onClick = [this] { clearButton2Clicked(); };
+
   addAndMakeVisible(ir2PathLabel_);
   ir2PathLabel_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
                             ? "No IR loaded"
@@ -167,6 +180,11 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   ir2PathLabel_.setJustificationType(juce::Justification::centred);
   ir2PathLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff2a2a2a));
   ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+
+  addAndMakeVisible(ir2EnableButton_);
+  ir2EnableButton_.setButtonText("Enable");
+  ir2EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+      audioProcessor.getAPVTS(), "irBEnable", ir2EnableButton_);
 
   addAndMakeVisible(inputLevelMeter_);
   addAndMakeVisible(blendMeter_);
@@ -309,14 +327,18 @@ void OctobIREditor::resized()
 
   auto ir1Section = irRow.removeFromLeft(getWidth() / 2 - 20);
   ir1TitleLabel_.setBounds(ir1Section.removeFromLeft(50));
-  loadButton_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
-  irPathLabel_.setBounds(ir1Section.reduced(2));
+  loadButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
+  clearButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
+  ir1EnableButton_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
+  ir1PathLabel_.setBounds(ir1Section.reduced(2));
 
   irRow.removeFromLeft(10);
 
   auto ir2Section = irRow;
   ir2TitleLabel_.setBounds(ir2Section.removeFromLeft(50));
   loadButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
+  clearButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
+  ir2EnableButton_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
   ir2PathLabel_.setBounds(ir2Section.reduced(2));
 
   topSection.removeFromTop(10);
@@ -415,7 +437,7 @@ void OctobIREditor::updateMeters()
   }
 }
 
-void OctobIREditor::loadButtonClicked()
+void OctobIREditor::loadButton1Clicked()
 {
   auto chooser = std::make_shared<juce::FileChooser>(
       "Select impulse response WAV file for IR 1",
@@ -431,22 +453,30 @@ void OctobIREditor::loadButtonClicked()
         if (file.existsAsFile())
         {
           juce::String error;
-          bool success = audioProcessor.loadImpulseResponse(file.getFullPathName(), error);
+          bool success = audioProcessor.loadImpulseResponse1(file.getFullPathName(), error);
           if (success)
           {
-            irPathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-            irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+            ir1PathLabel_.setText(file.getFileName(), juce::dontSendNotification);
+            ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
             updateLatencyDisplay();
           }
           else
           {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                                                    "Failed to Load IR 1", error, "OK");
-            irPathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-            irPathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+            ir1PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
+            ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
           }
         }
       });
+}
+
+void OctobIREditor::clearButton1Clicked()
+{
+  audioProcessor.clearImpulseResponse1();
+  ir1PathLabel_.setText("No IR loaded", juce::dontSendNotification);
+  ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  updateLatencyDisplay();
 }
 
 void OctobIREditor::loadButton2Clicked()
@@ -480,6 +510,13 @@ void OctobIREditor::loadButton2Clicked()
           }
         }
       });
+}
+
+void OctobIREditor::clearButton2Clicked()
+{
+  audioProcessor.clearImpulseResponse2();
+  ir2PathLabel_.setText("No IR loaded", juce::dontSendNotification);
+  ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 }
 
 void OctobIREditor::swapIROrderClicked()
