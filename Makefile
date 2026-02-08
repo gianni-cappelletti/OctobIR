@@ -1,5 +1,7 @@
 .PHONY: help vcv juce core test clean tidy format install-juce install-vcv header
 
+.DEFAULT_GOAL := help
+
 # Display ASCII art header with colors
 header:
 	@./scripts/show-header.sh

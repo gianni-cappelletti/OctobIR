@@ -336,8 +336,8 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1;
-  float gain2;
+  float gain1 = 0.0f;
+  float gain2 = 0.0f;
 
   if (hasIR1 && hasIR2)
   {
@@ -547,8 +547,8 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1;
-  float gain2;
+  float gain1 = 0.0f;
+  float gain2 = 0.0f;
 
   if (hasIR1 && hasIR2)
   {
@@ -733,8 +733,8 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1;
-  float gain2;
+  float gain1 = 0.0f;
+  float gain2 = 0.0f;
 
   if (hasIR1 && hasIR2)
   {
@@ -898,8 +898,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
   }
 
   float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1;
-  float gain2;
+  float gain1 = 0.0f;
+  float gain2 = 0.0f;
 
   if (hasIR1 && hasIR2)
   {

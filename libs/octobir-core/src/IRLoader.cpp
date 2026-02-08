@@ -96,8 +96,8 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
 
   const int outputChannels = 2;
 
-  constexpr float kReferenceSampleRate = 48000.0f;
-  const float sampleRateScaling = kReferenceSampleRate / static_cast<float>(targetSampleRate);
+  constexpr float KReferenceSampleRate = 48000.0f;
+  const float sampleRateScaling = KReferenceSampleRate / static_cast<float>(targetSampleRate);
 
   const bool needsResampling = (irSampleRate_ != targetSampleRate);
 
