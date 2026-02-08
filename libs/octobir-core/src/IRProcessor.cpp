@@ -321,7 +321,8 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
                                                  : detectRMSLevel(input, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
+    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
+    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
   }
@@ -532,7 +533,8 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     currentInputLevelDb_ = std::max(levelL, levelR);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
+    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
+    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
   }
@@ -718,7 +720,8 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
                                                  : detectRMSLevel(sidechain, numFrames);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
+    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
+    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
   }
@@ -883,7 +886,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
     currentInputLevelDb_ = std::max(levelL, levelR);
     float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
     float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    smoothedBlend_ = smoothedBlend_ * coeff + targetBlend * (1.0f - coeff);
+    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
+    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
     blendToUse = smoothedBlend_;
     currentBlend_ = blendToUse;
   }
@@ -1143,6 +1147,10 @@ void IRProcessor::updateSmoothingCoefficients()
     releaseCoeff_ = 0.0f;
     return;
   }
+
+  // Coefficients are calculated for per-sample application.
+  // In processing functions, they are adjusted via pow(coeff, numFrames)
+  // to compensate for per-buffer (not per-sample) envelope updates.
 
   if (attackTimeMs_ > 0.0f)
   {
