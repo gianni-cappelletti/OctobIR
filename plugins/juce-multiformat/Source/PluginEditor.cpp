@@ -338,28 +338,37 @@ void OctobIREditor::resized()
   auto bounds = getLocalBounds().reduced(15);
   bounds.removeFromTop(50);
 
-  auto topSection = bounds.removeFromTop(110);
-  auto irRow = topSection.removeFromTop(50);
+  auto topSection = bounds.removeFromTop(140);
+  auto irButtonRow = topSection.removeFromTop(35);
 
-  auto ir1Section = irRow.removeFromLeft(getWidth() / 2 - 20);
+  auto ir1Section = irButtonRow.removeFromLeft(getWidth() / 2 - 20);
   ir1TitleLabel_.setBounds(ir1Section.removeFromLeft(50));
   loadButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
   clearButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
   prevButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
   nextButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
   ir1EnableButton_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
-  ir1PathLabel_.setBounds(ir1Section.reduced(2));
 
-  irRow.removeFromLeft(10);
+  irButtonRow.removeFromLeft(10);
 
-  auto ir2Section = irRow;
+  auto ir2Section = irButtonRow;
   ir2TitleLabel_.setBounds(ir2Section.removeFromLeft(50));
   loadButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
   clearButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
   prevButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
   nextButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
   ir2EnableButton_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
-  ir2PathLabel_.setBounds(ir2Section.reduced(2));
+
+  topSection.removeFromTop(5);
+  auto irLabelRow = topSection.removeFromTop(25);
+
+  auto ir1LabelSection = irLabelRow.removeFromLeft(getWidth() / 2 - 20);
+  ir1PathLabel_.setBounds(ir1LabelSection.reduced(2));
+
+  irLabelRow.removeFromLeft(10);
+
+  auto ir2LabelSection = irLabelRow;
+  ir2PathLabel_.setBounds(ir2LabelSection.reduced(2));
 
   topSection.removeFromTop(10);
 
@@ -543,8 +552,14 @@ void OctobIREditor::swapIROrderClicked()
 {
   auto& apvts = audioProcessor.getAPVTS();
 
+  float currentBlend = apvts.getRawParameterValue("blend")->load();
   float currentLowBlend = apvts.getRawParameterValue("lowBlend")->load();
   float currentHighBlend = apvts.getRawParameterValue("highBlend")->load();
+
+  if (auto* blendParam = apvts.getParameter("blend"))
+  {
+    blendParam->setValueNotifyingHost(blendParam->convertTo0to1(-currentBlend));
+  }
 
   if (auto* lowParam = apvts.getParameter("lowBlend"))
   {

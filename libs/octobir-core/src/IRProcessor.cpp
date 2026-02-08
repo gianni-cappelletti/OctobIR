@@ -1085,7 +1085,7 @@ float IRProcessor::calculateDynamicBlend(float inputLevelDb) const
     blendPosition = std::min(1.0f, blendPosition);
   }
 
-  return lowBlend_ + (highBlend_ - lowBlend_) * blendPosition;
+  return blend_ + (highBlend_ - blend_) * blendPosition;
 }
 
 float IRProcessor::detectPeakLevel(const Sample* buffer, FrameCount numFrames)
