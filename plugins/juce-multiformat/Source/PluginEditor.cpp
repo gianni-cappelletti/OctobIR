@@ -144,6 +144,14 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   clearButton1_.setButtonText("Clear");
   clearButton1_.onClick = [this] { clearButton1Clicked(); };
 
+  addAndMakeVisible(prevButton1_);
+  prevButton1_.setButtonText("<");
+  prevButton1_.onClick = [this] { prevButton1Clicked(); };
+
+  addAndMakeVisible(nextButton1_);
+  nextButton1_.setButtonText(">");
+  nextButton1_.onClick = [this] { nextButton1Clicked(); };
+
   addAndMakeVisible(ir1PathLabel_);
   ir1PathLabel_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
                             ? "No IR loaded"
@@ -171,6 +179,14 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   addAndMakeVisible(clearButton2_);
   clearButton2_.setButtonText("Clear");
   clearButton2_.onClick = [this] { clearButton2Clicked(); };
+
+  addAndMakeVisible(prevButton2_);
+  prevButton2_.setButtonText("<");
+  prevButton2_.onClick = [this] { prevButton2Clicked(); };
+
+  addAndMakeVisible(nextButton2_);
+  nextButton2_.setButtonText(">");
+  nextButton2_.onClick = [this] { nextButton2Clicked(); };
 
   addAndMakeVisible(ir2PathLabel_);
   ir2PathLabel_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
@@ -329,6 +345,8 @@ void OctobIREditor::resized()
   ir1TitleLabel_.setBounds(ir1Section.removeFromLeft(50));
   loadButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
   clearButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
+  prevButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
+  nextButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
   ir1EnableButton_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
   ir1PathLabel_.setBounds(ir1Section.reduced(2));
 
@@ -338,6 +356,8 @@ void OctobIREditor::resized()
   ir2TitleLabel_.setBounds(ir2Section.removeFromLeft(50));
   loadButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
   clearButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
+  prevButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
+  nextButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
   ir2EnableButton_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
   ir2PathLabel_.setBounds(ir2Section.reduced(2));
 
@@ -439,9 +459,8 @@ void OctobIREditor::updateMeters()
 
 void OctobIREditor::loadButton1Clicked()
 {
-  auto chooser = std::make_shared<juce::FileChooser>(
-      "Select impulse response WAV file for IR 1",
-      juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*.wav");
+  auto chooser = std::make_shared<juce::FileChooser>("Select impulse response WAV file for IR 1",
+                                                     getLastBrowsedDirectory(), "*.wav");
 
   auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -452,6 +471,7 @@ void OctobIREditor::loadButton1Clicked()
         auto file = fc.getResult();
         if (file.existsAsFile())
         {
+          updateLastBrowsedDirectory(file);
           juce::String error;
           bool success = audioProcessor.loadImpulseResponse1(file.getFullPathName(), error);
           if (success)
@@ -481,9 +501,8 @@ void OctobIREditor::clearButton1Clicked()
 
 void OctobIREditor::loadButton2Clicked()
 {
-  auto chooser = std::make_shared<juce::FileChooser>(
-      "Select impulse response WAV file for IR 2",
-      juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*.wav");
+  auto chooser = std::make_shared<juce::FileChooser>("Select impulse response WAV file for IR 2",
+                                                     getLastBrowsedDirectory(), "*.wav");
 
   auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -494,6 +513,7 @@ void OctobIREditor::loadButton2Clicked()
         auto file = fc.getResult();
         if (file.existsAsFile())
         {
+          updateLastBrowsedDirectory(file);
           juce::String error;
           bool success = audioProcessor.loadImpulseResponse2(file.getFullPathName(), error);
           if (success)
@@ -553,4 +573,129 @@ void OctobIREditor::updateLatencyDisplay()
     latencyLabel_.setText(juce::String("Latency: ") + juce::String(latency) + " samples",
                           juce::dontSendNotification);
   }
+}
+
+void OctobIREditor::prevButton1Clicked()
+{
+  cycleIRFile(1, -1);
+}
+
+void OctobIREditor::nextButton1Clicked()
+{
+  cycleIRFile(1, 1);
+}
+
+void OctobIREditor::prevButton2Clicked()
+{
+  cycleIRFile(2, -1);
+}
+
+void OctobIREditor::nextButton2Clicked()
+{
+  cycleIRFile(2, 1);
+}
+
+void OctobIREditor::cycleIRFile(int irIndex, int direction)
+{
+  juce::String currentPath =
+      irIndex == 1 ? audioProcessor.getCurrentIR1Path() : audioProcessor.getCurrentIR2Path();
+
+  if (currentPath.isEmpty())
+    return;
+
+  juce::File currentFile(currentPath);
+  if (!currentFile.existsAsFile())
+    return;
+
+  juce::File directory = currentFile.getParentDirectory();
+  juce::Array<juce::File> wavFiles;
+
+  for (const auto& entry : juce::RangedDirectoryIterator(
+           directory, false, "*.wav", juce::File::findFiles | juce::File::ignoreHiddenFiles))
+  {
+    wavFiles.add(entry.getFile());
+  }
+
+  if (wavFiles.isEmpty())
+    return;
+
+  wavFiles.sort();
+
+  int currentIndex = wavFiles.indexOf(currentFile);
+  if (currentIndex < 0)
+    return;
+
+  int newIndex = currentIndex + direction;
+  if (newIndex < 0)
+    newIndex = wavFiles.size() - 1;
+  else if (newIndex >= wavFiles.size())
+    newIndex = 0;
+
+  juce::File newFile = wavFiles[newIndex];
+  juce::String error;
+  bool success;
+
+  if (irIndex == 1)
+  {
+    success = audioProcessor.loadImpulseResponse1(newFile.getFullPathName(), error);
+    if (success)
+    {
+      ir1PathLabel_.setText(newFile.getFileName(), juce::dontSendNotification);
+      ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+      updateLatencyDisplay();
+    }
+    else
+    {
+      juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Failed to Load IR 1",
+                                             error, "OK");
+      ir1PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
+      ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+    }
+  }
+  else
+  {
+    success = audioProcessor.loadImpulseResponse2(newFile.getFullPathName(), error);
+    if (success)
+    {
+      ir2PathLabel_.setText(newFile.getFileName(), juce::dontSendNotification);
+      ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+    }
+    else
+    {
+      juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Failed to Load IR 2",
+                                             error, "OK");
+      ir2PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
+      ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+    }
+  }
+}
+
+juce::File OctobIREditor::getLastBrowsedDirectory() const
+{
+  if (lastBrowsedDirectory_.exists() && lastBrowsedDirectory_.isDirectory())
+    return lastBrowsedDirectory_;
+
+  juce::String ir1Path = audioProcessor.getCurrentIR1Path();
+  if (ir1Path.isNotEmpty())
+  {
+    juce::File ir1File(ir1Path);
+    if (ir1File.existsAsFile())
+      return ir1File.getParentDirectory();
+  }
+
+  juce::String ir2Path = audioProcessor.getCurrentIR2Path();
+  if (ir2Path.isNotEmpty())
+  {
+    juce::File ir2File(ir2Path);
+    if (ir2File.existsAsFile())
+      return ir2File.getParentDirectory();
+  }
+
+  return juce::File::getSpecialLocation(juce::File::userHomeDirectory);
+}
+
+void OctobIREditor::updateLastBrowsedDirectory(const juce::File& file)
+{
+  if (file.existsAsFile())
+    lastBrowsedDirectory_ = file.getParentDirectory();
 }

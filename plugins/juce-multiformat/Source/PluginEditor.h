@@ -61,6 +61,8 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::Label ir1TitleLabel_;
   juce::TextButton loadButton1_;
   juce::TextButton clearButton1_;
+  juce::TextButton prevButton1_;
+  juce::TextButton nextButton1_;
   juce::Label ir1PathLabel_;
   juce::ToggleButton ir1EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir1EnableAttachment_;
@@ -68,6 +70,8 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::Label ir2TitleLabel_;
   juce::TextButton loadButton2_;
   juce::TextButton clearButton2_;
+  juce::TextButton prevButton2_;
+  juce::TextButton nextButton2_;
   juce::Label ir2PathLabel_;
   juce::ToggleButton ir2EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir2EnableAttachment_;
@@ -121,9 +125,18 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   void loadButton2Clicked();
   void clearButton1Clicked();
   void clearButton2Clicked();
+  void prevButton1Clicked();
+  void nextButton1Clicked();
+  void prevButton2Clicked();
+  void nextButton2Clicked();
   void swapIROrderClicked();
   void updateLatencyDisplay();
   void updateMeters();
+  void cycleIRFile(int irIndex, int direction);
+  juce::File getLastBrowsedDirectory() const;
+  void updateLastBrowsedDirectory(const juce::File& file);
+
+  juce::File lastBrowsedDirectory_;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctobIREditor)
 };
