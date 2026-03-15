@@ -124,17 +124,26 @@ void VerticalMeter::timerCallback()
   repaint();
 }
 
+static void setupRotarySlider(juce::Slider& s, int textBoxWidth = 70)
+{
+  s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+  s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxWidth, 18);
+  s.setRotaryParameters(juce::MathConstants<float>::pi * 1.25f,
+                        juce::MathConstants<float>::pi * 2.75f, true);
+}
+
 OctobIREditor::OctobIREditor(OctobIRProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
       inputLevelMeter_("Input Level", -96.0f, 0.0f),
       blendMeter_("Blend", -1.0f, 1.0f)
 {
+  setLookAndFeel(&laf_);
+
   addAndMakeVisible(ir1TitleLabel_);
   ir1TitleLabel_.setText("IR A (-1.0)", juce::dontSendNotification);
   ir1TitleLabel_.setJustificationType(juce::Justification::centredLeft);
   ir1TitleLabel_.setFont(juce::FontOptions(14.0f, juce::Font::bold));
-  ir1TitleLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
   addAndMakeVisible(loadButton1_);
   loadButton1_.setButtonText("Load");
@@ -152,17 +161,16 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   nextButton1_.setButtonText(">");
   nextButton1_.onClick = [this] { nextButton1Clicked(); };
 
-  addAndMakeVisible(ir1PathLabel_);
-  ir1PathLabel_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
-                            ? "No IR loaded"
-                            : audioProcessor.getCurrentIR1Path(),
-                        juce::dontSendNotification);
-  ir1PathLabel_.setJustificationType(juce::Justification::centred);
-  ir1PathLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff2a2a2a));
-  ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  addAndMakeVisible(ir1LCDDisplay_);
+  ir1LCDDisplay_.setTextColour(juce::Colour(0xff00ff00));
+  ir1LCDDisplay_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
+                             ? "No IR loaded"
+                             : audioProcessor.getCurrentIR1Path());
 
   addAndMakeVisible(ir1EnableButton_);
-  ir1EnableButton_.setButtonText("Enable");
+  ir1EnableButton_.setButtonText("Enable A");
+  ir1EnableButton_.getProperties().set("isLED", true);
+  ir1EnableButton_.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xff00ff00));
   ir1EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
       audioProcessor.getAPVTS(), "irAEnable", ir1EnableButton_);
 
@@ -170,7 +178,6 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   ir2TitleLabel_.setText("IR B (+1.0)", juce::dontSendNotification);
   ir2TitleLabel_.setJustificationType(juce::Justification::centredLeft);
   ir2TitleLabel_.setFont(juce::FontOptions(14.0f, juce::Font::bold));
-  ir2TitleLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
 
   addAndMakeVisible(loadButton2_);
   loadButton2_.setButtonText("Load");
@@ -188,17 +195,16 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   nextButton2_.setButtonText(">");
   nextButton2_.onClick = [this] { nextButton2Clicked(); };
 
-  addAndMakeVisible(ir2PathLabel_);
-  ir2PathLabel_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
-                            ? "No IR loaded"
-                            : audioProcessor.getCurrentIR2Path(),
-                        juce::dontSendNotification);
-  ir2PathLabel_.setJustificationType(juce::Justification::centred);
-  ir2PathLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff2a2a2a));
-  ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  addAndMakeVisible(ir2LCDDisplay_);
+  ir2LCDDisplay_.setTextColour(juce::Colour(0xff00aaff));
+  ir2LCDDisplay_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
+                             ? "No IR loaded"
+                             : audioProcessor.getCurrentIR2Path());
 
   addAndMakeVisible(ir2EnableButton_);
-  ir2EnableButton_.setButtonText("Enable");
+  ir2EnableButton_.setButtonText("Enable B");
+  ir2EnableButton_.getProperties().set("isLED", true);
+  ir2EnableButton_.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xff00aaff));
   ir2EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
       audioProcessor.getAPVTS(), "irBEnable", ir2EnableButton_);
 
@@ -222,52 +228,70 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
 
   addAndMakeVisible(blendLabel_);
   blendLabel_.setText("Static Blend", juce::dontSendNotification);
-  blendLabel_.setJustificationType(juce::Justification::centredLeft);
-  blendLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  blendLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(blendSlider_);
-  blendSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  blendSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+  setupRotarySlider(blendSlider_);
   blendAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "blend", blendSlider_);
 
+  addAndMakeVisible(outputGainLabel_);
+  outputGainLabel_.setText("Output Gain", juce::dontSendNotification);
+  outputGainLabel_.setJustificationType(juce::Justification::centred);
+
+  addAndMakeVisible(outputGainSlider_);
+  setupRotarySlider(outputGainSlider_);
+  outputGainAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "outputGain", outputGainSlider_);
+
   addAndMakeVisible(thresholdLabel_);
   thresholdLabel_.setText("Threshold", juce::dontSendNotification);
-  thresholdLabel_.setJustificationType(juce::Justification::centredLeft);
-  thresholdLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  thresholdLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(thresholdSlider_);
-  thresholdSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  thresholdSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
+  setupRotarySlider(thresholdSlider_, 60);
   thresholdAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "threshold", thresholdSlider_);
 
   addAndMakeVisible(rangeDbLabel_);
   rangeDbLabel_.setText("Range", juce::dontSendNotification);
-  rangeDbLabel_.setJustificationType(juce::Justification::centredLeft);
-  rangeDbLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  rangeDbLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(rangeDbSlider_);
-  rangeDbSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  rangeDbSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
+  setupRotarySlider(rangeDbSlider_, 60);
   rangeDbAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "rangeDb", rangeDbSlider_);
 
   addAndMakeVisible(kneeWidthDbLabel_);
   kneeWidthDbLabel_.setText("Knee", juce::dontSendNotification);
-  kneeWidthDbLabel_.setJustificationType(juce::Justification::centredLeft);
-  kneeWidthDbLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  kneeWidthDbLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(kneeWidthDbSlider_);
-  kneeWidthDbSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  kneeWidthDbSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
+  setupRotarySlider(kneeWidthDbSlider_, 60);
   kneeWidthDbAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "kneeWidthDb", kneeWidthDbSlider_);
 
+  addAndMakeVisible(attackTimeLabel_);
+  attackTimeLabel_.setText("Attack", juce::dontSendNotification);
+  attackTimeLabel_.setJustificationType(juce::Justification::centred);
+
+  addAndMakeVisible(attackTimeSlider_);
+  setupRotarySlider(attackTimeSlider_, 60);
+  attackTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "attackTime", attackTimeSlider_);
+
+  addAndMakeVisible(releaseTimeLabel_);
+  releaseTimeLabel_.setText("Release", juce::dontSendNotification);
+  releaseTimeLabel_.setJustificationType(juce::Justification::centred);
+
+  addAndMakeVisible(releaseTimeSlider_);
+  setupRotarySlider(releaseTimeSlider_, 60);
+  releaseTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "releaseTime", releaseTimeSlider_);
+
   addAndMakeVisible(detectionModeLabel_);
-  detectionModeLabel_.setText("Detection Mode", juce::dontSendNotification);
-  detectionModeLabel_.setJustificationType(juce::Justification::centredLeft);
-  detectionModeLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  detectionModeLabel_.setText("Detection", juce::dontSendNotification);
+  detectionModeLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(detectionModeCombo_);
   detectionModeCombo_.addItem("Peak", 1);
@@ -276,57 +300,24 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
           audioProcessor.getAPVTS(), "detectionMode", detectionModeCombo_);
 
-  addAndMakeVisible(attackTimeLabel_);
-  attackTimeLabel_.setText("Attack Time", juce::dontSendNotification);
-  attackTimeLabel_.setJustificationType(juce::Justification::centredLeft);
-  attackTimeLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(attackTimeSlider_);
-  attackTimeSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  attackTimeSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-  attackTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "attackTime", attackTimeSlider_);
-
-  addAndMakeVisible(releaseTimeLabel_);
-  releaseTimeLabel_.setText("Release Time", juce::dontSendNotification);
-  releaseTimeLabel_.setJustificationType(juce::Justification::centredLeft);
-  releaseTimeLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(releaseTimeSlider_);
-  releaseTimeSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  releaseTimeSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-  releaseTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "releaseTime", releaseTimeSlider_);
-
-  addAndMakeVisible(outputGainLabel_);
-  outputGainLabel_.setText("Output Gain", juce::dontSendNotification);
-  outputGainLabel_.setJustificationType(juce::Justification::centredLeft);
-  outputGainLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
-
-  addAndMakeVisible(outputGainSlider_);
-  outputGainSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-  outputGainSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-  outputGainAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-      audioProcessor.getAPVTS(), "outputGain", outputGainSlider_);
-
   addAndMakeVisible(latencyLabel_);
   latencyLabel_.setJustificationType(juce::Justification::centred);
   latencyLabel_.setColour(juce::Label::textColourId, juce::Colour(0xff88ccff));
   updateLatencyDisplay();
 
   startTimerHz(30);
-
   setSize(700, 760);
 }
 
 OctobIREditor::~OctobIREditor()
 {
   stopTimer();
+  setLookAndFeel(nullptr);
 }
 
 void OctobIREditor::paint(juce::Graphics& g)
 {
-  g.fillAll(juce::Colour(0xff1a1a1a));
+  g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 
   g.setColour(juce::Colours::white);
   g.setFont(juce::FontOptions(24.0f, juce::Font::bold));
@@ -338,106 +329,109 @@ void OctobIREditor::resized()
   auto bounds = getLocalBounds().reduced(15);
   bounds.removeFromTop(50);
 
-  auto topSection = bounds.removeFromTop(140);
-  auto irButtonRow = topSection.removeFromTop(35);
+  // --- IR Loading Section (110px) ---
+  auto irSection = bounds.removeFromTop(110);
 
-  auto ir1Section = irButtonRow.removeFromLeft(getWidth() / 2 - 20);
-  ir1TitleLabel_.setBounds(ir1Section.removeFromLeft(50));
-  loadButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
-  clearButton1_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
-  prevButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
-  nextButton1_.setBounds(ir1Section.removeFromLeft(35).reduced(2));
-  ir1EnableButton_.setBounds(ir1Section.removeFromLeft(70).reduced(2));
+  auto irButtonRow = irSection.removeFromTop(30);
+  auto halfW = irButtonRow.getWidth() / 2;
 
-  irButtonRow.removeFromLeft(10);
+  {
+    auto col = irButtonRow.removeFromLeft(halfW);
+    ir1TitleLabel_.setBounds(col.removeFromLeft(55));
+    loadButton1_.setBounds(col.removeFromLeft(55).reduced(2));
+    clearButton1_.setBounds(col.removeFromLeft(48).reduced(2));
+    prevButton1_.setBounds(col.removeFromLeft(28).reduced(2));
+    nextButton1_.setBounds(col.removeFromLeft(28).reduced(2));
+    ir1EnableButton_.setBounds(col.reduced(2));
+  }
+  {
+    auto col = irButtonRow;
+    ir2TitleLabel_.setBounds(col.removeFromLeft(55));
+    loadButton2_.setBounds(col.removeFromLeft(55).reduced(2));
+    clearButton2_.setBounds(col.removeFromLeft(48).reduced(2));
+    prevButton2_.setBounds(col.removeFromLeft(28).reduced(2));
+    nextButton2_.setBounds(col.removeFromLeft(28).reduced(2));
+    ir2EnableButton_.setBounds(col.reduced(2));
+  }
 
-  auto ir2Section = irButtonRow;
-  ir2TitleLabel_.setBounds(ir2Section.removeFromLeft(50));
-  loadButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
-  clearButton2_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
-  prevButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
-  nextButton2_.setBounds(ir2Section.removeFromLeft(35).reduced(2));
-  ir2EnableButton_.setBounds(ir2Section.removeFromLeft(70).reduced(2));
+  irSection.removeFromTop(5);
+  auto irLcdRow = irSection.removeFromTop(35);
+  halfW = irLcdRow.getWidth() / 2;
+  ir1LCDDisplay_.setBounds(irLcdRow.removeFromLeft(halfW).reduced(3, 2));
+  ir2LCDDisplay_.setBounds(irLcdRow.reduced(3, 2));
 
-  topSection.removeFromTop(5);
-  auto irLabelRow = topSection.removeFromTop(25);
+  irSection.removeFromTop(10);
+  auto modeRow = irSection.removeFromTop(30);
+  dynamicModeButton_.setBounds(modeRow.removeFromLeft(140).reduced(2));
+  modeRow.removeFromLeft(5);
+  sidechainEnableButton_.setBounds(modeRow.removeFromLeft(150).reduced(2));
+  modeRow.removeFromLeft(5);
+  swapIROrderButton_.setBounds(modeRow.removeFromLeft(120).reduced(2));
 
-  auto ir1LabelSection = irLabelRow.removeFromLeft(getWidth() / 2 - 20);
-  ir1PathLabel_.setBounds(ir1LabelSection.reduced(2));
-
-  irLabelRow.removeFromLeft(10);
-
-  auto ir2LabelSection = irLabelRow;
-  ir2PathLabel_.setBounds(ir2LabelSection.reduced(2));
-
-  topSection.removeFromTop(10);
-
-  auto modeButtonRow = topSection.removeFromTop(30);
-  dynamicModeButton_.setBounds(modeButtonRow.removeFromLeft(140).reduced(2));
-  modeButtonRow.removeFromLeft(5);
-  sidechainEnableButton_.setBounds(modeButtonRow.removeFromLeft(140).reduced(2));
-  modeButtonRow.removeFromLeft(5);
-  swapIROrderButton_.setBounds(modeButtonRow.removeFromLeft(120).reduced(2));
-
+  // --- Meters (205px) ---
   bounds.removeFromTop(10);
+  auto meterRow = bounds.removeFromTop(205);
+  auto metersSection = meterRow.withSizeKeepingCentre(140, meterRow.getHeight());
+  inputLevelMeter_.setBounds(metersSection.removeFromLeft(60));
+  metersSection.removeFromLeft(20);
+  blendMeter_.setBounds(metersSection.removeFromLeft(60));
 
-  auto meterSection = bounds.removeFromRight(140);
-  auto meterLeft = meterSection.removeFromLeft(60);
-  inputLevelMeter_.setBounds(meterLeft);
-  meterSection.removeFromLeft(10);
-  auto meterRight = meterSection.removeFromLeft(60);
-  blendMeter_.setBounds(meterRight);
+  // --- Large Rotary Knobs (130px) ---
+  bounds.removeFromTop(10);
+  auto largeKnobRow = bounds.removeFromTop(130);
+  halfW = largeKnobRow.getWidth() / 2;
+  {
+    auto col = largeKnobRow.removeFromLeft(halfW);
+    blendLabel_.setBounds(col.removeFromTop(18));
+    blendSlider_.setBounds(col.withSizeKeepingCentre(100, 112));
+  }
+  {
+    auto col = largeKnobRow;
+    outputGainLabel_.setBounds(col.removeFromTop(18));
+    outputGainSlider_.setBounds(col.withSizeKeepingCentre(100, 112));
+  }
 
-  bounds.removeFromRight(15);
-
-  auto blendRow = bounds.removeFromTop(25);
-  blendLabel_.setBounds(blendRow.removeFromLeft(120));
-  blendSlider_.setBounds(blendRow);
-
+  // --- Small Rotary Knobs Row 1: Threshold, Range, Knee (90px) ---
   bounds.removeFromTop(5);
+  auto smallRow1 = bounds.removeFromTop(90);
+  auto colW = smallRow1.getWidth() / 3;
+  {
+    auto col = smallRow1.removeFromLeft(colW);
+    thresholdLabel_.setBounds(col.removeFromTop(16));
+    thresholdSlider_.setBounds(col.withSizeKeepingCentre(72, 74));
+  }
+  {
+    auto col = smallRow1.removeFromLeft(colW);
+    rangeDbLabel_.setBounds(col.removeFromTop(16));
+    rangeDbSlider_.setBounds(col.withSizeKeepingCentre(72, 74));
+  }
+  {
+    auto col = smallRow1;
+    kneeWidthDbLabel_.setBounds(col.removeFromTop(16));
+    kneeWidthDbSlider_.setBounds(col.withSizeKeepingCentre(72, 74));
+  }
 
-  auto outputGainRow = bounds.removeFromTop(25);
-  outputGainLabel_.setBounds(outputGainRow.removeFromLeft(120));
-  outputGainSlider_.setBounds(outputGainRow);
+  // --- Small Rotary Knobs Row 2: Attack, Release + Detection ComboBox (90px) ---
+  auto smallRow2 = bounds.removeFromTop(90);
+  colW = smallRow2.getWidth() / 3;
+  {
+    auto col = smallRow2.removeFromLeft(colW);
+    attackTimeLabel_.setBounds(col.removeFromTop(16));
+    attackTimeSlider_.setBounds(col.withSizeKeepingCentre(72, 74));
+  }
+  {
+    auto col = smallRow2.removeFromLeft(colW);
+    releaseTimeLabel_.setBounds(col.removeFromTop(16));
+    releaseTimeSlider_.setBounds(col.withSizeKeepingCentre(72, 74));
+  }
+  {
+    auto col = smallRow2;
+    detectionModeLabel_.setBounds(col.removeFromTop(16));
+    detectionModeCombo_.setBounds(col.withSizeKeepingCentre(130, 28));
+  }
 
-  bounds.removeFromTop(15);
-
-  auto thresholdRow = bounds.removeFromTop(25);
-  thresholdLabel_.setBounds(thresholdRow.removeFromLeft(120));
-  thresholdSlider_.setBounds(thresholdRow);
-
+  // --- Latency Label ---
   bounds.removeFromTop(5);
-
-  auto rangeDbRow = bounds.removeFromTop(25);
-  rangeDbLabel_.setBounds(rangeDbRow.removeFromLeft(120));
-  rangeDbSlider_.setBounds(rangeDbRow);
-
-  bounds.removeFromTop(5);
-
-  auto kneeWidthDbRow = bounds.removeFromTop(25);
-  kneeWidthDbLabel_.setBounds(kneeWidthDbRow.removeFromLeft(120));
-  kneeWidthDbSlider_.setBounds(kneeWidthDbRow);
-
-  bounds.removeFromTop(5);
-
-  auto detectionModeRow = bounds.removeFromTop(25);
-  detectionModeLabel_.setBounds(detectionModeRow.removeFromLeft(120));
-  detectionModeCombo_.setBounds(detectionModeRow);
-
-  bounds.removeFromTop(5);
-
-  auto attackTimeRow = bounds.removeFromTop(25);
-  attackTimeLabel_.setBounds(attackTimeRow.removeFromLeft(120));
-  attackTimeSlider_.setBounds(attackTimeRow);
-
-  bounds.removeFromTop(5);
-
-  auto releaseTimeRow = bounds.removeFromTop(25);
-  releaseTimeLabel_.setBounds(releaseTimeRow.removeFromLeft(120));
-  releaseTimeSlider_.setBounds(releaseTimeRow);
-
-  bounds.removeFromTop(15);
-
   latencyLabel_.setBounds(bounds.removeFromTop(25));
 }
 
@@ -461,7 +455,6 @@ void OctobIREditor::updateMeters()
     float threshold = audioProcessor.getAPVTS().getRawParameterValue("threshold")->load();
     float rangeDb = audioProcessor.getAPVTS().getRawParameterValue("rangeDb")->load();
     inputLevelMeter_.setThresholdMarkers(threshold, threshold + rangeDb);
-
     blendMeter_.setBlendRangeMarkers(-1.0f, 1.0f);
   }
 }
@@ -485,16 +478,14 @@ void OctobIREditor::loadButton1Clicked()
           bool success = audioProcessor.loadImpulseResponse1(file.getFullPathName(), error);
           if (success)
           {
-            ir1PathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-            ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+            ir1LCDDisplay_.setText(file.getFileName());
             updateLatencyDisplay();
           }
           else
           {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                                                    "Failed to Load IR 1", error, "OK");
-            ir1PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-            ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+            ir1LCDDisplay_.setText("Failed to load IR");
           }
         }
       });
@@ -503,8 +494,7 @@ void OctobIREditor::loadButton1Clicked()
 void OctobIREditor::clearButton1Clicked()
 {
   audioProcessor.clearImpulseResponse1();
-  ir1PathLabel_.setText("No IR loaded", juce::dontSendNotification);
-  ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  ir1LCDDisplay_.setText("No IR loaded");
   updateLatencyDisplay();
 }
 
@@ -527,15 +517,13 @@ void OctobIREditor::loadButton2Clicked()
           bool success = audioProcessor.loadImpulseResponse2(file.getFullPathName(), error);
           if (success)
           {
-            ir2PathLabel_.setText(file.getFileName(), juce::dontSendNotification);
-            ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+            ir2LCDDisplay_.setText(file.getFileName());
           }
           else
           {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                                                    "Failed to Load IR 2", error, "OK");
-            ir2PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-            ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+            ir2LCDDisplay_.setText("Failed to load IR");
           }
         }
       });
@@ -544,8 +532,7 @@ void OctobIREditor::loadButton2Clicked()
 void OctobIREditor::clearButton2Clicked()
 {
   audioProcessor.clearImpulseResponse2();
-  ir2PathLabel_.setText("No IR loaded", juce::dontSendNotification);
-  ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+  ir2LCDDisplay_.setText("No IR loaded");
 }
 
 void OctobIREditor::swapIROrderClicked()
@@ -655,16 +642,14 @@ void OctobIREditor::cycleIRFile(int irIndex, int direction)
     success = audioProcessor.loadImpulseResponse1(newFile.getFullPathName(), error);
     if (success)
     {
-      ir1PathLabel_.setText(newFile.getFileName(), juce::dontSendNotification);
-      ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+      ir1LCDDisplay_.setText(newFile.getFileName());
       updateLatencyDisplay();
     }
     else
     {
       juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Failed to Load IR 1",
                                              error, "OK");
-      ir1PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-      ir1PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+      ir1LCDDisplay_.setText("Failed to load IR");
     }
   }
   else
@@ -672,15 +657,13 @@ void OctobIREditor::cycleIRFile(int irIndex, int direction)
     success = audioProcessor.loadImpulseResponse2(newFile.getFullPathName(), error);
     if (success)
     {
-      ir2PathLabel_.setText(newFile.getFileName(), juce::dontSendNotification);
-      ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::white);
+      ir2LCDDisplay_.setText(newFile.getFileName());
     }
     else
     {
       juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Failed to Load IR 2",
                                              error, "OK");
-      ir2PathLabel_.setText("Failed to load IR", juce::dontSendNotification);
-      ir2PathLabel_.setColour(juce::Label::textColourId, juce::Colours::red);
+      ir2LCDDisplay_.setText("Failed to load IR");
     }
   }
 }

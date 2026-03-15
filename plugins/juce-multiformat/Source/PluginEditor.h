@@ -2,6 +2,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "LCDDisplay.h"
+#include "OctobIRLookAndFeel.h"
 #include "PluginProcessor.h"
 
 class VerticalMeter : public juce::Component, private juce::Timer
@@ -56,6 +58,9 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
  private:
   void timerCallback() override;
 
+  // Must be declared before all widgets — LookAndFeel must outlive the components that use it
+  OctobIRLookAndFeel laf_;
+
   OctobIRProcessor& audioProcessor;
 
   juce::Label ir1TitleLabel_;
@@ -63,7 +68,7 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::TextButton clearButton1_;
   juce::TextButton prevButton1_;
   juce::TextButton nextButton1_;
-  juce::Label ir1PathLabel_;
+  LCDDisplay ir1LCDDisplay_;
   juce::ToggleButton ir1EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir1EnableAttachment_;
 
@@ -72,7 +77,7 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::TextButton clearButton2_;
   juce::TextButton prevButton2_;
   juce::TextButton nextButton2_;
-  juce::Label ir2PathLabel_;
+  LCDDisplay ir2LCDDisplay_;
   juce::ToggleButton ir2EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir2EnableAttachment_;
 

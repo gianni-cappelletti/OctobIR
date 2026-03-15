@@ -33,7 +33,8 @@ juce_add_plugin(OctobIR
 
 target_sources(OctobIR PRIVATE
     Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp)
+    Source/PluginEditor.cpp
+    Source/OctobIRLookAndFeel.cpp)
 
 target_compile_definitions(OctobIR
     PUBLIC
