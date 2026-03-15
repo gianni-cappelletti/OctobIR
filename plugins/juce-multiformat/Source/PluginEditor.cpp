@@ -269,13 +269,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
       std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
           audioProcessor.getAPVTS(), "detectionMode", detectionModeCombo_);
 
-  addAndMakeVisible(latencyLabel_);
-  latencyLabel_.setJustificationType(juce::Justification::centred);
-  latencyLabel_.setColour(juce::Label::textColourId, juce::Colour(0xff8c4010));
-  updateLatencyDisplay();
-
   startTimerHz(30);
-  setSize(700, 655);
+  setSize(700, 590);
 }
 
 OctobIREditor::~OctobIREditor()
@@ -287,16 +282,12 @@ OctobIREditor::~OctobIREditor()
 void OctobIREditor::paint(juce::Graphics& g)
 {
   g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-  g.setColour(juce::Colour(0xffe07030));
-  g.setFont(juce::Font(juce::FontOptions().withTypeface(laf_.getMainTypeface()).withHeight(24.0f)));
-  g.drawText("OctobIR", getLocalBounds().removeFromTop(50), juce::Justification::centred, true);
 }
 
 void OctobIREditor::resized()
 {
   auto bounds = getLocalBounds().reduced(15);
-  bounds.removeFromTop(50);
+  bounds.removeFromTop(10);
 
   // --- IR Loading Section (110px) ---
   auto irSection = bounds.removeFromTop(110);
@@ -358,7 +349,7 @@ void OctobIREditor::resized()
   }
 
   // --- Small Rotary Knobs Row 1: Threshold, Range, Knee (90px) ---
-  bounds.removeFromTop(5);
+  bounds.removeFromTop(20);
   auto smallRow1 = bounds.removeFromTop(90);
   auto colW = smallRow1.getWidth() / 3;
   {
@@ -395,10 +386,6 @@ void OctobIREditor::resized()
     detectionModeLabel_.setBounds(col.removeFromTop(16));
     detectionModeCombo_.setBounds(col.withSizeKeepingCentre(130, 28));
   }
-
-  // --- Latency Label ---
-  bounds.removeFromTop(5);
-  latencyLabel_.setBounds(bounds.removeFromTop(25));
 }
 
 void OctobIREditor::timerCallback()
@@ -443,7 +430,6 @@ void OctobIREditor::loadButton1Clicked()
           if (success)
           {
             ir1LCDDisplay_.setText(file.getFileName());
-            updateLatencyDisplay();
           }
           else
           {
@@ -459,7 +445,6 @@ void OctobIREditor::clearButton1Clicked()
 {
   audioProcessor.clearImpulseResponse1();
   ir1LCDDisplay_.setText("No IR loaded");
-  updateLatencyDisplay();
 }
 
 void OctobIREditor::loadButton2Clicked()
@@ -520,24 +505,6 @@ void OctobIREditor::swapIROrderClicked()
   if (auto* highParam = apvts.getParameter("highBlend"))
   {
     highParam->setValueNotifyingHost(highParam->convertTo0to1(currentLowBlend));
-  }
-}
-
-void OctobIREditor::updateLatencyDisplay()
-{
-  int latency = audioProcessor.getLatencySamples();
-  double sampleRate = audioProcessor.getSampleRate();
-  if (sampleRate > 0)
-  {
-    double latencyMs = (latency / sampleRate) * 1000.0;
-    latencyLabel_.setText(juce::String("Latency: ") + juce::String(latency) + " samples (" +
-                              juce::String(latencyMs, 2) + " ms)",
-                          juce::dontSendNotification);
-  }
-  else
-  {
-    latencyLabel_.setText(juce::String("Latency: ") + juce::String(latency) + " samples",
-                          juce::dontSendNotification);
   }
 }
 
@@ -607,7 +574,6 @@ void OctobIREditor::cycleIRFile(int irIndex, int direction)
     if (success)
     {
       ir1LCDDisplay_.setText(newFile.getFileName());
-      updateLatencyDisplay();
     }
     else
     {

@@ -110,8 +110,6 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::Slider outputGainSlider_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputGainAttachment_;
 
-  juce::Label latencyLabel_;
-
   void loadButton1Clicked();
   void loadButton2Clicked();
   void clearButton1Clicked();
@@ -121,7 +119,6 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   void prevButton2Clicked();
   void nextButton2Clicked();
   void swapIROrderClicked();
-  void updateLatencyDisplay();
   void updateMeters();
   void cycleIRFile(int irIndex, int direction);
   juce::File getLastBrowsedDirectory() const;
