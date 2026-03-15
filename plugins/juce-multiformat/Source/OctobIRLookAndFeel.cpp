@@ -15,9 +15,9 @@ OctobIRLookAndFeel::OctobIRLookAndFeel()
   setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xffd8d8d8));
   setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xffe07030));
   setColour(juce::Slider::thumbColourId, juce::Colour(0xff1a1a1a));
-  setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xff444444));
-  setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xfff0f0f0));
-  setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xffcccccc));
+  setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xffe07030));
+  setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff0a0a0a));
+  setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xff222222));
 
   setColour(juce::TextButton::buttonColourId, juce::Colour(0xffe8e8e8));
   setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffd8d8d8));
@@ -295,18 +295,18 @@ void OctobIRLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
   if (dynamic_cast<juce::Slider*>(label.getParentComponent()) != nullptr)
   {
     auto bounds = label.getLocalBounds().toFloat();
-    g.setColour(juce::Colour(0xfff0f0f0));
+    g.setColour(juce::Colour(0xff0a0a0a));
     g.fillRoundedRectangle(bounds, 3.0f);
-    g.setColour(juce::Colour(0xffcccccc));
-    g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 1.0f);
-    g.setColour(juce::Colours::white.withAlpha(0.8f));
+    g.setColour(juce::Colours::black.withAlpha(0.9f));
+    g.drawRoundedRectangle(bounds, 3.0f, 1.5f);
+    g.setColour(juce::Colours::white.withAlpha(0.08f));
     g.drawRoundedRectangle(bounds.reduced(1.5f), 2.0f, 1.0f);
 
     if (!label.isBeingEdited())
     {
       g.setColour(label.findColour(juce::Label::textColourId));
       g.setFont(getLabelFont(label));
-      g.drawFittedText(label.getText(), label.getLocalBounds().reduced(2, 1),
+      g.drawFittedText(label.getText(), label.getLocalBounds().reduced(3, 1),
                        label.getJustificationType(), 1, 1.0f);
     }
   }

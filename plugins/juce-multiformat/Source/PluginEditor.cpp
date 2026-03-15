@@ -97,10 +97,10 @@ void LCDBargraph::paint(juce::Graphics& g)
   }
 }
 
-static void setupRotarySlider(juce::Slider& s, int textBoxWidth = 70)
+static void setupRotarySlider(juce::Slider& s, int textBoxWidth = 90)
 {
   s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-  s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxWidth, 18);
+  s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxWidth, 22);
   s.setRotaryParameters(juce::MathConstants<float>::pi * 1.25f,
                         juce::MathConstants<float>::pi * 2.75f, true);
 }
@@ -218,7 +218,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   thresholdLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(thresholdSlider_);
-  setupRotarySlider(thresholdSlider_, 60);
+  setupRotarySlider(thresholdSlider_, 80);
   thresholdAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "threshold", thresholdSlider_);
 
@@ -227,7 +227,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   rangeDbLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(rangeDbSlider_);
-  setupRotarySlider(rangeDbSlider_, 60);
+  setupRotarySlider(rangeDbSlider_, 80);
   rangeDbAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "rangeDb", rangeDbSlider_);
 
@@ -236,7 +236,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   kneeWidthDbLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(kneeWidthDbSlider_);
-  setupRotarySlider(kneeWidthDbSlider_, 60);
+  setupRotarySlider(kneeWidthDbSlider_, 80);
   kneeWidthDbAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "kneeWidthDb", kneeWidthDbSlider_);
 
@@ -245,7 +245,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   attackTimeLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(attackTimeSlider_);
-  setupRotarySlider(attackTimeSlider_, 60);
+  setupRotarySlider(attackTimeSlider_, 80);
   attackTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "attackTime", attackTimeSlider_);
 
@@ -254,7 +254,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p)
   releaseTimeLabel_.setJustificationType(juce::Justification::centred);
 
   addAndMakeVisible(releaseTimeSlider_);
-  setupRotarySlider(releaseTimeSlider_, 60);
+  setupRotarySlider(releaseTimeSlider_, 80);
   releaseTimeAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "releaseTime", releaseTimeSlider_);
 
