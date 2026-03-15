@@ -150,7 +150,8 @@ void OctobIRLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
 
     if (button.getButtonText().isNotEmpty())
     {
-      g.setColour(juce::Colours::white.withAlpha(button.isEnabled() ? 0.9f : 0.5f));
+      g.setColour(findColour(juce::Label::textColourId)
+                      .withMultipliedAlpha(button.isEnabled() ? 0.9f : 0.5f));
       g.setFont(juce::Font(juce::FontOptions(12.0f)));
       auto textBounds = bounds.withLeft(ledBounds.getRight() + 5.0f);
       g.drawFittedText(button.getButtonText(), textBounds.toNearestInt(),
@@ -185,7 +186,8 @@ void OctobIRLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
     g.setColour(juce::Colour(0xff444444));
     g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
 
-    g.setColour(juce::Colours::white.withAlpha(button.isEnabled() ? 0.9f : 0.5f));
+    g.setColour(findColour(juce::Label::textColourId)
+                    .withMultipliedAlpha(button.isEnabled() ? 0.9f : 0.5f));
     g.setFont(juce::Font(juce::FontOptions(13.0f)));
     g.drawFittedText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred,
                      1);
