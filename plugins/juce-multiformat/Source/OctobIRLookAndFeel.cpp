@@ -9,7 +9,7 @@ OctobIRLookAndFeel::OctobIRLookAndFeel()
   lcdTypeface_ = juce::Typeface::createSystemTypefaceFor(BinaryData::PressStart2PRegular_ttf,
                                                          BinaryData::PressStart2PRegular_ttfSize);
   setDefaultSansSerifTypeface(cutiveMonoTypeface_);
-  setColour(juce::ResizableWindow::backgroundColourId, juce::Colours::white);
+  setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xfff0f0f2));
 
   setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xffd8d8d8));
   setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xffe07030));
@@ -160,7 +160,7 @@ void OctobIRLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
 void OctobIRLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
                                         bool /*isHighlighted*/, bool isButtonDown)
 {
-  auto height = juce::jmin(15.0f, (float)button.getHeight() * 0.6f);
+  auto height = juce::jmin(13.0f, (float)button.getHeight() * 0.6f);
   g.setFont(juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(height)));
   g.setColour(button
                   .findColour(button.getToggleState() ? juce::TextButton::textColourOnId

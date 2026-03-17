@@ -160,23 +160,6 @@ static void drawScrew(juce::Graphics& g, float cx, float cy)
   g.fillRect(cx - armLen * 0.5f, cy - armW * 0.5f, armLen, armW);
 }
 
-static juce::Image generateMetallicTexture(int width, int height)
-{
-  juce::Image img(juce::Image::RGB, width, height, true);
-  juce::Graphics g(img);
-
-  juce::ColourGradient baseGrad(juce::Colour(0xffffffff), 0.0f, 0.0f, juce::Colour(0xfff4f4f6),
-                                0.0f, static_cast<float>(height), false);
-  g.setGradientFill(baseGrad);
-  g.fillAll();
-
-  g.setColour(juce::Colour(0xff000000).withAlpha(0.012f));
-  for (int y = 0; y < height; y += 2)
-    g.drawHorizontalLine(y, 0.0f, static_cast<float>(width));
-
-  return img;
-}
-
 static void setupRotarySlider(juce::Slider& s, int textBoxWidth = 90)
 {
   s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -223,9 +206,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
                              : juce::File(audioProcessor.getCurrentIR1Path()).getFileName());
 
   addAndMakeVisible(ir1EnableButton_);
+  ir1EnableButton_.setPaintingIsUnclipped(true);
   ir1EnableButton_.setButtonText("ENABLE");
-  ir1EnableButton_.getProperties().set("isLED", true);
-  ir1EnableButton_.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xffe07030));
   ir1EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
       audioProcessor.getAPVTS(), "irAEnable", ir1EnableButton_);
 
@@ -256,9 +238,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
                              : juce::File(audioProcessor.getCurrentIR2Path()).getFileName());
 
   addAndMakeVisible(ir2EnableButton_);
+  ir2EnableButton_.setPaintingIsUnclipped(true);
   ir2EnableButton_.setButtonText("ENABLE");
-  ir2EnableButton_.getProperties().set("isLED", true);
-  ir2EnableButton_.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xffe07030));
   ir2EnableAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
       audioProcessor.getAPVTS(), "irBEnable", ir2EnableButton_);
 
@@ -368,10 +349,27 @@ OctobIREditor::~OctobIREditor()
 
 void OctobIREditor::paint(juce::Graphics& g)
 {
-  if (backgroundTexture_.isValid())
-    g.drawImageAt(backgroundTexture_, 0, 0);
-  else
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+  g.fillAll(juce::Colour(0xfff0f0f2));
+
+  // Inner bevel: simulate a recessed metal panel
+  auto b = getLocalBounds().toFloat();
+  const float cornerR = 3.0f;
+
+  // Layered dark inner shadow along all edges
+  g.setColour(juce::Colour(0xff000000).withAlpha(0.28f));
+  g.drawRoundedRectangle(b.reduced(0.5f), cornerR, 1.0f);
+  g.setColour(juce::Colour(0xff000000).withAlpha(0.14f));
+  g.drawRoundedRectangle(b.reduced(1.5f), cornerR, 1.0f);
+  g.setColour(juce::Colour(0xff000000).withAlpha(0.06f));
+  g.drawRoundedRectangle(b.reduced(2.5f), cornerR, 1.0f);
+
+  // Subtle top and left highlight to reinforce the recessed-panel look
+  auto inner = b.reduced(1.0f);
+  g.setColour(juce::Colour(0xffffffff).withAlpha(0.30f));
+  g.drawLine(inner.getX() + cornerR, inner.getY() + 0.5f, inner.getRight() - cornerR,
+             inner.getY() + 0.5f, 1.0f);
+  g.drawLine(inner.getX() + 0.5f, inner.getY() + cornerR, inner.getX() + 0.5f,
+             inner.getBottom() - cornerR, 1.0f);
 
   const float w = static_cast<float>(getWidth());
   const float h = static_cast<float>(getHeight());
@@ -388,8 +386,6 @@ void OctobIREditor::paint(juce::Graphics& g)
 
 void OctobIREditor::resized()
 {
-  backgroundTexture_ = generateMetallicTexture(getWidth(), getHeight());
-
   auto bounds = getLocalBounds().reduced(15);
   bounds.removeFromTop(16);
   bounds.removeFromBottom(28);
