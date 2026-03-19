@@ -28,6 +28,7 @@ class IRProcessor
   void clearImpulseResponse2();
 
   void setSampleRate(SampleRate sampleRate);
+  void setMaxBlockSize(FrameCount maxBlockSize);
   void setBlend(float blend);
 
   void setIRAEnabled(bool enabled);
@@ -71,6 +72,8 @@ class IRProcessor
   int getNumIR2Channels() const;
   int getLatencySamples() const;
   float getBlend() const { return blend_; }
+
+  float calculateDynamicBlend(float inputLevelDb) const;
 
   bool getIRAEnabled() const { return irAEnabled_; }
   bool getIRBEnabled() const { return irBEnabled_; }
@@ -152,6 +155,9 @@ class IRProcessor
   float attackCoeff_ = 0.0f;
   float releaseCoeff_ = 0.0f;
 
+  std::vector<Sample> scratchL_;
+  std::vector<Sample> scratchR_;
+
   std::vector<Sample> dryDelayBufferL_;
   std::vector<Sample> dryDelayBufferR_;
   std::vector<Sample> ir1DelayBufferL_;
@@ -166,7 +172,15 @@ class IRProcessor
   size_t ir2DelayWritePosR_ = 0;
   int maxLatencySamples_ = 0;
 
-  float calculateDynamicBlend(float inputLevelDb) const;
+  struct BlendGains
+  {
+    float gain1;
+    float gain2;
+  };
+
+  BlendGains resolveBlendGains(float inputLevelDb, FrameCount numFrames, bool applySmoothing,
+                               bool hasIR1, bool hasIR2);
+
   static float detectPeakLevel(const Sample* buffer, FrameCount numFrames);
   float detectRMSLevel(const Sample* buffer, FrameCount numFrames);
   void updateSmoothingCoefficients();

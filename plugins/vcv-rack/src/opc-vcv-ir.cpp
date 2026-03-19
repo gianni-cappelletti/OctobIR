@@ -87,6 +87,7 @@ struct OpcVcvIr final : Module
     configLight(static_cast<int>(LightId::SidechainLight), "Sidechain Active");
 
     irProcessor_.setSampleRate(APP->engine->getSampleRate());
+    irProcessor_.setMaxBlockSize(1);
 
     const char* homeEnv = getenv("HOME");
     std::string homeDir = (homeEnv != nullptr) ? homeEnv : "";

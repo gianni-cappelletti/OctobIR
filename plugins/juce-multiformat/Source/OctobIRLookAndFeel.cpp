@@ -31,14 +31,14 @@ OctobIRLookAndFeel::OctobIRLookAndFeel()
   setColour(juce::PopupMenu::backgroundColourId, juce::Colour(0xff2c2c2c));
   setColour(juce::PopupMenu::textColourId, juce::Colours::white);
   setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(0xffe07030));
-  setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
+  setColour(juce::PopupMenu::highlightedTextColourId, juce::Colour(0xff1c1c30));
 
   setColour(juce::Label::textColourId, juce::Colour(0xff1a1a1a));
 }
 
 void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                                           float sliderPos, float rotaryStartAngle,
-                                          float rotaryEndAngle, juce::Slider& /*slider*/)
+                                          float rotaryEndAngle, juce::Slider& slider)
 {
   const bool isCompact = juce::jmin(width, height) < 40;
   const float reducedAmt = isCompact ? 3.0f : 10.0f;
@@ -128,6 +128,13 @@ void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
                  centreX + tickOuter * tCosA, centreY + tickOuter * tSinA, 1.5f);
     }
   }
+
+  if (slider.hasKeyboardFocus(true))
+  {
+    g.setColour(juce::Colour(0xffe07030));
+    g.drawEllipse(centreX - outerR - 2.0f, centreY - outerR - 2.0f, (outerR + 2.0f) * 2.0f,
+                  (outerR + 2.0f) * 2.0f, 2.0f);
+  }
 }
 
 void OctobIRLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
@@ -171,6 +178,12 @@ void OctobIRLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
 
   g.setColour(juce::Colour(0xff181818).withMultipliedAlpha(alpha));
   g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
+
+  if (button.hasKeyboardFocus(true))
+  {
+    g.setColour(juce::Colour(0xffe07030));
+    g.drawRoundedRectangle(bounds.expanded(2.0f), cornerSize + 1.0f, 2.0f);
+  }
 }
 
 void OctobIRLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
@@ -256,6 +269,12 @@ void OctobIRLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
 
     g.setColour(juce::Colours::black.withAlpha(0.7f));
     g.drawEllipse(ledBounds, 1.0f);
+
+    if (button.hasKeyboardFocus(true))
+    {
+      g.setColour(juce::Colour(0xffe07030));
+      g.drawEllipse(ledBounds.expanded(2.0f), 2.0f);
+    }
 
     if (button.getButtonText().isNotEmpty())
     {
@@ -364,6 +383,12 @@ void OctobIRLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
     g.setFont(juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(13.0f)));
     g.drawFittedText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred,
                      1);
+
+    if (button.hasKeyboardFocus(true))
+    {
+      g.setColour(juce::Colour(0xffe07030));
+      g.drawRoundedRectangle(bounds.expanded(2.0f), cornerSize + 1.0f, 2.0f);
+    }
   }
 }
 

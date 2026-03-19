@@ -193,6 +193,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
   addAndMakeVisible(loadButton1_);
   loadButton1_.setPaintingIsUnclipped(true);
   loadButton1_.setButtonText("");
+  loadButton1_.setTitle("Load IR 1");
   loadButton1_.setComponentID("loadButton");
   loadButton1_.onClick = [this] { loadButton1Clicked(); };
 
@@ -226,6 +227,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
   addAndMakeVisible(loadButton2_);
   loadButton2_.setPaintingIsUnclipped(true);
   loadButton2_.setButtonText("");
+  loadButton2_.setTitle("Load IR 2");
   loadButton2_.setComponentID("loadButton");
   loadButton2_.onClick = [this] { loadButton2Clicked(); };
 

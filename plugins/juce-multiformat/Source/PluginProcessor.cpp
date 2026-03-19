@@ -102,7 +102,9 @@ bool OctobIRProcessor::isMidiEffect() const
 
 double OctobIRProcessor::getTailLengthSeconds() const
 {
-  return 0.0;
+  const size_t maxSamples =
+      std::max(irProcessor_.getIR1NumSamples(), irProcessor_.getIR2NumSamples());
+  return static_cast<double>(maxSamples) / getSampleRate();
 }
 
 int OctobIRProcessor::getNumPrograms()
@@ -133,8 +135,8 @@ void OctobIRProcessor::changeProgramName(int index, const juce::String& newName)
 
 void OctobIRProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-  juce::ignoreUnused(samplesPerBlock);
   irProcessor_.setSampleRate(sampleRate);
+  irProcessor_.setMaxBlockSize(static_cast<octob::FrameCount>(samplesPerBlock));
 }
 
 void OctobIRProcessor::releaseResources()
@@ -366,7 +368,9 @@ bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
   if (irProcessor_.loadImpulseResponse2(filepath.toStdString(), error))
   {
     currentIR2Path_ = filepath;
-    DBG("Loaded IR2: " + filepath);
+    setLatencySamples(irProcessor_.getLatencySamples());
+    DBG("Loaded IR2: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
+        " samples)");
 
     if (auto* param = apvts_.getParameter("irBEnable"))
     {
@@ -402,6 +406,7 @@ void OctobIRProcessor::clearImpulseResponse2()
 {
   irProcessor_.clearImpulseResponse2();
   currentIR2Path_.clear();
+  setLatencySamples(irProcessor_.getLatencySamples());
 
   if (auto* param = apvts_.getParameter("irBEnable"))
   {

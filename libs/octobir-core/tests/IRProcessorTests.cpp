@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <string>
 
 #include "octobir-core/IRProcessor.hpp"
 
@@ -203,3 +204,57 @@ TEST_F(IRProcessorTest, Passthrough_Stereo_NoIRsLoaded)
     EXPECT_FLOAT_EQ(outputR[i], inputR[i]);
   }
 }
+
+struct DynamicBlendCase
+{
+  float thresholdDb;
+  float rangeDb;
+  float kneeWidthDb;
+  float inputLevelDb;
+  float expectedBlend;
+  std::string description;
+};
+
+class DynamicBlendTest : public ::testing::TestWithParam<DynamicBlendCase>
+{
+ protected:
+  IRProcessor processor;
+};
+
+TEST_P(DynamicBlendTest, ReturnsExpectedBlend)
+{
+  const auto& tc = GetParam();
+  processor.setThreshold(tc.thresholdDb);
+  processor.setRangeDb(tc.rangeDb);
+  processor.setKneeWidthDb(tc.kneeWidthDb);
+  EXPECT_NEAR(processor.calculateDynamicBlend(tc.inputLevelDb), tc.expectedBlend, 1e-5f);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AllBranches, DynamicBlendTest,
+    ::testing::Values(
+        // Branch 1: below knee — full dry
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -40.0f, -1.0f, "BelowKnee"},
+        // Branch 1: exactly at kneeStart boundary
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -35.0f, -1.0f, "AtKneeStart"},
+        // Branch 2: above range — full wet
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -5.0f, 1.0f, "AboveRange"},
+        // Branch 2: exactly at range end
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -10.0f, 1.0f, "AtRangeEnd"},
+        // Branch 3: knee midpoint — quadratic ramp
+        // kneeStart=-35, kneeEnd=-25; input=-30: overshoot=0.5, blendPos=0.125, blend=-0.75
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -30.0f, -0.75f, "KneeMidpoint"},
+        // Branch 4: linear region midpoint
+        // aboveKnee=7.5, effectiveRange=15, blendPos=0.75, blend=0.5
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -17.5f, 0.5f, "LinearMidpoint"},
+        // Branch 4: exactly at kneeEnd — blend starts at kneeContribution (0.5 -> return 0.0)
+        DynamicBlendCase{-30.0f, 20.0f, 10.0f, -25.0f, 0.0f, "AtKneeEnd"},
+        // Hard knee (kneeWidthDb=0): below threshold
+        DynamicBlendCase{-30.0f, 20.0f, 0.0f, -35.0f, -1.0f, "HardKneeBelowThreshold"},
+        // Hard knee: midpoint — kneeContribution=0, blendPos=0.5, blend=0.0
+        DynamicBlendCase{-30.0f, 20.0f, 0.0f, -20.0f, 0.0f, "HardKneeMidpoint"},
+        // C7 fix: range endpoint falls inside knee — blend must reach 1.0
+        // threshold=-30, range=1, knee=20: rangeEnd=-29 is inside knee (-40 to -20)
+        // input=-28 >= -29 triggers branch 2
+        DynamicBlendCase{-30.0f, 1.0f, 20.0f, -28.0f, 1.0f, "RangeInsideKnee"}),
+    [](const ::testing::TestParamInfo<DynamicBlendCase>& info) { return info.param.description; });

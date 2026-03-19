@@ -226,6 +226,12 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
   }
 }
 
+void IRProcessor::setMaxBlockSize(FrameCount maxBlockSize)
+{
+  scratchL_.resize(maxBlockSize);
+  scratchR_.resize(maxBlockSize);
+}
+
 void IRProcessor::setBlend(float blend)
 {
   blend_ = std::max(-1.0f, std::min(1.0f, blend));
@@ -290,32 +296,52 @@ void IRProcessor::updateRMSBufferSize()
 
 void IRProcessor::setAttackTime(float attackTimeMs)
 {
-  attackTimeMs_ = std::max(1.0f, std::min(500.0f, attackTimeMs));
-  updateSmoothingCoefficients();
+  const float clamped = std::max(1.0f, std::min(500.0f, attackTimeMs));
+  if (clamped != attackTimeMs_)
+  {
+    attackTimeMs_ = clamped;
+    updateSmoothingCoefficients();
+  }
 }
 
 void IRProcessor::setReleaseTime(float releaseTimeMs)
 {
-  releaseTimeMs_ = std::max(1.0f, std::min(1000.0f, releaseTimeMs));
-  updateSmoothingCoefficients();
+  const float clamped = std::max(1.0f, std::min(1000.0f, releaseTimeMs));
+  if (clamped != releaseTimeMs_)
+  {
+    releaseTimeMs_ = clamped;
+    updateSmoothingCoefficients();
+  }
 }
 
 void IRProcessor::setOutputGain(float gainDb)
 {
-  outputGainDb_ = std::max(-24.0f, std::min(24.0f, gainDb));
-  outputGainLinear_ = std::pow(10.0f, outputGainDb_ / 20.0f);
+  const float clamped = std::max(-24.0f, std::min(24.0f, gainDb));
+  if (clamped != outputGainDb_)
+  {
+    outputGainDb_ = clamped;
+    outputGainLinear_ = std::pow(10.0f, outputGainDb_ / 20.0f);
+  }
 }
 
 void IRProcessor::setIRATrimGain(float gainDb)
 {
-  irATrimGainDb_ = std::max(-12.0f, std::min(12.0f, gainDb));
-  irATrimGainLinear_ = std::pow(10.0f, irATrimGainDb_ / 20.0f);
+  const float clamped = std::max(-12.0f, std::min(12.0f, gainDb));
+  if (clamped != irATrimGainDb_)
+  {
+    irATrimGainDb_ = clamped;
+    irATrimGainLinear_ = std::pow(10.0f, irATrimGainDb_ / 20.0f);
+  }
 }
 
 void IRProcessor::setIRBTrimGain(float gainDb)
 {
-  irBTrimGainDb_ = std::max(-12.0f, std::min(12.0f, gainDb));
-  irBTrimGainLinear_ = std::pow(10.0f, irBTrimGainDb_ / 20.0f);
+  const float clamped = std::max(-12.0f, std::min(12.0f, gainDb));
+  if (clamped != irBTrimGainDb_)
+  {
+    irBTrimGainDb_ = clamped;
+    irBTrimGainLinear_ = std::pow(10.0f, irBTrimGainDb_ / 20.0f);
+  }
 }
 
 void IRProcessor::setIRAEnabled(bool enabled)
@@ -326,6 +352,45 @@ void IRProcessor::setIRAEnabled(bool enabled)
 void IRProcessor::setIRBEnabled(bool enabled)
 {
   irBEnabled_ = enabled;
+}
+
+IRProcessor::BlendGains IRProcessor::resolveBlendGains(float inputLevelDb, FrameCount numFrames,
+                                                       bool applySmoothing, bool hasIR1,
+                                                       bool hasIR2)
+{
+  float blendToUse = blend_;
+  if (dynamicModeEnabled_ && applySmoothing)
+  {
+    float targetBlend = calculateDynamicBlend(inputLevelDb);
+    float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
+    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
+    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
+    blendToUse = smoothedBlend_;
+    currentBlend_ = blendToUse;
+  }
+  else if (dynamicModeEnabled_)
+  {
+    blendToUse = smoothedBlend_;
+    currentBlend_ = blendToUse;
+  }
+  else
+  {
+    currentBlend_ = blend_;
+  }
+
+  const float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
+  BlendGains gains = {0.0f, 0.0f};
+  if (hasIR1 && hasIR2)
+  {
+    gains.gain1 = std::sqrt(1.0f - normalizedBlend);
+    gains.gain2 = std::sqrt(normalizedBlend);
+  }
+  else
+  {
+    gains.gain1 = 1.0f - normalizedBlend;
+    gains.gain2 = normalizedBlend;
+  }
+  return gains;
 }
 
 void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount numFrames)
@@ -345,40 +410,10 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   currentInputLevelDb_ =
       (detectionMode_ == 0) ? detectPeakLevel(input, numFrames) : detectRMSLevel(input, numFrames);
 
-  float blendToUse = blend_;
-  if (dynamicModeEnabled_ && !sidechainEnabled_)
-  {
-    float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
-    float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
-    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else if (dynamicModeEnabled_)
-  {
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else
-  {
-    currentBlend_ = blend_;
-  }
-
-  float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = 0.0f;
-  float gain2 = 0.0f;
-
-  if (hasIR1 && hasIR2)
-  {
-    gain1 = std::sqrt(1.0f - normalizedBlend);
-    gain2 = std::sqrt(normalizedBlend);
-  }
-  else
-  {
-    gain1 = 1.0f - normalizedBlend;
-    gain2 = normalizedBlend;
-  }
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, !sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
 
   if (hasIR1 && hasIR2)
   {
@@ -399,27 +434,25 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
       if (latencyDiff > 0)
       {
         writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
-        std::vector<Sample> delayedIR1(numFrames);
-        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, delayedIR1.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
                             latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * irATrimGainLinear_ * delayedIR1[i] +
+          output[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
       else if (latencyDiff < 0)
       {
         writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
-        std::vector<Sample> delayedIR2(numFrames);
-        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, delayedIR2.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
                             -latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
           output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
-                      gain2 * irBTrimGainLinear_ * delayedIR2[i];
+                      gain2 * irBTrimGainLinear_ * scratchL_[i];
         }
       }
       else
@@ -451,13 +484,12 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
 
-      std::vector<Sample> delayedDry(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDry.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDry[i];
+        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -478,13 +510,12 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
 
-      std::vector<Sample> delayedDry(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDry.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * delayedDry[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        output[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -607,40 +638,10 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     currentInputLevelDb_ = std::max(levelL, levelR);
   }
 
-  float blendToUse = blend_;
-  if (dynamicModeEnabled_ && !sidechainEnabled_)
-  {
-    float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
-    float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
-    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else if (dynamicModeEnabled_)
-  {
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else
-  {
-    currentBlend_ = blend_;
-  }
-
-  float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = 0.0f;
-  float gain2 = 0.0f;
-
-  if (hasIR1 && hasIR2)
-  {
-    gain1 = std::sqrt(1.0f - normalizedBlend);
-    gain2 = std::sqrt(normalizedBlend);
-  }
-  else
-  {
-    gain1 = 1.0f - normalizedBlend;
-    gain2 = normalizedBlend;
-  }
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, !sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
 
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
@@ -664,18 +665,16 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
       {
         writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
         writeToDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, output1Ptr[1], numFrames);
-        std::vector<Sample> delayedIR1L(numFrames);
-        std::vector<Sample> delayedIR1R(numFrames);
-        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, delayedIR1L.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
                             latencyDiff);
-        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, delayedIR1R.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, scratchR_.data(), numFrames,
                             latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * irATrimGainLinear_ * delayedIR1L[i] +
+          outputL[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
                        gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
-          outputR[i] = gain1 * irATrimGainLinear_ * delayedIR1R[i] +
+          outputR[i] = gain1 * irATrimGainLinear_ * scratchR_[i] +
                        gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
@@ -683,19 +682,17 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
       {
         writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
         writeToDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, output2Ptr[1], numFrames);
-        std::vector<Sample> delayedIR2L(numFrames);
-        std::vector<Sample> delayedIR2R(numFrames);
-        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, delayedIR2L.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
                             -latencyDiff);
-        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, delayedIR2R.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, scratchR_.data(), numFrames,
                             -latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
           outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
-                       gain2 * irBTrimGainLinear_ * delayedIR2L[i];
+                       gain2 * irBTrimGainLinear_ * scratchL_[i];
           outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
-                       gain2 * irBTrimGainLinear_ * delayedIR2R[i];
+                       gain2 * irBTrimGainLinear_ * scratchR_[i];
         }
       }
       else
@@ -730,17 +727,15 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
 
-      std::vector<Sample> delayedDryL(numFrames);
-      std::vector<Sample> delayedDryR(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDryL.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
-      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, delayedDryR.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
                           latencySamples1_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDryL[i];
-        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * delayedDryR[i];
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * scratchR_[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -762,17 +757,15 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
 
-      std::vector<Sample> delayedDryL(numFrames);
-      std::vector<Sample> delayedDryR(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDryL.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
-      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, delayedDryR.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
                           latencySamples2_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * delayedDryL[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
-        outputR[i] = gain1 * delayedDryR[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
+        outputL[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * scratchR_[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -811,40 +804,10 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(sidechain, numFrames)
                                                : detectRMSLevel(sidechain, numFrames);
 
-  float blendToUse = blend_;
-  if (dynamicModeEnabled_ && sidechainEnabled_)
-  {
-    float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
-    float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
-    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else if (dynamicModeEnabled_)
-  {
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else
-  {
-    currentBlend_ = blend_;
-  }
-
-  float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = 0.0f;
-  float gain2 = 0.0f;
-
-  if (hasIR1 && hasIR2)
-  {
-    gain1 = std::sqrt(1.0f - normalizedBlend);
-    gain2 = std::sqrt(normalizedBlend);
-  }
-  else
-  {
-    gain1 = 1.0f - normalizedBlend;
-    gain2 = normalizedBlend;
-  }
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
 
   if (hasIR1 && hasIR2)
   {
@@ -865,27 +828,25 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
       if (latencyDiff > 0)
       {
         writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
-        std::vector<Sample> delayedIR1(numFrames);
-        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, delayedIR1.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
                             latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * irATrimGainLinear_ * delayedIR1[i] +
+          output[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
       else if (latencyDiff < 0)
       {
         writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
-        std::vector<Sample> delayedIR2(numFrames);
-        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, delayedIR2.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
                             -latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
           output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
-                      gain2 * irBTrimGainLinear_ * delayedIR2[i];
+                      gain2 * irBTrimGainLinear_ * scratchL_[i];
         }
       }
       else
@@ -917,13 +878,12 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
 
-      std::vector<Sample> delayedDry(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDry.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDry[i];
+        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -944,13 +904,12 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
 
-      std::vector<Sample> delayedDry(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDry.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * delayedDry[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        output[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -989,40 +948,10 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
     currentInputLevelDb_ = std::max(levelL, levelR);
   }
 
-  float blendToUse = blend_;
-  if (dynamicModeEnabled_ && sidechainEnabled_)
-  {
-    float targetBlend = calculateDynamicBlend(currentInputLevelDb_);
-    float coeff = (targetBlend > smoothedBlend_) ? attackCoeff_ : releaseCoeff_;
-    float coeffAdjusted = std::pow(coeff, static_cast<float>(numFrames));
-    smoothedBlend_ = smoothedBlend_ * coeffAdjusted + targetBlend * (1.0f - coeffAdjusted);
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else if (dynamicModeEnabled_)
-  {
-    blendToUse = smoothedBlend_;
-    currentBlend_ = blendToUse;
-  }
-  else
-  {
-    currentBlend_ = blend_;
-  }
-
-  float normalizedBlend = (blendToUse + 1.0f) * 0.5f;
-  float gain1 = 0.0f;
-  float gain2 = 0.0f;
-
-  if (hasIR1 && hasIR2)
-  {
-    gain1 = std::sqrt(1.0f - normalizedBlend);
-    gain2 = std::sqrt(normalizedBlend);
-  }
-  else
-  {
-    gain1 = 1.0f - normalizedBlend;
-    gain2 = normalizedBlend;
-  }
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
 
   std::array<WDL_FFT_REAL*, 2> inputPtrs = {const_cast<WDL_FFT_REAL*>(inputL),
                                             const_cast<WDL_FFT_REAL*>(inputR)};
@@ -1046,18 +975,16 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
       {
         writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
         writeToDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, output1Ptr[1], numFrames);
-        std::vector<Sample> delayedIR1L(numFrames);
-        std::vector<Sample> delayedIR1R(numFrames);
-        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, delayedIR1L.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
                             latencyDiff);
-        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, delayedIR1R.data(), numFrames,
+        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, scratchR_.data(), numFrames,
                             latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * irATrimGainLinear_ * delayedIR1L[i] +
+          outputL[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
                        gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
-          outputR[i] = gain1 * irATrimGainLinear_ * delayedIR1R[i] +
+          outputR[i] = gain1 * irATrimGainLinear_ * scratchR_[i] +
                        gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
@@ -1065,19 +992,17 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
       {
         writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
         writeToDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, output2Ptr[1], numFrames);
-        std::vector<Sample> delayedIR2L(numFrames);
-        std::vector<Sample> delayedIR2R(numFrames);
-        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, delayedIR2L.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
                             -latencyDiff);
-        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, delayedIR2R.data(), numFrames,
+        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, scratchR_.data(), numFrames,
                             -latencyDiff);
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
           outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
-                       gain2 * irBTrimGainLinear_ * delayedIR2L[i];
+                       gain2 * irBTrimGainLinear_ * scratchL_[i];
           outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
-                       gain2 * irBTrimGainLinear_ * delayedIR2R[i];
+                       gain2 * irBTrimGainLinear_ * scratchR_[i];
         }
       }
       else
@@ -1112,17 +1037,15 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
 
-      std::vector<Sample> delayedDryL(numFrames);
-      std::vector<Sample> delayedDryR(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDryL.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
-      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, delayedDryR.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
                           latencySamples1_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDryL[i];
-        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * delayedDryR[i];
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * scratchR_[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -1144,17 +1067,15 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
 
-      std::vector<Sample> delayedDryL(numFrames);
-      std::vector<Sample> delayedDryR(numFrames);
-      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, delayedDryL.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
-      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, delayedDryR.data(), numFrames,
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
                           latencySamples2_);
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * delayedDryL[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
-        outputR[i] = gain1 * delayedDryR[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
+        outputL[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * scratchR_[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }

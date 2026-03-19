@@ -37,6 +37,17 @@ IRLoadResult IRLoader::loadFromFile(const std::string& filepath)
   }
 
   const auto irLength = static_cast<size_t>(totalPCMFrameCount);
+
+  const size_t maxAllowedSamples = static_cast<size_t>(MAX_IR_LENGTH_SECONDS) * sampleRate;
+  if (irLength > maxAllowedSamples)
+  {
+    drwav_free(sampleData, nullptr);
+    result.success = false;
+    result.errorMessage =
+        "IR file exceeds maximum length of " + std::to_string(MAX_IR_LENGTH_SECONDS) + " seconds";
+    return result;
+  }
+
   irBuffer_.clear();
 
   if (channels == 1)

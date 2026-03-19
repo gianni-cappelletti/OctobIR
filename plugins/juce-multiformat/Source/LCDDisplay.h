@@ -5,11 +5,16 @@
 class LCDDisplay : public juce::Component
 {
  public:
-  LCDDisplay() { setOpaque(false); }
+  LCDDisplay()
+  {
+    setOpaque(false);
+    setTitle(text_);
+  }
 
   void setText(const juce::String& text)
   {
     text_ = text;
+    setTitle(text);
     repaint();
   }
 
@@ -61,6 +66,11 @@ class LCDDisplay : public juce::Component
     g.setColour(juce::Colour(0xff000000).withAlpha(0.025f));
     for (int sy = scanBounds.getY(); sy < scanBounds.getBottom(); sy += 2)
       g.drawHorizontalLine(sy, (float)scanBounds.getX(), (float)scanBounds.getRight());
+  }
+
+  std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override
+  {
+    return std::make_unique<juce::AccessibilityHandler>(*this, juce::AccessibilityRole::staticText);
   }
 
  private:
