@@ -170,6 +170,15 @@ static void setupRotarySlider(juce::Slider& s, int textBoxWidth = 90)
                         juce::MathConstants<float>::pi * 2.75f, true);
 }
 
+static void setupTrimSlider(juce::Slider& s)
+{
+  s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+  s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+  s.setPopupDisplayEnabled(true, true, nullptr);
+  s.setRotaryParameters(juce::MathConstants<float>::pi * 1.25f,
+                        juce::MathConstants<float>::pi * 2.75f, true);
+}
+
 OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), audioProcessor(p)
 {
   setLookAndFeel(&laf_);
@@ -183,7 +192,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
 
   addAndMakeVisible(loadButton1_);
   loadButton1_.setPaintingIsUnclipped(true);
-  loadButton1_.setButtonText("LOAD");
+  loadButton1_.setButtonText("");
+  loadButton1_.setComponentID("loadButton");
   loadButton1_.onClick = [this] { loadButton1Clicked(); };
 
   addAndMakeVisible(clearButton1_);
@@ -215,7 +225,8 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
 
   addAndMakeVisible(loadButton2_);
   loadButton2_.setPaintingIsUnclipped(true);
-  loadButton2_.setButtonText("LOAD");
+  loadButton2_.setButtonText("");
+  loadButton2_.setComponentID("loadButton");
   loadButton2_.onClick = [this] { loadButton2Clicked(); };
 
   addAndMakeVisible(clearButton2_);
@@ -283,6 +294,16 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
   outputGainAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
       audioProcessor.getAPVTS(), "outputGain", outputGainSlider_);
 
+  addAndMakeVisible(irATrimSlider_);
+  setupTrimSlider(irATrimSlider_);
+  irATrimAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "irATrimGain", irATrimSlider_);
+
+  addAndMakeVisible(irBTrimSlider_);
+  setupTrimSlider(irBTrimSlider_);
+  irBTrimAttachment_ = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+      audioProcessor.getAPVTS(), "irBTrimGain", irBTrimSlider_);
+
   addAndMakeVisible(thresholdLabel_);
   thresholdLabel_.setText("THRESHOLD", juce::dontSendNotification);
   thresholdLabel_.setJustificationType(juce::Justification::centred);
@@ -343,7 +364,7 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
       juce::ImageCache::getFromMemory(BinaryData::OctoberLogo_png, BinaryData::OctoberLogo_pngSize);
 
   startTimerHz(30);
-  setSize(520, 694);
+  setSize(580, 694);
 }
 
 OctobIREditor::~OctobIREditor()
@@ -422,19 +443,21 @@ void OctobIREditor::resized()
 
   {
     auto col = irButtonRow.removeFromLeft(halfW);
-    loadButton1_.setBounds(col.removeFromLeft(55).reduced(2));
+    loadButton1_.setBounds(col.removeFromLeft(40).reduced(2));
     clearButton1_.setBounds(col.removeFromLeft(48).reduced(2));
     prevButton1_.setBounds(col.removeFromLeft(28).reduced(2));
     nextButton1_.setBounds(col.removeFromLeft(28).reduced(2));
-    ir1EnableButton_.setBounds(col.reduced(2));
+    ir1EnableButton_.setBounds(col.removeFromLeft(84).reduced(2));
+    irATrimSlider_.setBounds(col.withSizeKeepingCentre(28, 28));
   }
   {
     auto col = irButtonRow;
-    loadButton2_.setBounds(col.removeFromLeft(55).reduced(2));
+    loadButton2_.setBounds(col.removeFromLeft(40).reduced(2));
     clearButton2_.setBounds(col.removeFromLeft(48).reduced(2));
     prevButton2_.setBounds(col.removeFromLeft(28).reduced(2));
     nextButton2_.setBounds(col.removeFromLeft(28).reduced(2));
-    ir2EnableButton_.setBounds(col.reduced(2));
+    ir2EnableButton_.setBounds(col.removeFromLeft(84).reduced(2));
+    irBTrimSlider_.setBounds(col.withSizeKeepingCentre(28, 28));
   }
 
   irSection.removeFromTop(5);

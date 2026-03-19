@@ -40,7 +40,10 @@ void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
                                           float sliderPos, float rotaryStartAngle,
                                           float rotaryEndAngle, juce::Slider& /*slider*/)
 {
-  auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10.0f);
+  const bool isCompact = juce::jmin(width, height) < 40;
+  const float reducedAmt = isCompact ? 3.0f : 10.0f;
+
+  auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(reducedAmt);
   auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) / 2.0f;
   auto centreX = bounds.getCentreX();
   auto centreY = bounds.getCentreY();
@@ -51,7 +54,7 @@ void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
   const float knurlingOuter = radius * 0.68f;
   const float knurlingInner = radius * 0.60f;
   const float capR = radius * 0.60f;
-  const int knurlingCount = 55;
+  const int knurlingCount = isCompact ? 28 : 55;
 
   // Drop shadow
   g.setColour(juce::Colour(0xff000000).withAlpha(0.22f));
@@ -92,17 +95,25 @@ void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
   g.setColour(juce::Colour(0xff888888));
   g.drawEllipse(centreX - capR, centreY - capR, capR * 2.0f, capR * 2.0f, 1.0f);
 
-  // White indicator line on the outer skirt
+  if (isCompact)
   {
+    // White line on the outer skirt, same as the large knob style
     float cosA = std::cos(toAngle - juce::MathConstants<float>::halfPi);
     float sinA = std::sin(toAngle - juce::MathConstants<float>::halfPi);
     g.setColour(juce::Colours::white);
     g.drawLine(centreX + knurlingOuter * cosA, centreY + knurlingOuter * sinA,
                centreX + outerR * 0.90f * cosA, centreY + outerR * 0.90f * sinA, 1.5f);
   }
-
-  // External tick marks around the rotation arc
+  else
   {
+    // White indicator line on the outer skirt
+    float cosA = std::cos(toAngle - juce::MathConstants<float>::halfPi);
+    float sinA = std::sin(toAngle - juce::MathConstants<float>::halfPi);
+    g.setColour(juce::Colours::white);
+    g.drawLine(centreX + knurlingOuter * cosA, centreY + knurlingOuter * sinA,
+               centreX + outerR * 0.90f * cosA, centreY + outerR * 0.90f * sinA, 1.5f);
+
+    // External tick marks around the rotation arc
     const int numTicks = 11;
     const float tickInner = outerR + 3.0f;
     const float tickOuter = outerR + 9.0f;
@@ -111,10 +122,10 @@ void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
     {
       float tickAngle =
           rotaryStartAngle + (float)i / (float)(numTicks - 1) * (rotaryEndAngle - rotaryStartAngle);
-      float cosA = std::cos(tickAngle - juce::MathConstants<float>::halfPi);
-      float sinA = std::sin(tickAngle - juce::MathConstants<float>::halfPi);
-      g.drawLine(centreX + tickInner * cosA, centreY + tickInner * sinA, centreX + tickOuter * cosA,
-                 centreY + tickOuter * sinA, 1.5f);
+      float tCosA = std::cos(tickAngle - juce::MathConstants<float>::halfPi);
+      float tSinA = std::sin(tickAngle - juce::MathConstants<float>::halfPi);
+      g.drawLine(centreX + tickInner * tCosA, centreY + tickInner * tSinA,
+                 centreX + tickOuter * tCosA, centreY + tickOuter * tSinA, 1.5f);
     }
   }
 }
@@ -165,6 +176,39 @@ void OctobIRLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
 void OctobIRLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
                                         bool /*isHighlighted*/, bool isButtonDown)
 {
+  if (button.getComponentID() == "loadButton")
+  {
+    const float pad = 7.0f;
+    const auto lb = button.getLocalBounds().toFloat();
+    const float side = juce::jmin(lb.getWidth(), lb.getHeight()) - pad * 2.0f;
+    auto b = juce::Rectangle<float>(side, side).withCentre(lb.getCentre());
+    const float offset = isButtonDown ? 1.0f : 0.0f;
+    b.translate(offset, offset);
+
+    const float r = juce::jmin(3.0f, b.getHeight() * 0.15f);
+    const float tabW = b.getWidth() * 0.44f;
+    const float tabH = b.getHeight() * 0.20f;
+    const float slopeW = tabH * 0.75f;
+
+    juce::Path folder;
+    folder.startNewSubPath(b.getX(), b.getY() + r);
+    folder.quadraticTo(b.getX(), b.getY(), b.getX() + r, b.getY());
+    folder.lineTo(b.getX() + tabW, b.getY());
+    folder.cubicTo(b.getX() + tabW + slopeW * 0.5f, b.getY(), b.getX() + tabW + slopeW,
+                   b.getY() + tabH - r, b.getX() + tabW + slopeW, b.getY() + tabH);
+    folder.lineTo(b.getRight() - r, b.getY() + tabH);
+    folder.quadraticTo(b.getRight(), b.getY() + tabH, b.getRight(), b.getY() + tabH + r);
+    folder.lineTo(b.getRight(), b.getBottom() - r);
+    folder.quadraticTo(b.getRight(), b.getBottom(), b.getRight() - r, b.getBottom());
+    folder.lineTo(b.getX() + r, b.getBottom());
+    folder.quadraticTo(b.getX(), b.getBottom(), b.getX(), b.getBottom() - r);
+    folder.closeSubPath();
+
+    g.setColour(juce::Colours::white.withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f));
+    g.fillPath(folder);
+    return;
+  }
+
   auto height = juce::jmin(13.0f, (float)button.getHeight() * 0.6f);
   g.setFont(juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(height)));
   g.setColour(button

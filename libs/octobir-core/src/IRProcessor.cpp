@@ -306,6 +306,18 @@ void IRProcessor::setOutputGain(float gainDb)
   outputGainLinear_ = std::pow(10.0f, outputGainDb_ / 20.0f);
 }
 
+void IRProcessor::setIRATrimGain(float gainDb)
+{
+  irATrimGainDb_ = std::max(-12.0f, std::min(12.0f, gainDb));
+  irATrimGainLinear_ = std::pow(10.0f, irATrimGainDb_ / 20.0f);
+}
+
+void IRProcessor::setIRBTrimGain(float gainDb)
+{
+  irBTrimGainDb_ = std::max(-12.0f, std::min(12.0f, gainDb));
+  irBTrimGainLinear_ = std::pow(10.0f, irBTrimGainDb_ / 20.0f);
+}
+
 void IRProcessor::setIRAEnabled(bool enabled)
 {
   irAEnabled_ = enabled;
@@ -390,7 +402,8 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * delayedIR1[i] + gain2 * output2Ptr[0][i];
+          output[i] = gain1 * irATrimGainLinear_ * delayedIR1[i] +
+                      gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
       else if (latencyDiff < 0)
@@ -401,14 +414,16 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * output1Ptr[0][i] + gain2 * delayedIR2[i];
+          output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                      gain2 * irBTrimGainLinear_ * delayedIR2[i];
         }
       }
       else
       {
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
+          output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                      gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
 
@@ -437,7 +452,7 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * outputPtr[0][i] + gain2 * delayedDry[i];
+        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDry[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -463,7 +478,7 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * delayedDry[i] + gain2 * outputPtr[0][i];
+        output[i] = gain1 * delayedDry[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -610,8 +625,10 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * delayedIR1L[i] + gain2 * output2Ptr[0][i];
-          outputR[i] = gain1 * delayedIR1R[i] + gain2 * output2Ptr[1][i];
+          outputL[i] = gain1 * irATrimGainLinear_ * delayedIR1L[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * delayedIR1R[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
       else if (latencyDiff < 0)
@@ -625,16 +642,20 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * output1Ptr[0][i] + gain2 * delayedIR2L[i];
-          outputR[i] = gain1 * output1Ptr[1][i] + gain2 * delayedIR2R[i];
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * delayedIR2L[i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * delayedIR2R[i];
         }
       }
       else
       {
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
-          outputR[i] = gain1 * output1Ptr[1][i] + gain2 * output2Ptr[1][i];
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
 
@@ -666,8 +687,8 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * outputPtr[0][i] + gain2 * delayedDryL[i];
-        outputR[i] = gain1 * outputPtr[1][i] + gain2 * delayedDryR[i];
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDryL[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * delayedDryR[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -696,8 +717,8 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * delayedDryL[i] + gain2 * outputPtr[0][i];
-        outputR[i] = gain1 * delayedDryR[i] + gain2 * outputPtr[1][i];
+        outputL[i] = gain1 * delayedDryL[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * delayedDryR[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -793,7 +814,8 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * delayedIR1[i] + gain2 * output2Ptr[0][i];
+          output[i] = gain1 * irATrimGainLinear_ * delayedIR1[i] +
+                      gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
       else if (latencyDiff < 0)
@@ -804,14 +826,16 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * output1Ptr[0][i] + gain2 * delayedIR2[i];
+          output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                      gain2 * irBTrimGainLinear_ * delayedIR2[i];
         }
       }
       else
       {
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          output[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
+          output[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                      gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
         }
       }
 
@@ -840,7 +864,7 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * outputPtr[0][i] + gain2 * delayedDry[i];
+        output[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDry[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -866,7 +890,7 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        output[i] = gain1 * delayedDry[i] + gain2 * outputPtr[0][i];
+        output[i] = gain1 * delayedDry[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }
@@ -967,8 +991,10 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * delayedIR1L[i] + gain2 * output2Ptr[0][i];
-          outputR[i] = gain1 * delayedIR1R[i] + gain2 * output2Ptr[1][i];
+          outputL[i] = gain1 * irATrimGainLinear_ * delayedIR1L[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * delayedIR1R[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
       else if (latencyDiff < 0)
@@ -982,16 +1008,20 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * output1Ptr[0][i] + gain2 * delayedIR2L[i];
-          outputR[i] = gain1 * output1Ptr[1][i] + gain2 * delayedIR2R[i];
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * delayedIR2L[i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * delayedIR2R[i];
         }
       }
       else
       {
         for (FrameCount i = 0; i < numFrames; ++i)
         {
-          outputL[i] = gain1 * output1Ptr[0][i] + gain2 * output2Ptr[0][i];
-          outputR[i] = gain1 * output1Ptr[1][i] + gain2 * output2Ptr[1][i];
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
         }
       }
 
@@ -1023,8 +1053,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * outputPtr[0][i] + gain2 * delayedDryL[i];
-        outputR[i] = gain1 * outputPtr[1][i] + gain2 * delayedDryR[i];
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * delayedDryL[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * delayedDryR[i];
       }
       convolutionEngine1_->Advance(static_cast<int>(numFrames));
     }
@@ -1053,8 +1083,8 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
       for (FrameCount i = 0; i < numFrames; ++i)
       {
-        outputL[i] = gain1 * delayedDryL[i] + gain2 * outputPtr[0][i];
-        outputR[i] = gain1 * delayedDryR[i] + gain2 * outputPtr[1][i];
+        outputL[i] = gain1 * delayedDryL[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * delayedDryR[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
       }
       convolutionEngine2_->Advance(static_cast<int>(numFrames));
     }

@@ -74,6 +74,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctobIRProcessor::createPara
       juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(value, 1) + " dB"; }));
 
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "irATrimGain", "IR A Trim", juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f), 0.0f,
+      juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "irBTrimGain", "IR B Trim", juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f), 0.0f,
+      juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
   return layout;
 }
 
@@ -182,6 +192,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   float attackTime = apvts_.getRawParameterValue("attackTime")->load();
   float releaseTime = apvts_.getRawParameterValue("releaseTime")->load();
   float outputGain = apvts_.getRawParameterValue("outputGain")->load();
+  float irATrimGain = apvts_.getRawParameterValue("irATrimGain")->load();
+  float irBTrimGain = apvts_.getRawParameterValue("irBTrimGain")->load();
 
   irProcessor_.setIRAEnabled(irAEnable);
   irProcessor_.setIRBEnabled(irBEnable);
@@ -197,6 +209,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   irProcessor_.setAttackTime(attackTime);
   irProcessor_.setReleaseTime(releaseTime);
   irProcessor_.setOutputGain(outputGain);
+  irProcessor_.setIRATrimGain(irATrimGain);
+  irProcessor_.setIRBTrimGain(irBTrimGain);
 
   auto mainInputChannels = getBusBuffer(buffer, true, 0);
   auto sidechainBuffer = getBusBuffer(buffer, true, 1);

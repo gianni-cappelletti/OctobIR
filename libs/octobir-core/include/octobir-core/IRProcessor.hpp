@@ -41,6 +41,8 @@ class IRProcessor
   void setAttackTime(float attackTimeMs);
   void setReleaseTime(float releaseTimeMs);
   void setOutputGain(float gainDb);
+  void setIRATrimGain(float gainDb);
+  void setIRBTrimGain(float gainDb);
 
   void processMono(const Sample* input, Sample* output, FrameCount numFrames);
   void processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
@@ -125,6 +127,10 @@ class IRProcessor
   float attackTimeMs_ = 50.0f;
   float releaseTimeMs_ = 200.0f;
   float outputGainDb_ = 0.0f;
+  float irATrimGainDb_ = 0.0f;
+  float irBTrimGainDb_ = 0.0f;
+  float irATrimGainLinear_ = 1.0f;
+  float irBTrimGainLinear_ = 1.0f;
 
   float currentInputLevelDb_ = -96.0f;
   float currentBlend_ = 0.0f;

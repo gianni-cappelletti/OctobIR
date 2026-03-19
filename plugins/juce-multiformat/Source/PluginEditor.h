@@ -76,6 +76,9 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   juce::ToggleButton ir1EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir1EnableAttachment_;
 
+  juce::Slider irATrimSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> irATrimAttachment_;
+
   juce::TextButton loadButton2_;
   juce::TextButton clearButton2_;
   juce::TextButton prevButton2_;
@@ -83,6 +86,9 @@ class OctobIREditor : public juce::AudioProcessorEditor, private juce::Timer
   LCDDisplay ir2LCDDisplay_;
   juce::ToggleButton ir2EnableButton_;
   std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> ir2EnableAttachment_;
+
+  juce::Slider irBTrimSlider_;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> irBTrimAttachment_;
 
   LCDMeterPanel meterPanel_;
 
