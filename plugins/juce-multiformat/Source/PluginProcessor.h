@@ -40,6 +40,7 @@ class OctobIRProcessor : public juce::AudioProcessor
   bool loadImpulseResponse2(const juce::String& filepath, juce::String& errorMessage);
   void clearImpulseResponse1();
   void clearImpulseResponse2();
+  void swapImpulseResponses();
   juce::String getCurrentIR1Path() const { return currentIR1Path_; }
   juce::String getCurrentIR2Path() const { return currentIR2Path_; }
 

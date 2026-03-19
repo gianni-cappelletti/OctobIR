@@ -607,26 +607,14 @@ void OctobIREditor::clearButton2Clicked()
 
 void OctobIREditor::swapIROrderClicked()
 {
-  auto& apvts = audioProcessor.getAPVTS();
+  audioProcessor.swapImpulseResponses();
 
-  float currentBlend = apvts.getRawParameterValue("blend")->load();
-  float currentLowBlend = apvts.getRawParameterValue("lowBlend")->load();
-  float currentHighBlend = apvts.getRawParameterValue("highBlend")->load();
-
-  if (auto* blendParam = apvts.getParameter("blend"))
-  {
-    blendParam->setValueNotifyingHost(blendParam->convertTo0to1(-currentBlend));
-  }
-
-  if (auto* lowParam = apvts.getParameter("lowBlend"))
-  {
-    lowParam->setValueNotifyingHost(lowParam->convertTo0to1(currentHighBlend));
-  }
-
-  if (auto* highParam = apvts.getParameter("highBlend"))
-  {
-    highParam->setValueNotifyingHost(highParam->convertTo0to1(currentLowBlend));
-  }
+  ir1LCDDisplay_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
+                             ? "No IR loaded"
+                             : juce::File(audioProcessor.getCurrentIR1Path()).getFileName());
+  ir2LCDDisplay_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
+                             ? "No IR loaded"
+                             : juce::File(audioProcessor.getCurrentIR2Path()).getFileName());
 }
 
 void OctobIREditor::prevButton1Clicked()

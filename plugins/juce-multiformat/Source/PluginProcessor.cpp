@@ -389,6 +389,38 @@ void OctobIRProcessor::clearImpulseResponse2()
   DBG("Cleared IR2");
 }
 
+void OctobIRProcessor::swapImpulseResponses()
+{
+  const float irAEnabled = apvts_.getRawParameterValue("irAEnable")->load();
+  const float irBEnabled = apvts_.getRawParameterValue("irBEnable")->load();
+
+  const juce::String path1 = currentIR1Path_;
+  const juce::String path2 = currentIR2Path_;
+
+  DBG("Swapping IRs: slot1=" + path1 + " slot2=" + path2);
+
+  if (path2.isNotEmpty())
+  {
+    juce::String err;
+    loadImpulseResponse1(path2, err);
+  }
+  else
+    clearImpulseResponse1();
+
+  if (path1.isNotEmpty())
+  {
+    juce::String err;
+    loadImpulseResponse2(path1, err);
+  }
+  else
+    clearImpulseResponse2();
+
+  if (auto* param = apvts_.getParameter("irAEnable"))
+    param->setValueNotifyingHost(irAEnabled);
+  if (auto* param = apvts_.getParameter("irBEnable"))
+    param->setValueNotifyingHost(irBEnabled);
+}
+
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
   return new OctobIRProcessor();

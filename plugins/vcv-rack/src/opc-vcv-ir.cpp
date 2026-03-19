@@ -484,10 +484,24 @@ struct OpcVcvIrWidget final : ModuleWidget
     menu->addChild(createMenuItem("Swap IR Order", "",
                                   [module]()
                                   {
-                                    float currentLow = module->irProcessor_.getLowBlend();
-                                    float currentHigh = module->irProcessor_.getHighBlend();
-                                    module->irProcessor_.setLowBlend(currentHigh);
-                                    module->irProcessor_.setHighBlend(currentLow);
+                                    const std::string path1 = module->loaded_file_path_;
+                                    const std::string path2 = module->loaded_file_path2_;
+
+                                    if (!path2.empty())
+                                      module->loadIR(path2);
+                                    else
+                                    {
+                                      module->irProcessor_.clearImpulseResponse1();
+                                      module->loaded_file_path_.clear();
+                                    }
+
+                                    if (!path1.empty())
+                                      module->loadIR2(path1);
+                                    else
+                                    {
+                                      module->irProcessor_.clearImpulseResponse2();
+                                      module->loaded_file_path2_.clear();
+                                    }
                                   }));
   }
 };
