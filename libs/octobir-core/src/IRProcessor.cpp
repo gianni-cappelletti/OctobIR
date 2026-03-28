@@ -385,10 +385,35 @@ IRProcessor::BlendGains IRProcessor::resolveBlendGains(float inputLevelDb, Frame
     gains.gain1 = std::sqrt(1.0f - normalizedBlend);
     gains.gain2 = std::sqrt(normalizedBlend);
   }
+  else if (hasIR1)
+  {
+    if (irBEnabled_)
+    {
+      // Slot B is enabled but has no IR loaded — it acts as dry passthrough.
+      gains.gain1 = 1.0f - normalizedBlend;
+      gains.gain2 = normalizedBlend;
+    }
+    else
+    {
+      // Slot B is disabled entirely — blend is irrelevant, output 100% IR A wet.
+      gains.gain1 = 1.0f;
+      gains.gain2 = 0.0f;
+    }
+  }
   else
   {
-    gains.gain1 = 1.0f - normalizedBlend;
-    gains.gain2 = normalizedBlend;
+    if (irAEnabled_)
+    {
+      // Slot A is enabled but has no IR loaded — it acts as dry passthrough.
+      gains.gain1 = 1.0f - normalizedBlend;
+      gains.gain2 = normalizedBlend;
+    }
+    else
+    {
+      // Slot A is disabled entirely — blend is irrelevant, output 100% IR B wet.
+      gains.gain1 = 0.0f;
+      gains.gain2 = 1.0f;
+    }
   }
   return gains;
 }

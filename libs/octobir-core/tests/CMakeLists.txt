@@ -20,12 +20,23 @@ add_executable(octobir-core-tests
   LatencyCompensationTests.cpp
   DynamicModeTests.cpp
   SidechainTests.cpp
+  ComponentTests.cpp
 )
 
 target_link_libraries(octobir-core-tests
   PRIVATE
     octobir-core
     gtest_main
+)
+
+target_compile_definitions(octobir-core-tests
+  PRIVATE
+    TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
+)
+
+target_include_directories(octobir-core-tests
+  SYSTEM PRIVATE
+    ${CMAKE_SOURCE_DIR}/third_party
 )
 
 include(GoogleTest)

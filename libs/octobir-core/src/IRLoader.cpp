@@ -137,31 +137,30 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
       resampler.SetRates(irSampleRate_, targetSampleRate);
       resampler.SetFilterParms(1.0, 0.693);
 
-      std::vector<WDL_ResampleSample> resampledIr(outFrames + 64);
+      std::vector<WDL_ResampleSample> resampledIr(outFrames + 64, 0.0);
 
+      // ResamplePrepare's first argument is the desired OUTPUT sample count.
+      // It returns how many input samples must be written to rsinbuf.
       WDL_ResampleSample* rsinbuf = nullptr;
-      int inSamples = static_cast<int>(numSamples_);
-      int outSamples = static_cast<int>(outFrames);
+      const int needed = resampler.ResamplePrepare(static_cast<int>(outFrames), 1, &rsinbuf);
 
-      int actualOutSamples = 0;
-      while (inSamples > 0 || resampler.ResampleOut(resampledIr.data() + actualOutSamples,
-                                                    inSamples, outSamples, 1) > 0)
+      for (int i = 0; i < needed; i++)
       {
-        const int needed = resampler.ResamplePrepare(inSamples, 1, &rsinbuf);
-        for (int i = 0; i < needed && inSamples > 0; i++)
+        if (i < static_cast<int>(numSamples_))
         {
           const int srcCh = (numChannels_ == 1) ? 0 : ch;
-          const size_t srcIdx = ((numSamples_ - inSamples) * numChannels_) + srcCh;
+          const size_t srcIdx = static_cast<size_t>(i) * static_cast<size_t>(numChannels_) +
+                                static_cast<size_t>(srcCh);
           rsinbuf[i] = irBuffer_[srcIdx];
-          inSamples--;
         }
-        const int processed =
-            resampler.ResampleOut(resampledIr.data() + actualOutSamples, inSamples, outSamples, 1);
-        if (processed <= 0)
-          break;
-        actualOutSamples += processed;
-        outSamples -= processed;
+        else
+        {
+          rsinbuf[i] = 0.0;
+        }
       }
+
+      const int actualOutSamples =
+          resampler.ResampleOut(resampledIr.data(), needed, static_cast<int>(outFrames), 1);
 
       WDL_FFT_REAL* irBufferPtr = impulseBuffer.impulses[ch].Get();
       if (irBufferPtr == nullptr)
