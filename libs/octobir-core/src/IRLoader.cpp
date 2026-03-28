@@ -133,9 +133,8 @@ bool IRLoader::resampleAndInitialize(WDL_ImpulseBuffer& impulseBuffer, SampleRat
     for (int ch = 0; ch < outputChannels; ch++)
     {
       WDL_Resampler resampler;
-      resampler.SetMode(false, 1, false);
+      resampler.SetMode(true, 64, true);
       resampler.SetRates(irSampleRate_, targetSampleRate);
-      resampler.SetFilterParms(1.0, 0.693);
 
       std::vector<WDL_ResampleSample> resampledIr(outFrames + 64, 0.0);
 

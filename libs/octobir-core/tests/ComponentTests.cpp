@@ -156,68 +156,12 @@ bool writeWavMono(const std::string& path, const std::vector<float>& samples,
   return true;
 }
 
-}  // namespace
-
-class ComponentTest : public ::testing::Test
+// Processes dryInput through processor in kBlockSize blocks, flushes the convolution tail,
+// trims the reported latency prefix, and returns the time-aligned output.
+std::vector<float> processAndAlign(IRProcessor& processor, const std::vector<float>& dryInput,
+                                   int kBlockSize)
 {
- protected:
-  void SetUp() override
-  {
-    irPath_ = std::string(TEST_DATA_DIR) + "/INPUT_ir.wav";
-    dryPath_ = std::string(TEST_DATA_DIR) + "/INPUT_amp_output_no_ir.wav";
-    controlPath_ = std::string(TEST_DATA_DIR) + "/CONTROL_amp_output_with_ir.wav";
-  }
-
-  std::string irPath_;
-  std::string dryPath_;
-  std::string controlPath_;
-};
-
-// Scenario: 96 kHz IR resampled to 44.1 kHz, IR A loaded + enabled, IR B disabled, static mode.
-//
-// Input:   INPUT_amp_output_no_ir.wav (44.1 kHz mono, dry amp signal)
-// IR:      INPUT_ir.wav (96 kHz mono, resampled to 44.1 kHz internally)
-// Control: CONTROL_amp_output_with_ir.wav (44.1 kHz mono, reference from a
-//          known-good IR loader, 100% wet signal)
-//
-// Preconditions:
-//   - IR A is loaded and enabled. IR B is not loaded and disabled.
-//   - blend is left at its default (0.0f). When IR B is disabled, blend is irrelevant
-//     because slot B is out of the signal path entirely; the processor must output
-//     100% IR A wet regardless of blend position.
-//   - Output gain is 0 dB (default). Trim gains are 0 dB (default).
-//
-// Verifies:
-//   1. IR loading and 96 kHz -> 44.1 kHz resampling produce non-silent output.
-//   2. Convolved output matches the reference (Pearson r > 0.99 after normalizing
-//      both to unit peak to remove the -18 dB IR compensation gain offset).
-//   3. Blend is correctly ignored when IR B is disabled.
-TEST_F(ComponentTest, ConvolutionMatchesReference)
-{
-  unsigned int drySampleRate = 0;
-  drwav_uint64 dryFrameCount = 0;
-  std::vector<float> dryInput = loadWavMono(dryPath_, drySampleRate, dryFrameCount);
-  ASSERT_FALSE(dryInput.empty()) << "Failed to load dry input: " << dryPath_;
-  ASSERT_EQ(drySampleRate, 44100u);
-
-  unsigned int controlSampleRate = 0;
-  drwav_uint64 controlFrameCount = 0;
-  std::vector<float> controlOutput =
-      loadWavMono(controlPath_, controlSampleRate, controlFrameCount);
-  ASSERT_FALSE(controlOutput.empty()) << "Failed to load control: " << controlPath_;
-
-  IRProcessor processor;
-  processor.setSampleRate(44100.0);
-  processor.setMaxBlockSize(512);
-  // blend left at default (0.0f); with IR B disabled, blend must be irrelevant.
-  processor.setIRBEnabled(false);
-
-  std::string errMsg;
-  ASSERT_TRUE(processor.loadImpulseResponse1(irPath_, errMsg)) << "IR load failed: " << errMsg;
-
-  constexpr int kBlockSize = 512;
   const size_t totalInputFrames = dryInput.size();
-
   std::vector<float> rawOutput;
   rawOutput.reserve(totalInputFrames + 2048);
 
@@ -249,20 +193,86 @@ TEST_F(ComponentTest, ConvolutionMatchesReference)
     tailFlushed += kBlockSize;
   }
 
-  ASSERT_GE(rawOutput.size(), static_cast<size_t>(latency) + totalInputFrames)
-      << "rawOutput too short to trim";
-
-  std::vector<float> actualOutput(
+  std::vector<float> aligned(
       rawOutput.begin() + latency,
       rawOutput.begin() + latency + static_cast<ptrdiff_t>(totalInputFrames));
+  return aligned;
+}
 
-  writeWavMono("/tmp/octobir_component_output.wav", actualOutput, drySampleRate);
+}  // namespace
+
+class ComponentTest : public ::testing::Test
+{
+ protected:
+  void SetUp() override
+  {
+    irAPath_ = std::string(TEST_DATA_DIR) + "/INPUT_ir_a.wav";
+    irBPath_ = std::string(TEST_DATA_DIR) + "/INPUT_ir_b.wav";
+    dryPath_ = std::string(TEST_DATA_DIR) + "/INPUT_amp_output_no_ir.wav";
+    controlAOnlyPath_ = std::string(TEST_DATA_DIR) + "/CONTROL_amp_output_with_ir_a_only.wav";
+    controlEvenBlendPath_ =
+        std::string(TEST_DATA_DIR) + "/CONTROL_amp_output_with_ir_a_b_even_blend.wav";
+  }
+
+  std::string irAPath_;
+  std::string irBPath_;
+  std::string dryPath_;
+  std::string controlAOnlyPath_;
+  std::string controlEvenBlendPath_;
+};
+
+// Scenario: IR A loaded and enabled, IR B not loaded and disabled, static mode.
+//
+// Input:   INPUT_amp_output_no_ir.wav (44.1 kHz mono, dry amp signal)
+// IR A:    INPUT_ir_a.wav (96 kHz mono, resampled to 44.1 kHz internally)
+// Control: CONTROL_amp_output_with_ir_a_only.wav (44.1 kHz mono, reference from a
+//          known-good IR loader, 100% wet signal)
+//
+// Preconditions:
+//   - IR A is loaded and enabled. IR B is not loaded and disabled.
+//   - blend is left at its default (0.0f). When IR B is disabled, blend is irrelevant
+//     because slot B is out of the signal path entirely; the processor must output
+//     100% IR A wet regardless of blend position.
+//   - Output gain is 0 dB (default). Trim gains are 0 dB (default).
+//
+// Verifies:
+//   1. IR loading and 96 kHz -> 44.1 kHz resampling produce non-silent output.
+//   2. Convolved output matches the reference (Pearson r > 0.99 after normalizing
+//      both to unit peak to remove the -18 dB IR compensation gain offset).
+//   3. Blend is correctly ignored when IR B is disabled.
+TEST_F(ComponentTest, ConvolutionMatchesReference_IrAOnly)
+{
+  unsigned int drySampleRate = 0;
+  drwav_uint64 dryFrameCount = 0;
+  std::vector<float> dryInput = loadWavMono(dryPath_, drySampleRate, dryFrameCount);
+  ASSERT_FALSE(dryInput.empty()) << "Failed to load dry input: " << dryPath_;
+  ASSERT_EQ(drySampleRate, 44100u);
+
+  unsigned int controlSampleRate = 0;
+  drwav_uint64 controlFrameCount = 0;
+  std::vector<float> controlOutput =
+      loadWavMono(controlAOnlyPath_, controlSampleRate, controlFrameCount);
+  ASSERT_FALSE(controlOutput.empty()) << "Failed to load control: " << controlAOnlyPath_;
+
+  IRProcessor processor;
+  processor.setSampleRate(44100.0);
+  processor.setMaxBlockSize(512);
+  // blend left at default (0.0f); with IR B disabled, blend must be irrelevant.
+  processor.setIRBEnabled(false);
+
+  std::string errMsg;
+  ASSERT_TRUE(processor.loadImpulseResponse1(irAPath_, errMsg)) << "IR A load failed: " << errMsg;
+
+  constexpr int kBlockSize = 512;
+  std::vector<float> actualOutput = processAndAlign(processor, dryInput, kBlockSize);
+
+  writeWavMono("/tmp/octobir_component_ir_a_only.wav", actualOutput, drySampleRate);
 
   float peak = 0.0f;
   for (float s : actualOutput)
     peak = std::max(peak, std::abs(s));
   ASSERT_GT(peak, 1e-6f) << "Output is silent after IR convolution; likely a resampling failure. "
-                         << "Latency reported: " << latency << " samples.";
+                         << "Latency reported: " << processor.getLatencySamples() << " samples.";
 
   size_t compareLen = std::min(actualOutput.size(), controlOutput.size());
   actualOutput.resize(compareLen);
@@ -271,9 +281,6 @@ TEST_F(ComponentTest, ConvolutionMatchesReference)
   normalizeToUnitPeak(actualOutput);
   normalizeToUnitPeak(controlOutput);
 
-  // Search ±2000 samples (~45 ms at 44.1 kHz) for the optimal alignment lag.
-  // A non-zero lag indicates the reference and our output use different peak-offset
-  // alignment strategies; we report it as a diagnostic and compare at the best lag.
   constexpr int kMaxLagSamples = 200;
   const int lag = findAlignmentLag(actualOutput, controlOutput, kMaxLagSamples);
 
@@ -298,13 +305,212 @@ TEST_F(ComponentTest, ConvolutionMatchesReference)
   double snrDb = computeSnrDb(bAligned, aAligned);
   double r = pearsonCorrelation(aAligned, bAligned);
 
-  std::cout << "[Component] Latency: " << latency << " samples\n";
-  std::cout << "[Component] Alignment lag: " << lag << " samples\n";
-  std::cout << "[Component] SNR (at best lag): " << snrDb << " dB\n";
-  std::cout << "[Component] Pearson r (at best lag): " << r << "\n";
-  std::cout << "[Component] Diagnostic output: /tmp/octobir_component_output.wav\n";
+  std::cout << "[IrAOnly] Latency: " << processor.getLatencySamples() << " samples\n";
+  std::cout << "[IrAOnly] Alignment lag: " << lag << " samples\n";
+  std::cout << "[IrAOnly] SNR (at best lag): " << snrDb << " dB\n";
+  std::cout << "[IrAOnly] Pearson r (at best lag): " << r << "\n";
+  std::cout << "[IrAOnly] Diagnostic output: /tmp/octobir_component_ir_a_only.wav\n";
 
   EXPECT_GT(r, 0.99) << "Correlation too low (r=" << r << ", SNR=" << snrDb << " dB, lag=" << lag
                      << " samples). "
-                     << "Listen to /tmp/octobir_component_output.wav for diagnosis.";
+                     << "Listen to /tmp/octobir_component_ir_a_only.wav for diagnosis.";
+}
+
+// Scenario: IR A and IR B both loaded and enabled, equal-power blend (blend=0.0f), static mode.
+//
+// Input:   INPUT_amp_output_no_ir.wav (44.1 kHz mono, dry amp signal)
+// IR A:    INPUT_ir_a.wav (resampled to 44.1 kHz internally)
+// IR B:    INPUT_ir_b.wav (resampled to 44.1 kHz internally)
+// Control: CONTROL_amp_output_with_ir_a_b_even_blend.wav (44.1 kHz mono, reference from a
+//          known-good IR loader, 50/50 equal-power blend of IR A and IR B)
+//
+// Preconditions:
+//   - IR A and IR B are both loaded and enabled (default state).
+//   - blend is left at its default (0.0f), which produces a 50/50 equal-power mix:
+//     gain_a = gain_b = sqrt(0.5).
+//   - Output gain is 0 dB (default). Trim gains are 0 dB (default).
+//
+// Verifies:
+//   1. Both IRs load, resample, and convolve to produce non-silent output.
+//   2. The blended output matches the reference (Pearson r > 0.99 after normalizing
+//      both to unit peak to remove the -18 dB IR compensation gain offset).
+TEST_F(ComponentTest, ConvolutionMatchesReference_EvenBlend)
+{
+  unsigned int drySampleRate = 0;
+  drwav_uint64 dryFrameCount = 0;
+  std::vector<float> dryInput = loadWavMono(dryPath_, drySampleRate, dryFrameCount);
+  ASSERT_FALSE(dryInput.empty()) << "Failed to load dry input: " << dryPath_;
+  ASSERT_EQ(drySampleRate, 44100u);
+
+  unsigned int controlSampleRate = 0;
+  drwav_uint64 controlFrameCount = 0;
+  std::vector<float> controlOutput =
+      loadWavMono(controlEvenBlendPath_, controlSampleRate, controlFrameCount);
+  ASSERT_FALSE(controlOutput.empty()) << "Failed to load control: " << controlEvenBlendPath_;
+
+  IRProcessor processor;
+  processor.setSampleRate(44100.0);
+  processor.setMaxBlockSize(512);
+  // Both slots enabled (default); blend=0.0f (default) = 50/50 equal-power.
+
+  std::string errMsg;
+  ASSERT_TRUE(processor.loadImpulseResponse1(irAPath_, errMsg)) << "IR A load failed: " << errMsg;
+  ASSERT_TRUE(processor.loadImpulseResponse2(irBPath_, errMsg)) << "IR B load failed: " << errMsg;
+
+  constexpr int kBlockSize = 512;
+  std::vector<float> actualOutput = processAndAlign(processor, dryInput, kBlockSize);
+
+  writeWavMono("/tmp/octobir_component_even_blend.wav", actualOutput, drySampleRate);
+
+  float peak = 0.0f;
+  for (float s : actualOutput)
+    peak = std::max(peak, std::abs(s));
+  ASSERT_GT(peak, 1e-6f) << "Output is silent after IR convolution; likely a resampling failure. "
+                         << "Latency reported: " << processor.getLatencySamples() << " samples.";
+
+  size_t compareLen = std::min(actualOutput.size(), controlOutput.size());
+  actualOutput.resize(compareLen);
+  controlOutput.resize(compareLen);
+
+  normalizeToUnitPeak(actualOutput);
+  normalizeToUnitPeak(controlOutput);
+
+  constexpr int kMaxLagSamples = 200;
+  const int lag = findAlignmentLag(actualOutput, controlOutput, kMaxLagSamples);
+
+  std::vector<float> aAligned, bAligned;
+  if (lag >= 0)
+  {
+    const size_t skip = static_cast<size_t>(lag);
+    const size_t len = std::min(actualOutput.size(), controlOutput.size() - skip);
+    aAligned.assign(actualOutput.begin(), actualOutput.begin() + static_cast<ptrdiff_t>(len));
+    bAligned.assign(controlOutput.begin() + static_cast<ptrdiff_t>(lag),
+                    controlOutput.begin() + static_cast<ptrdiff_t>(lag + len));
+  }
+  else
+  {
+    const size_t skip = static_cast<size_t>(-lag);
+    const size_t len = std::min(actualOutput.size() - skip, controlOutput.size());
+    aAligned.assign(actualOutput.begin() + static_cast<ptrdiff_t>(-lag),
+                    actualOutput.begin() + static_cast<ptrdiff_t>(-lag + len));
+    bAligned.assign(controlOutput.begin(), controlOutput.begin() + static_cast<ptrdiff_t>(len));
+  }
+
+  double snrDb = computeSnrDb(bAligned, aAligned);
+  double r = pearsonCorrelation(aAligned, bAligned);
+
+  std::cout << "[EvenBlend] Latency: " << processor.getLatencySamples() << " samples\n";
+  std::cout << "[EvenBlend] Alignment lag: " << lag << " samples\n";
+  std::cout << "[EvenBlend] SNR (at best lag): " << snrDb << " dB\n";
+  std::cout << "[EvenBlend] Pearson r (at best lag): " << r << "\n";
+  std::cout << "[EvenBlend] Diagnostic output: /tmp/octobir_component_even_blend.wav\n";
+
+  EXPECT_GT(r, 0.99) << "Correlation too low (r=" << r << ", SNR=" << snrDb << " dB, lag=" << lag
+                     << " samples). "
+                     << "Listen to /tmp/octobir_component_even_blend.wav for diagnosis.";
+}
+
+// Diagnostic: decomposes the blend into individual convolutions to isolate whether
+// the mismatch is in the dual-IR processing path or in the blending formula vs the reference.
+// Run manually with --gtest_also_run_disabled_tests when investigating blend discrepancies.
+// Outputs: /tmp/octobir_diag_A.wav, _B.wav, _manual_blend.wav
+TEST_F(ComponentTest, DISABLED_DiagnoseBlendDecomposition)
+{
+  unsigned int drySampleRate = 0;
+  drwav_uint64 dryFrameCount = 0;
+  std::vector<float> dryInput = loadWavMono(dryPath_, drySampleRate, dryFrameCount);
+  ASSERT_FALSE(dryInput.empty());
+
+  unsigned int controlSampleRate = 0;
+  drwav_uint64 controlFrameCount = 0;
+  std::vector<float> controlOutput =
+      loadWavMono(controlEvenBlendPath_, controlSampleRate, controlFrameCount);
+  ASSERT_FALSE(controlOutput.empty());
+
+  constexpr int kBlockSize = 512;
+
+  // IR A convolution via single-IR path.
+  std::vector<float> aOutput;
+  {
+    IRProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    p.setIRBEnabled(false);
+    std::string err;
+    ASSERT_TRUE(p.loadImpulseResponse1(irAPath_, err)) << err;
+    aOutput = processAndAlign(p, dryInput, kBlockSize);
+    writeWavMono("/tmp/octobir_diag_A.wav", aOutput, drySampleRate);
+  }
+
+  // IR B convolution via single-IR path.
+  std::vector<float> bOutput;
+  {
+    IRProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    p.setIRAEnabled(false);
+    std::string err;
+    ASSERT_TRUE(p.loadImpulseResponse2(irBPath_, err)) << err;
+    bOutput = processAndAlign(p, dryInput, kBlockSize);
+    writeWavMono("/tmp/octobir_diag_B.wav", bOutput, drySampleRate);
+  }
+
+  // Manual equal-power blend of the two single-IR outputs.
+  const size_t blendLen = std::min(aOutput.size(), bOutput.size());
+  std::vector<float> manualBlend(blendLen);
+  for (size_t i = 0; i < blendLen; ++i)
+    manualBlend[i] = std::sqrt(0.5f) * aOutput[i] + std::sqrt(0.5f) * bOutput[i];
+  writeWavMono("/tmp/octobir_diag_manual_blend.wav", manualBlend, drySampleRate);
+
+  // Dual-IR path output (same as ConvolutionMatchesReference_EvenBlend).
+  std::vector<float> dualOutput;
+  {
+    IRProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    std::string err;
+    ASSERT_TRUE(p.loadImpulseResponse1(irAPath_, err)) << err;
+    ASSERT_TRUE(p.loadImpulseResponse2(irBPath_, err)) << err;
+    dualOutput = processAndAlign(p, dryInput, kBlockSize);
+  }
+
+  auto reportCorrelation =
+      [](const std::string& label, std::vector<float> sig, std::vector<float> ref)
+  {
+    size_t len = std::min(sig.size(), ref.size());
+    sig.resize(len);
+    ref.resize(len);
+    normalizeToUnitPeak(sig);
+    normalizeToUnitPeak(ref);
+    const int lag = findAlignmentLag(sig, ref, 200);
+
+    std::vector<float> a, b;
+    if (lag >= 0)
+    {
+      const size_t skip = static_cast<size_t>(lag);
+      const size_t l = std::min(sig.size(), ref.size() - skip);
+      a.assign(sig.begin(), sig.begin() + static_cast<ptrdiff_t>(l));
+      b.assign(ref.begin() + static_cast<ptrdiff_t>(lag),
+               ref.begin() + static_cast<ptrdiff_t>(lag + l));
+    }
+    else
+    {
+      const size_t skip = static_cast<size_t>(-lag);
+      const size_t l = std::min(sig.size() - skip, ref.size());
+      a.assign(sig.begin() + static_cast<ptrdiff_t>(-lag),
+               sig.begin() + static_cast<ptrdiff_t>(-lag + l));
+      b.assign(ref.begin(), ref.begin() + static_cast<ptrdiff_t>(l));
+    }
+
+    double r = pearsonCorrelation(a, b);
+    double snr = computeSnrDb(b, a);
+    std::cout << "[Diagnose] " << label << ": lag=" << lag << ", r=" << r << ", SNR=" << snr
+              << " dB\n";
+  };
+
+  reportCorrelation("manualBlend vs control", manualBlend, controlOutput);
+  reportCorrelation("dualOutput  vs control", dualOutput, controlOutput);
+  reportCorrelation("dualOutput  vs manualBlend", dualOutput, manualBlend);
+  reportCorrelation("aOutput     vs control", aOutput, controlOutput);
+  reportCorrelation("bOutput     vs control", bOutput, controlOutput);
 }
