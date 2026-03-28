@@ -32,17 +32,17 @@ jobs:
         fi
         echo "✓ LICENSE found"
 
-        if [ ! -f "LICENSING.md" ]; then
-          echo "Error: LICENSING.md file not found"
+        if [ ! -f "docs/LICENSING.md" ]; then
+          echo "Error: docs/LICENSING.md file not found"
           exit 1
         fi
-        echo "✓ LICENSING.md found"
+        echo "✓ docs/LICENSING.md found"
 
-        if [ ! -f "THIRD_PARTY_NOTICES.txt" ]; then
-          echo "Error: THIRD_PARTY_NOTICES.txt file not found"
+        if [ ! -f "docs/THIRD_PARTY_NOTICES.txt" ]; then
+          echo "Error: docs/THIRD_PARTY_NOTICES.txt file not found"
           exit 1
         fi
-        echo "✓ THIRD_PARTY_NOTICES.txt found"
+        echo "✓ docs/THIRD_PARTY_NOTICES.txt found"
 
         echo ""
         echo "All required license files present"

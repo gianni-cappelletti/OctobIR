@@ -64,7 +64,7 @@ bool IRProcessor::loadImpulseResponse1(const std::string& filepath, std::string&
   }
 
   const int peakOffset = IRLoader::findPeakSampleIndex(*stagingBuffer);
-  const int latency = stagingEngine->SetImpulse(stagingBuffer.get(), 64, 0, 0, peakOffset);
+  const int latency = stagingEngine->SetImpulse(stagingBuffer.get(), 64, 0, 0, 0);
   if (latency < 0)
   {
     errorMessage = "Failed to initialize convolution engine with IR (returned " +
@@ -132,7 +132,7 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
   }
 
   const int peakOffset = IRLoader::findPeakSampleIndex(*stagingBuffer);
-  const int latency = stagingEngine->SetImpulse(stagingBuffer.get(), 64, 0, 0, peakOffset);
+  const int latency = stagingEngine->SetImpulse(stagingBuffer.get(), 64, 0, 0, 0);
   if (latency < 0)
   {
     errorMessage = "Failed to initialize convolution engine with IR2 (returned " +
@@ -198,7 +198,7 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
       auto stagingEngine =
           std::unique_ptr<WDL_ConvolutionEngine_Div>(new WDL_ConvolutionEngine_Div());
       const int peakOffset = IRLoader::findPeakSampleIndex(*impulseBuffer1_);
-      const int latency = stagingEngine->SetImpulse(impulseBuffer1_.get(), 64, 0, 0, peakOffset);
+      const int latency = stagingEngine->SetImpulse(impulseBuffer1_.get(), 64, 0, 0, 0);
 
       std::lock_guard<std::mutex> lock(pendingMutex1_);
       stagingEngine1_ = std::move(stagingEngine);
@@ -214,7 +214,7 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
       auto stagingEngine =
           std::unique_ptr<WDL_ConvolutionEngine_Div>(new WDL_ConvolutionEngine_Div());
       const int peakOffset = IRLoader::findPeakSampleIndex(*impulseBuffer2_);
-      const int latency = stagingEngine->SetImpulse(impulseBuffer2_.get(), 64, 0, 0, peakOffset);
+      const int latency = stagingEngine->SetImpulse(impulseBuffer2_.get(), 64, 0, 0, 0);
 
       std::lock_guard<std::mutex> lock(pendingMutex2_);
       stagingEngine2_ = std::move(stagingEngine);
