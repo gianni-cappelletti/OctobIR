@@ -251,6 +251,13 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                static_cast<size_t>(buffer.getNumSamples()));
     }
   }
+
+  // A pending IR is applied on the first process call. Sync the reported latency here so
+  // the host sees the correct value once the staged IR takes effect. For IRs with significant
+  // pre-delay (peak offset > 0), this will be non-zero.
+  const int coreLatency = irProcessor_.getLatencySamples();
+  if (coreLatency != getLatencySamples())
+    setLatencySamples(coreLatency);
 }
 
 bool OctobIRProcessor::hasEditor() const
@@ -420,6 +427,8 @@ void OctobIRProcessor::swapImpulseResponses()
 {
   const float irAEnabled = apvts_.getRawParameterValue("irAEnable")->load();
   const float irBEnabled = apvts_.getRawParameterValue("irBEnable")->load();
+  const float trimA = apvts_.getRawParameterValue("irATrimGain")->load();
+  const float trimB = apvts_.getRawParameterValue("irBTrimGain")->load();
 
   const juce::String path1 = currentIR1Path_;
   const juce::String path2 = currentIR2Path_;
@@ -446,6 +455,12 @@ void OctobIRProcessor::swapImpulseResponses()
     param->setValueNotifyingHost(irAEnabled);
   if (auto* param = apvts_.getParameter("irBEnable"))
     param->setValueNotifyingHost(irBEnabled);
+
+  // Swap trim gains so each IR retains its original trim after changing slots.
+  if (auto* param = apvts_.getParameter("irATrimGain"))
+    param->setValueNotifyingHost(param->convertTo0to1(trimB));
+  if (auto* param = apvts_.getParameter("irBTrimGain"))
+    param->setValueNotifyingHost(param->convertTo0to1(trimA));
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

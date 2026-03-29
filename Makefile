@@ -1,4 +1,4 @@
-.PHONY: help vcv juce core test clean tidy format install-juce install-vcv header
+.PHONY: help vcv juce core test test-juce clean tidy format install-juce install-vcv header
 
 .DEFAULT_GOAL := help
 
@@ -15,7 +15,8 @@ help: header
 	@echo "  make vcv         - Clean, build, and install VCV plugin (debug)"
 	@echo "  make juce        - Clean and build JUCE plugin (debug)"
 	@echo "  make core        - Clean and build core library only"
-	@echo "  make test        - Build and run unit tests"
+	@echo "  make test        - Build and run octobir-core unit tests"
+	@echo "  make test-juce   - Build and run JUCE plugin unit tests"
 	@echo ""
 	@echo "Install targets (release builds):"
 	@echo "  make install-juce - Build and install JUCE plugin (release)"
@@ -75,6 +76,19 @@ test:
 	@cmake --build build/test --target octobir-core-tests -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 	@echo "Running tests..."
 	@./build/test/libs/octobir-core/tests/octobir-core-tests
+
+# JUCE Plugin Tests
+test-juce:
+	@rm -rf build/test-juce
+	@cmake -B build/test-juce \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DBUILD_JUCE_PLUGIN=ON \
+		-DBUILD_PLUGIN_TESTS=ON \
+		-DBUILD_VCV_PLUGIN=OFF \
+		-DBUILD_TESTS=OFF
+	@cmake --build build/test-juce --target octobir-plugin-tests -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+	@echo "Running JUCE plugin tests..."
+	@./build/test-juce/plugins/juce-multiformat/tests/octobir-plugin-tests
 
 # Clean target
 clean:

@@ -109,18 +109,14 @@ class IRProcessor
   std::atomic<bool> ir2Loaded_{false};
   int latencySamples1_ = 0;
   int latencySamples2_ = 0;
-  int ir1PeakOffset_ = 0;
-  int ir2PeakOffset_ = 0;
 
   std::unique_ptr<WDL_ConvolutionEngine_Div> stagingEngine1_;
   bool stagingLoaded1_ = false;
   int stagingLatency1_ = 0;
-  int stagingPeakOffset1_ = 0;
 
   std::unique_ptr<WDL_ConvolutionEngine_Div> stagingEngine2_;
   bool stagingLoaded2_ = false;
   int stagingLatency2_ = 0;
-  int stagingPeakOffset2_ = 0;
 
   std::mutex pendingMutex1_;
   std::mutex pendingMutex2_;

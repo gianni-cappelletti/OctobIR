@@ -410,6 +410,83 @@ TEST_F(ComponentTest, ConvolutionMatchesReference_EvenBlend)
                      << "Listen to /tmp/octobir_component_even_blend.wav for diagnosis.";
 }
 
+// Scenario: Equal-power blend is commutative — swapping which IR occupies slot 1 vs slot 2
+// must not change the output when blend=0.0f.
+//
+// Input:   INPUT_amp_output_no_ir.wav (44.1 kHz mono, dry amp signal)
+// IR A:    INPUT_ir_a.wav
+// IR B:    INPUT_ir_b.wav
+//
+// Preconditions:
+//   - Pre-swap processor: IR A in slot 1, IR B in slot 2, blend=0.0f.
+//   - Post-swap processor: IR B in slot 1, IR A in slot 2, blend=0.0f.
+//   - At blend=0.0f: gain_A = gain_B = sqrt(0.5). The math reduces to
+//     sqrt(0.5)*conv(x,A) + sqrt(0.5)*conv(x,B), which is slot-order invariant.
+//
+// Verifies:
+//   1. Both configurations produce non-silent output.
+//   2. Pearson r between the two outputs is > 0.9999. This threshold is intentionally
+//      tight: the outputs are a mathematical identity under a correct implementation,
+//      so any meaningful divergence indicates a bug in the dual-IR signal path.
+TEST_F(ComponentTest, ConvolutionIsSymmetric_AfterIrSwap)
+{
+  unsigned int drySampleRate = 0;
+  drwav_uint64 dryFrameCount = 0;
+  std::vector<float> dryInput = loadWavMono(dryPath_, drySampleRate, dryFrameCount);
+  ASSERT_FALSE(dryInput.empty()) << "Failed to load dry input: " << dryPath_;
+  ASSERT_EQ(drySampleRate, 44100u);
+
+  constexpr int kBlockSize = 512;
+
+  std::vector<float> outputAB;
+  {
+    IRProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    std::string err;
+    ASSERT_TRUE(p.loadImpulseResponse1(irAPath_, err)) << "IR A load failed: " << err;
+    ASSERT_TRUE(p.loadImpulseResponse2(irBPath_, err)) << "IR B load failed: " << err;
+    outputAB = processAndAlign(p, dryInput, kBlockSize);
+    writeWavMono("/tmp/octobir_swap_ab.wav", outputAB, drySampleRate);
+    float peak = 0.0f;
+    for (float s : outputAB)
+      peak = std::max(peak, std::abs(s));
+    ASSERT_GT(peak, 1e-6f) << "Pre-swap output is silent. Latency: " << p.getLatencySamples();
+  }
+
+  std::vector<float> outputBA;
+  {
+    IRProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    std::string err;
+    ASSERT_TRUE(p.loadImpulseResponse1(irBPath_, err)) << "IR B load failed: " << err;
+    ASSERT_TRUE(p.loadImpulseResponse2(irAPath_, err)) << "IR A load failed: " << err;
+    outputBA = processAndAlign(p, dryInput, kBlockSize);
+    writeWavMono("/tmp/octobir_swap_ba.wav", outputBA, drySampleRate);
+    float peak = 0.0f;
+    for (float s : outputBA)
+      peak = std::max(peak, std::abs(s));
+    ASSERT_GT(peak, 1e-6f) << "Post-swap output is silent. Latency: " << p.getLatencySamples();
+  }
+
+  const size_t compareLen = std::min(outputAB.size(), outputBA.size());
+  outputAB.resize(compareLen);
+  outputBA.resize(compareLen);
+
+  const double snrDb = computeSnrDb(outputAB, outputBA);
+  const double r = pearsonCorrelation(outputAB, outputBA);
+
+  std::cout << "[SwapSymmetry] Pearson r: " << r << "\n";
+  std::cout << "[SwapSymmetry] SNR: " << snrDb << " dB\n";
+  std::cout << "[SwapSymmetry] Pre-swap:  /tmp/octobir_swap_ab.wav\n";
+  std::cout << "[SwapSymmetry] Post-swap: /tmp/octobir_swap_ba.wav\n";
+
+  EXPECT_GT(r, 0.9999) << "Swap symmetry violated (r=" << r << ", SNR=" << snrDb
+                       << " dB). Output differs based on IR slot assignment. "
+                       << "Compare /tmp/octobir_swap_ab.wav and /tmp/octobir_swap_ba.wav.";
+}
+
 // Diagnostic: decomposes the blend into individual convolutions to isolate whether
 // the mismatch is in the dual-IR processing path or in the blending formula vs the reference.
 // Run manually with --gtest_also_run_disabled_tests when investigating blend discrepancies.

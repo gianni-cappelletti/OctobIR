@@ -78,7 +78,6 @@ bool IRProcessor::loadImpulseResponse1(const std::string& filepath, std::string&
     stagingEngine1_ = std::move(stagingEngine);
     stagingLoaded1_ = true;
     stagingLatency1_ = latency;
-    stagingPeakOffset1_ = 0;
     ir1Pending_.store(true, std::memory_order_release);
   }
 
@@ -145,7 +144,6 @@ bool IRProcessor::loadImpulseResponse2(const std::string& filepath, std::string&
     stagingEngine2_ = std::move(stagingEngine);
     stagingLoaded2_ = true;
     stagingLatency2_ = latency;
-    stagingPeakOffset2_ = 0;
     ir2Pending_.store(true, std::memory_order_release);
   }
 
@@ -163,7 +161,6 @@ void IRProcessor::clearImpulseResponse1()
     stagingEngine1_ = std::unique_ptr<WDL_ConvolutionEngine_Div>(new WDL_ConvolutionEngine_Div());
     stagingLoaded1_ = false;
     stagingLatency1_ = 0;
-    stagingPeakOffset1_ = 0;
     ir1Pending_.store(true, std::memory_order_release);
   }
   currentIR1Path_.clear();
@@ -176,7 +173,6 @@ void IRProcessor::clearImpulseResponse2()
     stagingEngine2_ = std::unique_ptr<WDL_ConvolutionEngine_Div>(new WDL_ConvolutionEngine_Div());
     stagingLoaded2_ = false;
     stagingLatency2_ = 0;
-    stagingPeakOffset2_ = 0;
     ir2Pending_.store(true, std::memory_order_release);
   }
   currentIR2Path_.clear();
@@ -201,7 +197,6 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
       stagingEngine1_ = std::move(stagingEngine);
       stagingLoaded1_ = true;
       stagingLatency1_ = latency >= 0 ? latency : 0;
-      stagingPeakOffset1_ = 0;
       ir1Pending_.store(true, std::memory_order_release);
     }
 
@@ -216,7 +211,6 @@ void IRProcessor::setSampleRate(SampleRate sampleRate)
       stagingEngine2_ = std::move(stagingEngine);
       stagingLoaded2_ = true;
       stagingLatency2_ = latency >= 0 ? latency : 0;
-      stagingPeakOffset2_ = 0;
       ir2Pending_.store(true, std::memory_order_release);
     }
   }
@@ -561,7 +555,6 @@ void IRProcessor::applyPendingIRUpdates()
       std::swap(convolutionEngine1_, stagingEngine1_);
       ir1Loaded_.store(stagingLoaded1_, std::memory_order_relaxed);
       latencySamples1_ = stagingLatency1_;
-      ir1PeakOffset_ = stagingPeakOffset1_;
       ir1Pending_.store(false, std::memory_order_relaxed);
       delayBuffersNeedUpdate = true;
     }
@@ -575,7 +568,6 @@ void IRProcessor::applyPendingIRUpdates()
       std::swap(convolutionEngine2_, stagingEngine2_);
       ir2Loaded_.store(stagingLoaded2_, std::memory_order_relaxed);
       latencySamples2_ = stagingLatency2_;
-      ir2PeakOffset_ = stagingPeakOffset2_;
       ir2Pending_.store(false, std::memory_order_relaxed);
       delayBuffersNeedUpdate = true;
     }

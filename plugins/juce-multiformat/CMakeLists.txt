@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
+option(BUILD_PLUGIN_TESTS "Build JUCE plugin unit tests" OFF)
+
 # Use version from parent project (read from VERSION file)
 if(NOT DEFINED OCTOBIR_VERSION)
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../VERSION" OCTOBIR_VERSION)
@@ -56,3 +58,7 @@ target_link_libraries(OctobIR
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+
+if(BUILD_PLUGIN_TESTS)
+    add_subdirectory(tests)
+endif()
