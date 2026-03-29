@@ -57,7 +57,7 @@ class LCDMeterPanel : public juce::Component
   bool showThresholds_ = false;
   juce::Typeface::Ptr typeface_;
 
-  static constexpr int numSegments_ = 20;
+  static constexpr int numSegments_ = 19;
   static constexpr int segmentGap_ = 2;
 
   void paintMeter(juce::Graphics& g, juce::Rectangle<int> barArea, float normValue,

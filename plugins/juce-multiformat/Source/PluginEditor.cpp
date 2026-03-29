@@ -82,12 +82,9 @@ void LCDMeterPanel::paintMeter(juce::Graphics& g, juce::Rectangle<int> barArea, 
     {
       int centre = numSegments_ / 2;
       float normPos = normValue * static_cast<float>(numSegments_);
-      if (normValue < 0.5f)
-        isLit = (static_cast<float>(i) >= normPos && i < centre);
-      else if (normValue > 0.5f)
-        isLit = (i >= centre && static_cast<float>(i) < normPos);
-      else
-        isLit = (i == centre);
+      isLit = (i == centre) ||
+              (normValue < 0.5f && static_cast<float>(i) >= normPos && i < centre) ||
+              (normValue > 0.5f && i > centre && static_cast<float>(i) < normPos);
     }
     else
     {
