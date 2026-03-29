@@ -19,7 +19,15 @@ add_executable(octobir-core-tests
   IRLoaderTests.cpp
   LatencyCompensationTests.cpp
   DynamicModeTests.cpp
+  DynamicModeAudioTests.cpp
   SidechainTests.cpp
+  SidechainAudioTests.cpp
+  ClearIRTests.cpp
+  TrimGainTests.cpp
+  BlendExtremeTests.cpp
+  ResetTests.cpp
+  SampleRateChangeTests.cpp
+  StereoComponentTests.cpp
   ComponentTests.cpp
 )
 

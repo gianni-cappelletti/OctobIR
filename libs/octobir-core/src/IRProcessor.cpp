@@ -430,11 +430,16 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   const float gain1 = gains.gain1;
   const float gain2 = gains.gain2;
 
+  // Feed mono input as stereo (duplicated to both channels) so that stereo IRs
+  // produce output from both L and R IR channels for downmixing. For mono IRs,
+  // WDL collapses identical channels internally — no extra cost.
+  WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
+  std::array<WDL_FFT_REAL*, 2> stereoInput = {inputPtr, inputPtr};
+
   if (hasIR1 && hasIR2)
   {
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine1_->Add(&inputPtr, static_cast<int>(numFrames), 1);
-    convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine1_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
@@ -443,6 +448,15 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
     {
       WDL_FFT_REAL** output1Ptr = convolutionEngine1_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
+
+      // Downmix stereo convolution output to mono in-place. When L and R point
+      // to the same buffer (mono IR collapsed by WDL), the check skips the loop.
+      if (output1Ptr[0] != output1Ptr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          output1Ptr[0][i] = (output1Ptr[0][i] + output1Ptr[1][i]) * 0.5f;
+      if (output2Ptr[0] != output2Ptr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          output2Ptr[0][i] = (output2Ptr[0][i] + output2Ptr[1][i]) * 0.5f;
 
       const int latencyDiff = latencySamples1_ - latencySamples2_;
 
@@ -491,13 +505,16 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   {
     writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
 
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine1_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine1_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames))
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
+
+      if (outputPtr[0] != outputPtr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          outputPtr[0][i] = (outputPtr[0][i] + outputPtr[1][i]) * 0.5f;
 
       readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
@@ -517,13 +534,16 @@ void IRProcessor::processMono(const Sample* input, Sample* output, FrameCount nu
   {
     writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
 
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames))
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
+
+      if (outputPtr[0] != outputPtr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          outputPtr[0][i] = (outputPtr[0][i] + outputPtr[1][i]) * 0.5f;
 
       readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
@@ -822,11 +842,13 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   const float gain1 = gains.gain1;
   const float gain2 = gains.gain2;
 
+  WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
+  std::array<WDL_FFT_REAL*, 2> stereoInput = {inputPtr, inputPtr};
+
   if (hasIR1 && hasIR2)
   {
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine1_->Add(&inputPtr, static_cast<int>(numFrames), 1);
-    convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available1 = convolutionEngine1_->Avail(static_cast<int>(numFrames));
     int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
@@ -835,6 +857,13 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
     {
       WDL_FFT_REAL** output1Ptr = convolutionEngine1_->Get();
       WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
+
+      if (output1Ptr[0] != output1Ptr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          output1Ptr[0][i] = (output1Ptr[0][i] + output1Ptr[1][i]) * 0.5f;
+      if (output2Ptr[0] != output2Ptr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          output2Ptr[0][i] = (output2Ptr[0][i] + output2Ptr[1][i]) * 0.5f;
 
       const int latencyDiff = latencySamples1_ - latencySamples2_;
 
@@ -883,13 +912,16 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   {
     writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
 
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine1_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine1_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames))
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
+
+      if (outputPtr[0] != outputPtr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          outputPtr[0][i] = (outputPtr[0][i] + outputPtr[1][i]) * 0.5f;
 
       readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples1_);
@@ -909,13 +941,16 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   {
     writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
 
-    WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
-    convolutionEngine2_->Add(&inputPtr, static_cast<int>(numFrames), 1);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
 
     int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
     if (available >= static_cast<int>(numFrames))
     {
       WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
+
+      if (outputPtr[0] != outputPtr[1])
+        for (FrameCount i = 0; i < numFrames; ++i)
+          outputPtr[0][i] = (outputPtr[0][i] + outputPtr[1][i]) * 0.5f;
 
       readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
                           latencySamples2_);
