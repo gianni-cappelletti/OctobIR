@@ -623,7 +623,7 @@ int IRProcessor::getNumIR2Channels() const
 
 int IRProcessor::getLatencySamples() const
 {
-  return maxLatencySamples_;
+  return maxLatencySamples_.load();
 }
 
 void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL,
@@ -1244,15 +1244,13 @@ void IRProcessor::applyOutputGain(Sample* buffer, FrameCount numFrames) const
 
 void IRProcessor::updateDelayBuffers()
 {
-  maxLatencySamples_ = std::max(latencySamples1_, latencySamples2_);
+  const int maxLatency = std::max(latencySamples1_, latencySamples2_);
+  maxLatencySamples_.store(maxLatency <= 0 ? 0 : maxLatency);
 
-  if (maxLatencySamples_ <= 0)
-  {
-    maxLatencySamples_ = 0;
+  if (maxLatency <= 0)
     return;
-  }
 
-  const size_t bufferSize = static_cast<size_t>(maxLatencySamples_);
+  const size_t bufferSize = static_cast<size_t>(maxLatency);
 
   if (dryDelayBufferL_.size() != bufferSize)
   {

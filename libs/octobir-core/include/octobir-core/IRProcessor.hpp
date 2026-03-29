@@ -166,7 +166,7 @@ class IRProcessor
   size_t ir1DelayWritePosR_ = 0;
   size_t ir2DelayWritePosL_ = 0;
   size_t ir2DelayWritePosR_ = 0;
-  int maxLatencySamples_ = 0;
+  std::atomic<int> maxLatencySamples_{0};
 
   struct BlendGains
   {

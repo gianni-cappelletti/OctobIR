@@ -102,9 +102,12 @@ bool OctobIRProcessor::isMidiEffect() const
 
 double OctobIRProcessor::getTailLengthSeconds() const
 {
+  const double sr = getSampleRate();
+  if (sr <= 0.0)
+    return 0.0;
   const size_t maxSamples =
       std::max(irProcessor_.getIR1NumSamples(), irProcessor_.getIR2NumSamples());
-  return static_cast<double>(maxSamples) / getSampleRate();
+  return static_cast<double>(maxSamples) / sr;
 }
 
 int OctobIRProcessor::getNumPrograms()
@@ -252,12 +255,8 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     }
   }
 
-  // A pending IR is applied on the first process call. Sync the reported latency here so
-  // the host sees the correct value once the staged IR takes effect. For IRs with significant
-  // pre-delay (peak offset > 0), this will be non-zero.
-  const int coreLatency = irProcessor_.getLatencySamples();
-  if (coreLatency != getLatencySamples())
-    setLatencySamples(coreLatency);
+  if (irProcessor_.getLatencySamples() != getLatencySamples())
+    triggerAsyncUpdate();
 }
 
 bool OctobIRProcessor::hasEditor() const
@@ -273,7 +272,7 @@ juce::AudioProcessorEditor* OctobIRProcessor::createEditor()
 void OctobIRProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
   auto state = apvts_.copyState();
-  state.setProperty("irPath", currentIR1Path_, nullptr);
+  state.setProperty("ir1Path", currentIR1Path_, nullptr);
   state.setProperty("ir2Path", currentIR2Path_, nullptr);
 
   juce::MemoryOutputStream stream(destData, false);
@@ -298,6 +297,8 @@ void OctobIRProcessor::setStateInformation(const void* data, int sizeInBytes)
 
 void OctobIRProcessor::handleAsyncUpdate()
 {
+  setLatencySamples(irProcessor_.getLatencySamples());
+
   juce::ValueTree state;
   {
     const juce::SpinLock::ScopedLockType lock(pendingStateLock_);
@@ -326,7 +327,7 @@ void OctobIRProcessor::handleAsyncUpdate()
     }
   }
 
-  juce::String path = state.getProperty("irPath").toString();
+  juce::String path = state.getProperty("ir1Path").toString();
   if (path.isNotEmpty())
   {
     juce::String error;
@@ -348,7 +349,6 @@ bool OctobIRProcessor::loadImpulseResponse1(const juce::String& filepath,
   if (irProcessor_.loadImpulseResponse1(filepath.toStdString(), error))
   {
     currentIR1Path_ = filepath;
-    setLatencySamples(irProcessor_.getLatencySamples());
     DBG("Loaded IR1: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
         " samples)");
 
@@ -375,7 +375,6 @@ bool OctobIRProcessor::loadImpulseResponse2(const juce::String& filepath,
   if (irProcessor_.loadImpulseResponse2(filepath.toStdString(), error))
   {
     currentIR2Path_ = filepath;
-    setLatencySamples(irProcessor_.getLatencySamples());
     DBG("Loaded IR2: " + filepath + " (Latency: " + juce::String(irProcessor_.getLatencySamples()) +
         " samples)");
 
@@ -399,7 +398,6 @@ void OctobIRProcessor::clearImpulseResponse1()
 {
   irProcessor_.clearImpulseResponse1();
   currentIR1Path_.clear();
-  setLatencySamples(irProcessor_.getLatencySamples());
 
   if (auto* param = apvts_.getParameter("irAEnable"))
   {
@@ -413,7 +411,6 @@ void OctobIRProcessor::clearImpulseResponse2()
 {
   irProcessor_.clearImpulseResponse2();
   currentIR2Path_.clear();
-  setLatencySamples(irProcessor_.getLatencySamples());
 
   if (auto* param = apvts_.getParameter("irBEnable"))
   {

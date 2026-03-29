@@ -2,6 +2,8 @@
 
 #include <BinaryData.h>
 
+#include "LCDPainting.h"
+
 OctobIRLookAndFeel::OctobIRLookAndFeel()
 {
   cutiveMonoTypeface_ = juce::Typeface::createSystemTypefaceFor(
@@ -38,7 +40,7 @@ OctobIRLookAndFeel::OctobIRLookAndFeel()
 
 void OctobIRLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                                           float sliderPos, float rotaryStartAngle,
-                                          float rotaryEndAngle, juce::Slider& slider)
+                                          float rotaryEndAngle, juce::Slider& /*slider*/)
 {
   const bool isCompact = juce::jmin(width, height) < 40;
   const float reducedAmt = isCompact ? 3.0f : 10.0f;
@@ -178,7 +180,7 @@ void OctobIRLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& but
 {
   if (button.getComponentID() == "loadButton")
   {
-    const float pad = 7.0f;
+    const float pad = 6.5f;
     const auto lb = button.getLocalBounds().toFloat();
     const float side = juce::jmin(lb.getWidth(), lb.getHeight()) - pad * 2.0f;
     auto b = juce::Rectangle<float>(side, side).withCentre(lb.getCentre());
@@ -225,146 +227,101 @@ void OctobIRLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
                                           bool /*shouldDrawButtonAsHighlighted*/,
                                           bool /*shouldDrawButtonAsDown*/)
 {
-  if (button.getProperties()["isLED"])
+  auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
+  const auto cornerSize = 4.0f;
+  bool isOn = button.getToggleState();
+  float alpha = button.isEnabled() ? 1.0f : 0.5f;
+
+  if (!isOn)
   {
-    auto bounds = button.getLocalBounds().toFloat();
-    auto ledSize = juce::jmin(bounds.getHeight() * 0.65f, 22.0f);
-    auto ledBounds = juce::Rectangle<float>(bounds.getX() + 6.0f,
-                                            bounds.getCentreY() - ledSize * 0.5f, ledSize, ledSize);
-    auto centre = ledBounds.getCentre();
-    auto radius = ledSize * 0.5f;
-    bool isOn = button.getToggleState();
-    auto ledColour = button.findColour(juce::ToggleButton::tickColourId);
+    juce::Path shadowPath;
+    shadowPath.addRoundedRectangle(bounds, cornerSize);
+    juce::DropShadow(juce::Colours::black.withAlpha(0.45f), 4, {0, 2}).drawForPath(g, shadowPath);
+  }
 
-    if (isOn)
-    {
-      auto glowR = radius * 1.8f;
-      juce::ColourGradient glow(ledColour.withAlpha(0.5f), centre, ledColour.withAlpha(0.0f),
-                                centre.translated(glowR, 0.0f), true);
-      g.setGradientFill(glow);
-      g.fillEllipse(centre.x - glowR, centre.y - glowR, glowR * 2.0f, glowR * 2.0f);
-    }
+  if (isOn)
+  {
+    // Pushed-in: reversed gradient (darker top, lighter bottom)
+    juce::ColourGradient gradient(juce::Colour(0xff1e1e1e).withMultipliedAlpha(alpha),
+                                  bounds.getX(), bounds.getY(),
+                                  juce::Colour(0xff2e2e2e).withMultipliedAlpha(alpha),
+                                  bounds.getX(), bounds.getBottom(), false);
+    g.setGradientFill(gradient);
+    g.fillRoundedRectangle(bounds, cornerSize);
 
-    auto innerColour =
-        isOn ? juce::Colour(0xffffb060) : ledColour.withSaturation(0.3f).withBrightness(0.08f);
-    auto outerColour =
-        isOn ? ledColour.darker(0.3f) : ledColour.withSaturation(0.2f).withBrightness(0.04f);
-    juce::ColourGradient body(innerColour, centre.translated(-radius * 0.3f, -radius * 0.3f),
-                              outerColour, centre.translated(radius * 0.7f, radius * 0.7f), true);
-    g.setGradientFill(body);
-    g.fillEllipse(ledBounds);
+    // Inset shadow on top and left
+    g.setColour(juce::Colour(0xff141414).withMultipliedAlpha(alpha));
+    g.drawLine(bounds.getX() + cornerSize, bounds.getY() + 1.0f, bounds.getRight() - cornerSize,
+               bounds.getY() + 1.0f, 1.0f);
+    g.drawLine(bounds.getX() + 1.0f, bounds.getY() + cornerSize, bounds.getX() + 1.0f,
+               bounds.getBottom() - cornerSize, 1.0f);
 
-    g.setColour(juce::Colours::black.withAlpha(0.7f));
-    g.drawEllipse(ledBounds, 1.0f);
-
-    if (button.getButtonText().isNotEmpty())
-    {
-      g.setColour(findColour(juce::Label::textColourId)
-                      .withMultipliedAlpha(button.isEnabled() ? 0.9f : 0.5f));
-      g.setFont(
-          juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(12.0f)));
-      auto textBounds = bounds.withLeft(ledBounds.getRight() + 5.0f);
-      g.drawFittedText(button.getButtonText(), textBounds.toNearestInt(),
-                       juce::Justification::centredLeft, 1);
-    }
+    // Highlight on bottom and right
+    g.setColour(juce::Colour(0xff505050).withMultipliedAlpha(alpha));
+    g.drawLine(bounds.getX() + cornerSize, bounds.getBottom() - 1.0f,
+               bounds.getRight() - cornerSize, bounds.getBottom() - 1.0f, 1.0f);
+    g.drawLine(bounds.getRight() - 1.0f, bounds.getY() + cornerSize, bounds.getRight() - 1.0f,
+               bounds.getBottom() - cornerSize, 1.0f);
   }
   else
   {
-    auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
-    const auto cornerSize = 4.0f;
-    bool isOn = button.getToggleState();
-    float alpha = button.isEnabled() ? 1.0f : 0.5f;
+    // Raised: matches TextButton / SWAP button style
+    juce::ColourGradient gradient(juce::Colour(0xff383838).withMultipliedAlpha(alpha),
+                                  bounds.getX(), bounds.getY(),
+                                  juce::Colour(0xff242424).withMultipliedAlpha(alpha),
+                                  bounds.getX(), bounds.getBottom(), false);
+    g.setGradientFill(gradient);
+    g.fillRoundedRectangle(bounds, cornerSize);
 
-    if (!isOn)
-    {
-      juce::Path shadowPath;
-      shadowPath.addRoundedRectangle(bounds, cornerSize);
-      juce::DropShadow(juce::Colours::black.withAlpha(0.45f), 4, {0, 2}).drawForPath(g, shadowPath);
-    }
+    // Highlight on top and left
+    g.setColour(juce::Colour(0xff505050).withMultipliedAlpha(alpha));
+    g.drawLine(bounds.getX() + cornerSize, bounds.getY() + 1.0f, bounds.getRight() - cornerSize,
+               bounds.getY() + 1.0f, 1.0f);
+    g.drawLine(bounds.getX() + 1.0f, bounds.getY() + cornerSize, bounds.getX() + 1.0f,
+               bounds.getBottom() - cornerSize, 1.0f);
 
-    if (isOn)
-    {
-      // Pushed-in: reversed gradient (darker top, lighter bottom)
-      juce::ColourGradient gradient(juce::Colour(0xff1e1e1e).withMultipliedAlpha(alpha),
-                                    bounds.getX(), bounds.getY(),
-                                    juce::Colour(0xff2e2e2e).withMultipliedAlpha(alpha),
-                                    bounds.getX(), bounds.getBottom(), false);
-      g.setGradientFill(gradient);
-      g.fillRoundedRectangle(bounds, cornerSize);
-
-      // Inset shadow on top and left
-      g.setColour(juce::Colour(0xff141414).withMultipliedAlpha(alpha));
-      g.drawLine(bounds.getX() + cornerSize, bounds.getY() + 1.0f, bounds.getRight() - cornerSize,
-                 bounds.getY() + 1.0f, 1.0f);
-      g.drawLine(bounds.getX() + 1.0f, bounds.getY() + cornerSize, bounds.getX() + 1.0f,
-                 bounds.getBottom() - cornerSize, 1.0f);
-
-      // Highlight on bottom and right
-      g.setColour(juce::Colour(0xff505050).withMultipliedAlpha(alpha));
-      g.drawLine(bounds.getX() + cornerSize, bounds.getBottom() - 1.0f,
-                 bounds.getRight() - cornerSize, bounds.getBottom() - 1.0f, 1.0f);
-      g.drawLine(bounds.getRight() - 1.0f, bounds.getY() + cornerSize, bounds.getRight() - 1.0f,
-                 bounds.getBottom() - cornerSize, 1.0f);
-    }
-    else
-    {
-      // Raised: matches TextButton / SWAP button style
-      juce::ColourGradient gradient(juce::Colour(0xff383838).withMultipliedAlpha(alpha),
-                                    bounds.getX(), bounds.getY(),
-                                    juce::Colour(0xff242424).withMultipliedAlpha(alpha),
-                                    bounds.getX(), bounds.getBottom(), false);
-      g.setGradientFill(gradient);
-      g.fillRoundedRectangle(bounds, cornerSize);
-
-      // Highlight on top and left
-      g.setColour(juce::Colour(0xff505050).withMultipliedAlpha(alpha));
-      g.drawLine(bounds.getX() + cornerSize, bounds.getY() + 1.0f, bounds.getRight() - cornerSize,
-                 bounds.getY() + 1.0f, 1.0f);
-      g.drawLine(bounds.getX() + 1.0f, bounds.getY() + cornerSize, bounds.getX() + 1.0f,
-                 bounds.getBottom() - cornerSize, 1.0f);
-
-      // Shadow on bottom and right
-      g.setColour(juce::Colour(0xff141414).withMultipliedAlpha(alpha));
-      g.drawLine(bounds.getX() + cornerSize, bounds.getBottom() - 1.0f,
-                 bounds.getRight() - cornerSize, bounds.getBottom() - 1.0f, 1.0f);
-      g.drawLine(bounds.getRight() - 1.0f, bounds.getY() + cornerSize, bounds.getRight() - 1.0f,
-                 bounds.getBottom() - cornerSize, 1.0f);
-    }
-
-    g.setColour(juce::Colour(0xff181818).withMultipliedAlpha(alpha));
-    g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
-
-    // LED strip on left
-    const float ledWidth = 8.0f;
-    auto ledColour = juce::Colour(0xffe07030);
-    auto ledRect = bounds.withWidth(ledWidth);
-
-    if (isOn)
-    {
-      auto ledCentre = ledRect.getCentre();
-      const float glowRadius = 18.0f;
-      juce::ColourGradient glow(ledColour.withAlpha(0.28f), ledCentre, ledColour.withAlpha(0.0f),
-                                ledCentre.translated(glowRadius, 0.0f), true);
-      g.setGradientFill(glow);
-      g.fillRect(ledRect.expanded(glowRadius));
-
-      juce::ColourGradient stripGlow(juce::Colour(0xffffb060).withMultipliedAlpha(alpha), ledCentre,
-                                     ledColour.darker(0.25f).withMultipliedAlpha(alpha),
-                                     ledCentre.translated(0.0f, ledRect.getHeight() * 0.5f), true);
-      g.setGradientFill(stripGlow);
-      g.fillRoundedRectangle(ledRect, cornerSize);
-    }
-    else
-    {
-      g.setColour(ledColour.withSaturation(0.25f).withBrightness(0.12f).withMultipliedAlpha(alpha));
-      g.fillRoundedRectangle(ledRect, cornerSize);
-    }
-
-    g.setColour(juce::Colours::white.withMultipliedAlpha(alpha * 0.9f));
-    g.setFont(juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(13.0f)));
-    g.drawFittedText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred,
-                     1);
+    // Shadow on bottom and right
+    g.setColour(juce::Colour(0xff141414).withMultipliedAlpha(alpha));
+    g.drawLine(bounds.getX() + cornerSize, bounds.getBottom() - 1.0f,
+               bounds.getRight() - cornerSize, bounds.getBottom() - 1.0f, 1.0f);
+    g.drawLine(bounds.getRight() - 1.0f, bounds.getY() + cornerSize, bounds.getRight() - 1.0f,
+               bounds.getBottom() - cornerSize, 1.0f);
   }
+
+  g.setColour(juce::Colour(0xff181818).withMultipliedAlpha(alpha));
+  g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
+
+  // LED strip on left
+  const float ledWidth = 8.0f;
+  auto ledColour = juce::Colour(0xffe07030);
+  auto ledRect = bounds.withWidth(ledWidth);
+
+  if (isOn)
+  {
+    auto ledCentre = ledRect.getCentre();
+    const float glowRadius = 18.0f;
+    juce::ColourGradient glow(ledColour.withAlpha(0.28f), ledCentre, ledColour.withAlpha(0.0f),
+                              ledCentre.translated(glowRadius, 0.0f), true);
+    g.setGradientFill(glow);
+    g.fillRect(ledRect.expanded(glowRadius));
+
+    juce::ColourGradient stripGlow(juce::Colour(0xffffb060).withMultipliedAlpha(alpha), ledCentre,
+                                   ledColour.darker(0.25f).withMultipliedAlpha(alpha),
+                                   ledCentre.translated(0.0f, ledRect.getHeight() * 0.5f), true);
+    g.setGradientFill(stripGlow);
+    g.fillRoundedRectangle(ledRect, cornerSize);
+  }
+  else
+  {
+    g.setColour(ledColour.withSaturation(0.25f).withBrightness(0.12f).withMultipliedAlpha(alpha));
+    g.fillRoundedRectangle(ledRect, cornerSize);
+  }
+
+  g.setColour(juce::Colours::white.withMultipliedAlpha(alpha * 0.9f));
+  g.setFont(juce::Font(juce::FontOptions().withTypeface(cutiveMonoTypeface_).withHeight(13.0f)));
+  g.drawFittedText(button.getButtonText(),
+                   button.getLocalBounds().withTrimmedLeft(static_cast<int>(ledWidth)),
+                   juce::Justification::centred, 1);
 }
 
 void OctobIRLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
@@ -412,23 +369,7 @@ void OctobIRLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
 {
   if (dynamic_cast<juce::Slider*>(label.getParentComponent()) != nullptr)
   {
-    auto bounds = label.getLocalBounds().toFloat();
-    g.setColour(juce::Colour(0xffF08830));
-    g.fillRoundedRectangle(bounds, 3.0f);
-    g.setColour(juce::Colour(0xff1a1a1a));
-    g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
-
-    auto inner = bounds.reduced(1.0f);
-    juce::ColourGradient topShadow(juce::Colour(0xff000000).withAlpha(0.22f), inner.getX(),
-                                   inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                   inner.getX(), inner.getY() + 5.0f, false);
-    g.setGradientFill(topShadow);
-    g.fillRoundedRectangle(inner, 2.0f);
-    juce::ColourGradient leftShadow(juce::Colour(0xff000000).withAlpha(0.12f), inner.getX(),
-                                    inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                    inner.getX() + 5.0f, inner.getY(), false);
-    g.setGradientFill(leftShadow);
-    g.fillRoundedRectangle(inner, 2.0f);
+    drawLCDBackground(g, label.getLocalBounds().toFloat());
 
     if (!label.isBeingEdited())
     {

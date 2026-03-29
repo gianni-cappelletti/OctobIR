@@ -168,13 +168,27 @@ TEST_F(PluginProcessorTest, StateRoundTrip_Parameters)
   juce::String err;
   ASSERT_TRUE(processor.loadImpulseResponse1(kIrAPath, err));
 
-  auto* blendParam = processor.getAPVTS().getParameter("blend");
-  ASSERT_NE(blendParam, nullptr);
-  blendParam->setValueNotifyingHost(blendParam->convertTo0to1(0.25f));
+  auto setParam = [&](const char* id, float value)
+  {
+    auto* p = processor.getAPVTS().getParameter(id);
+    ASSERT_NE(p, nullptr) << "Parameter not found: " << id;
+    p->setValueNotifyingHost(p->convertTo0to1(value));
+  };
 
-  auto* gainParam = processor.getAPVTS().getParameter("outputGain");
-  ASSERT_NE(gainParam, nullptr);
-  gainParam->setValueNotifyingHost(gainParam->convertTo0to1(6.0f));
+  setParam("irAEnable", 1.0f);
+  setParam("irBEnable", 1.0f);
+  setParam("dynamicMode", 1.0f);
+  setParam("sidechainEnable", 1.0f);
+  setParam("blend", 0.25f);
+  setParam("threshold", -20.0f);
+  setParam("rangeDb", 35.0f);
+  setParam("kneeWidthDb", 10.0f);
+  setParam("detectionMode", 1.0f);
+  setParam("attackTime", 100.0f);
+  setParam("releaseTime", 400.0f);
+  setParam("outputGain", 6.0f);
+  setParam("irATrimGain", -3.0f);
+  setParam("irBTrimGain", 5.0f);
 
   juce::MemoryBlock state;
   processor.getStateInformation(state);
@@ -182,11 +196,25 @@ TEST_F(PluginProcessorTest, StateRoundTrip_Parameters)
   OctobIRProcessor processor2;
   processor2.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
 
-  const float blendOrig = processor.getAPVTS().getRawParameterValue("blend")->load();
-  const float blend2 = processor2.getAPVTS().getRawParameterValue("blend")->load();
-  EXPECT_NEAR(blend2, blendOrig, 0.01f);
+  auto expectParam = [&](const char* id, float tolerance)
+  {
+    const float orig = processor.getAPVTS().getRawParameterValue(id)->load();
+    const float restored = processor2.getAPVTS().getRawParameterValue(id)->load();
+    EXPECT_NEAR(restored, orig, tolerance) << "Mismatch for parameter: " << id;
+  };
 
-  const float gainOrig = processor.getAPVTS().getRawParameterValue("outputGain")->load();
-  const float gain2 = processor2.getAPVTS().getRawParameterValue("outputGain")->load();
-  EXPECT_NEAR(gain2, gainOrig, 0.1f);
+  expectParam("irAEnable", 0.01f);
+  expectParam("irBEnable", 0.01f);
+  expectParam("dynamicMode", 0.01f);
+  expectParam("sidechainEnable", 0.01f);
+  expectParam("blend", 0.01f);
+  expectParam("threshold", 0.1f);
+  expectParam("rangeDb", 0.1f);
+  expectParam("kneeWidthDb", 0.1f);
+  expectParam("detectionMode", 0.01f);
+  expectParam("attackTime", 1.0f);
+  expectParam("releaseTime", 1.0f);
+  expectParam("outputGain", 0.1f);
+  expectParam("irATrimGain", 0.1f);
+  expectParam("irBTrimGain", 0.1f);
 }

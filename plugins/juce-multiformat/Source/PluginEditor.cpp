@@ -13,30 +13,13 @@ void LCDMeterPanel::paint(juce::Graphics& g)
   static constexpr int kBarH = 24;
   static constexpr int kGapBM = 16;
 
-  auto bounds = getLocalBounds().toFloat().reduced(1.0f);
-
-  g.setColour(juce::Colour(0xffF08830));
-  g.fillRoundedRectangle(bounds, 3.0f);
-  g.setColour(juce::Colour(0xff1a1a1a));
-  g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
-
-  auto inner = bounds.reduced(1.0f);
-  juce::ColourGradient topShadow(juce::Colour(0xff000000).withAlpha(0.22f), inner.getX(),
-                                 inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                 inner.getX(), inner.getY() + 5.0f, false);
-  g.setGradientFill(topShadow);
-  g.fillRoundedRectangle(inner, 2.0f);
-  juce::ColourGradient leftShadow(juce::Colour(0xff000000).withAlpha(0.12f), inner.getX(),
-                                  inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                  inner.getX() + 5.0f, inner.getY(), false);
-  g.setGradientFill(leftShadow);
-  g.fillRoundedRectangle(inner, 2.0f);
+  drawLCDBackground(g, getLocalBounds().toFloat().reduced(1.0f));
 
   if (typeface_ != nullptr)
-    g.setFont(juce::Font(juce::FontOptions().withTypeface(typeface_).withHeight(8.0f)));
+    g.setFont(juce::Font(juce::FontOptions().withTypeface(typeface_).withHeight(9.0f)));
   else
     g.setFont(juce::Font(
-        juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.0f, juce::Font::plain)));
+        juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::plain)));
 
   g.setColour(juce::Colour(0xff1c1c30));
 
@@ -101,8 +84,10 @@ void LCDMeterPanel::paintMeter(juce::Graphics& g, juce::Rectangle<int> barArea, 
       float normPos = normValue * static_cast<float>(numSegments_);
       if (normValue < 0.5f)
         isLit = (static_cast<float>(i) >= normPos && i < centre);
-      else
+      else if (normValue > 0.5f)
         isLit = (i >= centre && static_cast<float>(i) < normPos);
+      else
+        isLit = (i == centre);
     }
     else
     {
@@ -205,15 +190,18 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
   addAndMakeVisible(prevButton1_);
   prevButton1_.setPaintingIsUnclipped(true);
   prevButton1_.setButtonText("<");
+  prevButton1_.setTitle("Previous IR 1");
   prevButton1_.onClick = [this] { prevButton1Clicked(); };
 
   addAndMakeVisible(nextButton1_);
   nextButton1_.setPaintingIsUnclipped(true);
   nextButton1_.setButtonText(">");
+  nextButton1_.setTitle("Next IR 1");
   nextButton1_.onClick = [this] { nextButton1Clicked(); };
 
   addAndMakeVisible(ir1LCDDisplay_);
   ir1LCDDisplay_.setTextColour(juce::Colour(0xff1c1c30));
+  ir1LCDDisplay_.setOnClick([this] { loadButton1Clicked(); });
   ir1LCDDisplay_.setText(audioProcessor.getCurrentIR1Path().isEmpty()
                              ? "No IR loaded"
                              : juce::File(audioProcessor.getCurrentIR1Path()).getFileName());
@@ -239,15 +227,18 @@ OctobIREditor::OctobIREditor(OctobIRProcessor& p) : AudioProcessorEditor(&p), au
   addAndMakeVisible(prevButton2_);
   prevButton2_.setPaintingIsUnclipped(true);
   prevButton2_.setButtonText("<");
+  prevButton2_.setTitle("Previous IR 2");
   prevButton2_.onClick = [this] { prevButton2Clicked(); };
 
   addAndMakeVisible(nextButton2_);
   nextButton2_.setPaintingIsUnclipped(true);
   nextButton2_.setButtonText(">");
+  nextButton2_.setTitle("Next IR 2");
   nextButton2_.onClick = [this] { nextButton2Clicked(); };
 
   addAndMakeVisible(ir2LCDDisplay_);
   ir2LCDDisplay_.setTextColour(juce::Colour(0xff1c1c30));
+  ir2LCDDisplay_.setOnClick([this] { loadButton2Clicked(); });
   ir2LCDDisplay_.setText(audioProcessor.getCurrentIR2Path().isEmpty()
                              ? "No IR loaded"
                              : juce::File(audioProcessor.getCurrentIR2Path()).getFileName());
@@ -411,7 +402,7 @@ void OctobIREditor::paint(juce::Graphics& g)
   drawScrew(g, screwCx1, screwCyBottom);
   drawScrew(g, screwCx2, screwCyBottom);
 
-  g.setColour(juce::Colour(0xff888888));
+  g.setColour(juce::Colour(0xff555555));
   g.setFont(juce::Font(juce::FontOptions().withHeight(8.0f)));
 
   auto versionArea = juce::Rectangle<float>(32.0f, screwCyBottom - 5.0f, screwCx1 - 40.0f, 10.0f);

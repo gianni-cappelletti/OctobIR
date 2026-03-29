@@ -17,11 +17,13 @@ class LCDMeterPanel : public juce::Component
   void setInputValue(float v)
   {
     inputValue_ = v;
+    updateAccessibleTitle();
     repaint();
   }
   void setBlendValue(float v)
   {
     blendValue_ = v;
+    updateAccessibleTitle();
     repaint();
   }
   void setShowThresholds(bool show)
@@ -33,10 +35,21 @@ class LCDMeterPanel : public juce::Component
   {
     lowThreshold_ = lo;
     highThreshold_ = hi;
+    repaint();
   }
   void paint(juce::Graphics& g) override;
 
+  std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override
+  {
+    return std::make_unique<juce::AccessibilityHandler>(*this, juce::AccessibilityRole::group);
+  }
+
  private:
+  void updateAccessibleTitle()
+  {
+    setTitle("Input: " + juce::String(inputValue_, 1) +
+             " dB, Blend: " + juce::String(blendValue_, 2));
+  }
   float inputValue_ = 0.0f;
   float blendValue_ = 0.0f;
   float lowThreshold_ = 0.0f;

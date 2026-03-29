@@ -2,6 +2,10 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include <functional>
+
+#include "LCDPainting.h"
+
 class LCDDisplay : public juce::Component
 {
  public:
@@ -30,33 +34,23 @@ class LCDDisplay : public juce::Component
     repaint();
   }
 
+  void setOnClick(std::function<void()> callback) { onClick_ = std::move(callback); }
+
+  void mouseUp(const juce::MouseEvent& event) override
+  {
+    if (onClick_ && event.mouseWasClicked())
+      onClick_();
+  }
+
   void paint(juce::Graphics& g) override
   {
-    auto bounds = getLocalBounds().toFloat().reduced(1.0f);
-
-    g.setColour(juce::Colour(0xffF08830));
-    g.fillRoundedRectangle(bounds, 3.0f);
-
-    g.setColour(juce::Colour(0xff1a1a1a));
-    g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
-
-    auto inner = bounds.reduced(1.0f);
-    juce::ColourGradient topShadow(juce::Colour(0xff000000).withAlpha(0.22f), inner.getX(),
-                                   inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                   inner.getX(), inner.getY() + 5.0f, false);
-    g.setGradientFill(topShadow);
-    g.fillRoundedRectangle(inner, 2.0f);
-    juce::ColourGradient leftShadow(juce::Colour(0xff000000).withAlpha(0.12f), inner.getX(),
-                                    inner.getY(), juce::Colour(0xff000000).withAlpha(0.0f),
-                                    inner.getX() + 5.0f, inner.getY(), false);
-    g.setGradientFill(leftShadow);
-    g.fillRoundedRectangle(inner, 2.0f);
+    drawLCDBackground(g, getLocalBounds().toFloat().reduced(1.0f));
 
     if (typeface_ != nullptr)
-      g.setFont(juce::Font(juce::FontOptions().withTypeface(typeface_).withHeight(8.0f)));
+      g.setFont(juce::Font(juce::FontOptions().withTypeface(typeface_).withHeight(9.0f)));
     else
       g.setFont(juce::Font(
-          juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.0f, juce::Font::plain)));
+          juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::plain)));
 
     g.setColour(textColour_.withAlpha(isEnabled() ? 1.0f : 0.4f));
     g.drawFittedText(text_, getLocalBounds().reduced(6, 4), juce::Justification::centredLeft, 1,
@@ -77,4 +71,5 @@ class LCDDisplay : public juce::Component
   juce::String text_ = "No IR loaded";
   juce::Colour textColour_ = juce::Colour(0xff1c1c30);
   juce::Typeface::Ptr typeface_;
+  std::function<void()> onClick_;
 };
