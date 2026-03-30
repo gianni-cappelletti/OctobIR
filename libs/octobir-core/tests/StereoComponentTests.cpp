@@ -327,6 +327,87 @@ TEST_F(StereoComponentTest, StereoProcessing_BothChannelsNonSilent)
   EXPECT_GT(peakR, 1e-6f) << "R channel is silent with stereo IR";
 }
 
+// Mono-to-stereo processing with a stereo IR should produce non-silent,
+// distinct L/R outputs from a mono input signal.
+TEST_F(StereoComponentTest, MonoToStereo_StereoIR_ProducesStereoOutput)
+{
+  IRProcessor processor;
+  processor.setSampleRate(44100.0);
+  processor.setMaxBlockSize(kBlockSize);
+  processor.setIRBEnabled(false);
+
+  std::string err;
+  ASSERT_TRUE(processor.loadImpulseResponse1(kStereoIRPath, err)) << err;
+
+  std::vector<Sample> input(kBlockSize, 0.25f);
+  std::vector<Sample> outL(kBlockSize, 0.0f);
+  std::vector<Sample> outR(kBlockSize, 0.0f);
+
+  for (int b = 0; b < 10; ++b)
+    processor.processMonoToStereo(input.data(), outL.data(), outR.data(), kBlockSize);
+
+  float peakL = 0.0f, peakR = 0.0f;
+  bool anyDifference = false;
+  for (int i = 0; i < kBlockSize; ++i)
+  {
+    peakL = std::max(peakL, std::abs(outL[i]));
+    peakR = std::max(peakR, std::abs(outR[i]));
+    if (std::abs(outL[i] - outR[i]) > 1e-6f)
+      anyDifference = true;
+  }
+  EXPECT_GT(peakL, 1e-6f) << "L channel is silent in mono-to-stereo mode";
+  EXPECT_GT(peakR, 1e-6f) << "R channel is silent in mono-to-stereo mode";
+  EXPECT_TRUE(anyDifference) << "L and R are identical despite stereo IR — "
+                             << "mono-to-stereo should preserve the IR's stereo image";
+}
+
+// Mono-to-stereo with a mono IR should produce identical L/R output.
+TEST_F(StereoComponentTest, MonoToStereo_MonoIR_LRChannelsIdentical)
+{
+  IRProcessor processor;
+  processor.setSampleRate(44100.0);
+  processor.setMaxBlockSize(kBlockSize);
+  processor.setIRBEnabled(false);
+
+  std::string err;
+  ASSERT_TRUE(processor.loadImpulseResponse1(kMonoIRPath, err)) << err;
+
+  std::vector<Sample> input(kBlockSize, 0.25f);
+  std::vector<Sample> outL(kBlockSize, 0.0f);
+  std::vector<Sample> outR(kBlockSize, 0.0f);
+
+  for (int b = 0; b < 10; ++b)
+    processor.processMonoToStereo(input.data(), outL.data(), outR.data(), kBlockSize);
+
+  for (int i = 0; i < kBlockSize; ++i)
+    EXPECT_FLOAT_EQ(outL[i], outR[i])
+        << "L and R should be identical with a mono IR at sample " << i;
+}
+
+// Mono-to-stereo passthrough: with no IRs loaded, the mono input should
+// be copied to both L and R output channels.
+TEST_F(StereoComponentTest, MonoToStereo_Passthrough_NoIRsLoaded)
+{
+  IRProcessor processor;
+  processor.setSampleRate(44100.0);
+  processor.setMaxBlockSize(kBlockSize);
+
+  std::vector<Sample> input(kBlockSize);
+  for (int i = 0; i < kBlockSize; ++i)
+    input[i] = 0.5f * std::sin(2.0f * 3.14159f * 440.0f * i / 44100.0f);
+
+  std::vector<Sample> outL(kBlockSize, 0.0f);
+  std::vector<Sample> outR(kBlockSize, 0.0f);
+
+  processor.processMonoToStereo(input.data(), outL.data(), outR.data(), kBlockSize);
+
+  for (int i = 0; i < kBlockSize; ++i)
+  {
+    EXPECT_FLOAT_EQ(outL[i], input[i]) << "L passthrough mismatch at sample " << i;
+    EXPECT_FLOAT_EQ(outR[i], input[i]) << "R passthrough mismatch at sample " << i;
+  }
+}
+
 // Stereo IR loads successfully and reports 2 channels.
 TEST_F(StereoComponentTest, StereoIR_LoadsWithCorrectChannelCount)
 {

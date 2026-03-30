@@ -149,11 +149,14 @@ void OctobIRProcessor::releaseResources()
 
 bool OctobIRProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-      layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+  auto inputSet = layouts.getMainInputChannelSet();
+  auto outputSet = layouts.getMainOutputChannelSet();
+
+  if (outputSet != juce::AudioChannelSet::mono() && outputSet != juce::AudioChannelSet::stereo())
     return false;
 
-  if (layouts.getMainInputChannelSet() != layouts.getMainOutputChannelSet())
+  if (inputSet != outputSet &&
+      !(inputSet == juce::AudioChannelSet::mono() && outputSet == juce::AudioChannelSet::stereo()))
     return false;
 
   auto sidechain = layouts.getChannelSet(true, 1);
@@ -210,9 +213,12 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   auto sidechainBuffer = getBusBuffer(buffer, true, 1);
   bool hasSidechain = sidechainBuffer.getNumChannels() != 0;
 
+  int numInputChannels = mainInputChannels.getNumChannels();
+  bool monoToStereo = numInputChannels == 1 && totalNumOutputChannels >= 2;
+
   if (dynamicMode && sidechainEnabled && hasSidechain)
   {
-    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2)
+    if (numInputChannels >= 2 && totalNumOutputChannels >= 2)
     {
       float* mainL = mainInputChannels.getWritePointer(0);
       float* mainR = mainInputChannels.getWritePointer(1);
@@ -227,7 +233,18 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
       irProcessor_.processStereoWithSidechain(mainL, mainR, scL, scR, outL, outR,
                                               static_cast<size_t>(buffer.getNumSamples()));
     }
-    else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1)
+    else if (monoToStereo)
+    {
+      const float* main = mainInputChannels.getReadPointer(0);
+      const float* sc =
+          sidechainBuffer.getNumChannels() >= 1 ? sidechainBuffer.getReadPointer(0) : main;
+      float* outL = buffer.getWritePointer(0);
+      float* outR = buffer.getWritePointer(1);
+
+      irProcessor_.processMonoToStereoWithSidechain(main, sc, outL, outR,
+                                                    static_cast<size_t>(buffer.getNumSamples()));
+    }
+    else if (numInputChannels >= 1 && totalNumOutputChannels >= 1)
     {
       float* main = mainInputChannels.getWritePointer(0);
       const float* sc =
@@ -240,14 +257,22 @@ void OctobIRProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   }
   else
   {
-    if (mainInputChannels.getNumChannels() >= 2 && totalNumOutputChannels >= 2)
+    if (numInputChannels >= 2 && totalNumOutputChannels >= 2)
     {
       float* channelDataL = buffer.getWritePointer(0);
       float* channelDataR = buffer.getWritePointer(1);
       irProcessor_.processStereo(channelDataL, channelDataR, channelDataL, channelDataR,
                                  static_cast<size_t>(buffer.getNumSamples()));
     }
-    else if (mainInputChannels.getNumChannels() >= 1 && totalNumOutputChannels >= 1)
+    else if (monoToStereo)
+    {
+      const float* inputData = mainInputChannels.getReadPointer(0);
+      float* outL = buffer.getWritePointer(0);
+      float* outR = buffer.getWritePointer(1);
+      irProcessor_.processMonoToStereo(inputData, outL, outR,
+                                       static_cast<size_t>(buffer.getNumSamples()));
+    }
+    else if (numInputChannels >= 1 && totalNumOutputChannels >= 1)
     {
       float* channelData = buffer.getWritePointer(0);
       irProcessor_.processMono(channelData, channelData,

@@ -50,9 +50,13 @@ class IRProcessor
                      FrameCount numFrames);
   void processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
                        FrameCount numFrames);
+  void processMonoToStereo(const Sample* input, Sample* outputL, Sample* outputR,
+                           FrameCount numFrames);
 
   void processMonoWithSidechain(const Sample* input, const Sample* sidechain, Sample* output,
                                 FrameCount numFrames);
+  void processMonoToStereoWithSidechain(const Sample* input, const Sample* sidechain,
+                                        Sample* outputL, Sample* outputR, FrameCount numFrames);
   void processStereoWithSidechain(const Sample* inputL, const Sample* inputR,
                                   const Sample* sidechainL, const Sample* sidechainR,
                                   Sample* outputL, Sample* outputR, FrameCount numFrames);

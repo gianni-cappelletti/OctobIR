@@ -819,6 +819,168 @@ void IRProcessor::processDualMono(const Sample* inputL, const Sample* inputR, Sa
   processStereo(inputL, inputR, outputL, outputR, numFrames);
 }
 
+void IRProcessor::processMonoToStereo(const Sample* input, Sample* outputL, Sample* outputR,
+                                      FrameCount numFrames)
+{
+  applyPendingIRUpdates();
+
+  bool hasIR1 = ir1Loaded_.load(std::memory_order_relaxed) && irAEnabled_;
+  bool hasIR2 = ir2Loaded_.load(std::memory_order_relaxed) && irBEnabled_;
+
+  if (!hasIR1 && !hasIR2)
+  {
+    std::copy(input, input + numFrames, outputL);
+    std::copy(input, input + numFrames, outputR);
+    applyOutputGain(outputL, numFrames);
+    applyOutputGain(outputR, numFrames);
+    return;
+  }
+
+  currentInputLevelDb_ =
+      (detectionMode_ == 0) ? detectPeakLevel(input, numFrames) : detectRMSLevel(input, numFrames);
+
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, !sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
+
+  WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
+  std::array<WDL_FFT_REAL*, 2> stereoInput = {inputPtr, inputPtr};
+
+  if (hasIR1 && hasIR2)
+  {
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available1 = convolutionEngine1_->Avail(static_cast<int>(numFrames));
+    int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
+
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** output1Ptr = convolutionEngine1_->Get();
+      WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
+
+      const int latencyDiff = latencySamples1_ - latencySamples2_;
+
+      if (latencyDiff > 0)
+      {
+        writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
+        writeToDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, output1Ptr[1], numFrames);
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
+                            latencyDiff);
+        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, scratchR_.data(), numFrames,
+                            latencyDiff);
+
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * scratchR_[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
+        }
+      }
+      else if (latencyDiff < 0)
+      {
+        writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
+        writeToDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, output2Ptr[1], numFrames);
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
+                            -latencyDiff);
+        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, scratchR_.data(), numFrames,
+                            -latencyDiff);
+
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * scratchL_[i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * scratchR_[i];
+        }
+      }
+      else
+      {
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
+        }
+      }
+
+      convolutionEngine1_->Advance(static_cast<int>(numFrames));
+      convolutionEngine2_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+  else if (hasIR1)
+  {
+    writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
+    writeToDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, input, numFrames);
+
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available = convolutionEngine1_->Avail(static_cast<int>(numFrames));
+    if (available >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
+
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
+                          latencySamples1_);
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
+                          latencySamples1_);
+
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * scratchR_[i];
+      }
+      convolutionEngine1_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+  else
+  {
+    writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
+    writeToDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, input, numFrames);
+
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
+    if (available >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
+
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
+                          latencySamples2_);
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
+                          latencySamples2_);
+
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
+        outputL[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * scratchR_[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
+      }
+      convolutionEngine2_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+
+  applyOutputGain(outputL, numFrames);
+  applyOutputGain(outputR, numFrames);
+}
+
 void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* sidechain,
                                            Sample* output, FrameCount numFrames)
 {
@@ -968,6 +1130,169 @@ void IRProcessor::processMonoWithSidechain(const Sample* input, const Sample* si
   }
 
   applyOutputGain(output, numFrames);
+}
+
+void IRProcessor::processMonoToStereoWithSidechain(const Sample* input, const Sample* sidechain,
+                                                   Sample* outputL, Sample* outputR,
+                                                   FrameCount numFrames)
+{
+  applyPendingIRUpdates();
+
+  bool hasIR1 = ir1Loaded_.load(std::memory_order_relaxed) && irAEnabled_;
+  bool hasIR2 = ir2Loaded_.load(std::memory_order_relaxed) && irBEnabled_;
+
+  if (!hasIR1 && !hasIR2)
+  {
+    std::copy(input, input + numFrames, outputL);
+    std::copy(input, input + numFrames, outputR);
+    applyOutputGain(outputL, numFrames);
+    applyOutputGain(outputR, numFrames);
+    return;
+  }
+
+  currentInputLevelDb_ = (detectionMode_ == 0) ? detectPeakLevel(sidechain, numFrames)
+                                               : detectRMSLevel(sidechain, numFrames);
+
+  const BlendGains gains =
+      resolveBlendGains(currentInputLevelDb_, numFrames, sidechainEnabled_, hasIR1, hasIR2);
+  const float gain1 = gains.gain1;
+  const float gain2 = gains.gain2;
+
+  WDL_FFT_REAL* inputPtr = const_cast<WDL_FFT_REAL*>(input);
+  std::array<WDL_FFT_REAL*, 2> stereoInput = {inputPtr, inputPtr};
+
+  if (hasIR1 && hasIR2)
+  {
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available1 = convolutionEngine1_->Avail(static_cast<int>(numFrames));
+    int available2 = convolutionEngine2_->Avail(static_cast<int>(numFrames));
+
+    if (available1 >= static_cast<int>(numFrames) && available2 >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** output1Ptr = convolutionEngine1_->Get();
+      WDL_FFT_REAL** output2Ptr = convolutionEngine2_->Get();
+
+      const int latencyDiff = latencySamples1_ - latencySamples2_;
+
+      if (latencyDiff > 0)
+      {
+        writeToDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, output1Ptr[0], numFrames);
+        writeToDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, output1Ptr[1], numFrames);
+        readFromDelayBuffer(ir1DelayBufferL_, ir1DelayWritePosL_, scratchL_.data(), numFrames,
+                            latencyDiff);
+        readFromDelayBuffer(ir1DelayBufferR_, ir1DelayWritePosR_, scratchR_.data(), numFrames,
+                            latencyDiff);
+
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * scratchL_[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * scratchR_[i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
+        }
+      }
+      else if (latencyDiff < 0)
+      {
+        writeToDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, output2Ptr[0], numFrames);
+        writeToDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, output2Ptr[1], numFrames);
+        readFromDelayBuffer(ir2DelayBufferL_, ir2DelayWritePosL_, scratchL_.data(), numFrames,
+                            -latencyDiff);
+        readFromDelayBuffer(ir2DelayBufferR_, ir2DelayWritePosR_, scratchR_.data(), numFrames,
+                            -latencyDiff);
+
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * scratchL_[i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * scratchR_[i];
+        }
+      }
+      else
+      {
+        for (FrameCount i = 0; i < numFrames; ++i)
+        {
+          outputL[i] = gain1 * irATrimGainLinear_ * output1Ptr[0][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[0][i];
+          outputR[i] = gain1 * irATrimGainLinear_ * output1Ptr[1][i] +
+                       gain2 * irBTrimGainLinear_ * output2Ptr[1][i];
+        }
+      }
+
+      convolutionEngine1_->Advance(static_cast<int>(numFrames));
+      convolutionEngine2_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+  else if (hasIR1)
+  {
+    writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
+    writeToDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, input, numFrames);
+
+    convolutionEngine1_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available = convolutionEngine1_->Avail(static_cast<int>(numFrames));
+    if (available >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** outputPtr = convolutionEngine1_->Get();
+
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
+                          latencySamples1_);
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
+                          latencySamples1_);
+
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
+        outputL[i] = gain1 * irATrimGainLinear_ * outputPtr[0][i] + gain2 * scratchL_[i];
+        outputR[i] = gain1 * irATrimGainLinear_ * outputPtr[1][i] + gain2 * scratchR_[i];
+      }
+      convolutionEngine1_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+  else
+  {
+    writeToDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, input, numFrames);
+    writeToDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, input, numFrames);
+
+    convolutionEngine2_->Add(stereoInput.data(), static_cast<int>(numFrames), 2);
+
+    int available = convolutionEngine2_->Avail(static_cast<int>(numFrames));
+    if (available >= static_cast<int>(numFrames))
+    {
+      WDL_FFT_REAL** outputPtr = convolutionEngine2_->Get();
+
+      readFromDelayBuffer(dryDelayBufferL_, dryDelayWritePosL_, scratchL_.data(), numFrames,
+                          latencySamples2_);
+      readFromDelayBuffer(dryDelayBufferR_, dryDelayWritePosR_, scratchR_.data(), numFrames,
+                          latencySamples2_);
+
+      for (FrameCount i = 0; i < numFrames; ++i)
+      {
+        outputL[i] = gain1 * scratchL_[i] + gain2 * irBTrimGainLinear_ * outputPtr[0][i];
+        outputR[i] = gain1 * scratchR_[i] + gain2 * irBTrimGainLinear_ * outputPtr[1][i];
+      }
+      convolutionEngine2_->Advance(static_cast<int>(numFrames));
+    }
+    else
+    {
+      std::fill(outputL, outputL + numFrames, 0.0f);
+      std::fill(outputR, outputR + numFrames, 0.0f);
+    }
+  }
+
+  applyOutputGain(outputL, numFrames);
+  applyOutputGain(outputR, numFrames);
 }
 
 void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample* inputR,
