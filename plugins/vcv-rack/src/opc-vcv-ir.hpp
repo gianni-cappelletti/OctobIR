@@ -145,6 +145,20 @@ struct OpcVcvIr final : Module
     }
   }
 
+  void clearIR1()
+  {
+    irProcessor_.clearImpulseResponse1();
+    loaded_file_path_.clear();
+    INFO("IR A cleared");
+  }
+
+  void clearIR2()
+  {
+    irProcessor_.clearImpulseResponse2();
+    loaded_file_path2_.clear();
+    INFO("IR B cleared");
+  }
+
   void swapImpulseResponses()
   {
     const std::string path1 = loaded_file_path_;
