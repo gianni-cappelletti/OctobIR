@@ -499,10 +499,10 @@ struct OpcVcvIrWidget final : ModuleWidget
 
     const std::string fp = asset::plugin(pluginInstance, "res/font/Inconsolata_Condensed-Bold.ttf");
 
-    addChild(createWidget<ScrewSilver>(mm2px(Vec(7.62f, 7.62f))));
-    addChild(createWidget<ScrewSilver>(mm2px(Vec(134.62f, 7.62f))));
-    addChild(createWidget<ScrewSilver>(mm2px(Vec(7.62f, 120.88f))));
-    addChild(createWidget<ScrewSilver>(mm2px(Vec(134.62f, 120.88f))));
+    addChild(createWidget<ScrewSilver>(mm2px(Vec(33.02f, 0.5f))));
+    addChild(createWidget<ScrewSilver>(mm2px(Vec(104.14f, 0.5f))));
+    addChild(createWidget<ScrewSilver>(mm2px(Vec(33.02f, 122.92f))));
+    addChild(createWidget<ScrewSilver>(mm2px(Vec(104.14f, 122.92f))));
 
     auto makeLabel = [&](math::Vec pos, math::Vec size, const char* txt, float fs = 9.f)
     {
@@ -581,7 +581,7 @@ struct OpcVcvIrWidget final : ModuleWidget
     fileDisplayA->isIR2 = false;
     addChild(fileDisplayA);
 
-    makeLabel(mm2px(Vec(1.0f, 3.5f)), mm2px(Vec(8.0f, 4.0f)), "IR A", 8.f);
+    makeLabel(mm2px(Vec(1.0f, 3.5f)), mm2px(Vec(8.0f, 4.0f)), "IR A", 10.f);
 
     // IR B row (Y-center = 20.0)
     makeLoadBtn(mm2px(Vec(10.0f, 20.0f)), true);
@@ -598,7 +598,7 @@ struct OpcVcvIrWidget final : ModuleWidget
     fileDisplayB->isIR2 = true;
     addChild(fileDisplayB);
 
-    makeLabel(mm2px(Vec(1.0f, 13.5f)), mm2px(Vec(8.0f, 4.0f)), "IR B", 8.f);
+    makeLabel(mm2px(Vec(1.0f, 13.5f)), mm2px(Vec(8.0f, 4.0f)), "IR B", 10.f);
 
     // Mode row (Y-center = 29.0)
     {
@@ -644,69 +644,69 @@ struct OpcVcvIrWidget final : ModuleWidget
     addParam(createParamCentered<RoundBlackKnob>(
         mm2px(Vec(106.68f, 56.5f)), module, static_cast<int>(OpcVcvIr::ParamId::OutputGainParam)));
 
-    makeLabel(mm2px(Vec(25.56f, 48.0f)), mm2px(Vec(20.0f, 4.0f)), "BLEND", 8.f);
-    makeLabel(mm2px(Vec(96.68f, 48.0f)), mm2px(Vec(20.0f, 4.0f)), "OUT GAIN", 8.f);
+    makeLabel(mm2px(Vec(25.56f, 48.0f)), mm2px(Vec(20.0f, 4.0f)), "BLEND", 10.f);
+    makeLabel(mm2px(Vec(96.68f, 48.0f)), mm2px(Vec(20.0f, 4.0f)), "OUT GAIN", 10.f);
 
-    // Small knobs row 1 (Y-center = 73.5)
-    addParam(createParamCentered<RoundSmallBlackKnob>(
-        mm2px(Vec(25.40f, 73.5f)), module, static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)));
-    addParam(createParamCentered<RoundSmallBlackKnob>(
-        mm2px(Vec(71.12f, 73.5f)), module, static_cast<int>(OpcVcvIr::ParamId::RangeDbParam)));
-    addParam(createParamCentered<RoundSmallBlackKnob>(
-        mm2px(Vec(116.84f, 73.5f)), module, static_cast<int>(OpcVcvIr::ParamId::KneeWidthDbParam)));
+    // Knob row 1 (Y-center = 75.0)
+    addParam(createParamCentered<RoundBlackKnob>(
+        mm2px(Vec(25.40f, 75.0f)), module, static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)));
+    addParam(createParamCentered<RoundBlackKnob>(
+        mm2px(Vec(71.12f, 75.0f)), module, static_cast<int>(OpcVcvIr::ParamId::RangeDbParam)));
+    addParam(createParamCentered<RoundBlackKnob>(
+        mm2px(Vec(116.84f, 75.0f)), module, static_cast<int>(OpcVcvIr::ParamId::KneeWidthDbParam)));
 
-    makeLabel(mm2px(Vec(15.40f, 69.0f)), mm2px(Vec(20.0f, 4.0f)), "THRESH", 8.f);
-    makeLabel(mm2px(Vec(61.12f, 69.0f)), mm2px(Vec(20.0f, 4.0f)), "RANGE", 8.f);
-    makeLabel(mm2px(Vec(106.84f, 69.0f)), mm2px(Vec(20.0f, 4.0f)), "KNEE", 8.f);
+    makeLabel(mm2px(Vec(15.40f, 64.0f)), mm2px(Vec(20.0f, 4.0f)), "THRESH", 10.f);
+    makeLabel(mm2px(Vec(61.12f, 64.0f)), mm2px(Vec(20.0f, 4.0f)), "RANGE", 10.f);
+    makeLabel(mm2px(Vec(106.84f, 64.0f)), mm2px(Vec(20.0f, 4.0f)), "KNEE", 10.f);
 
-    // Small knobs row 2 (Y-center = 89.5)
-    addParam(createParamCentered<RoundSmallBlackKnob>(
-        mm2px(Vec(25.40f, 89.5f)), module, static_cast<int>(OpcVcvIr::ParamId::AttackTimeParam)));
-    addParam(createParamCentered<RoundSmallBlackKnob>(
-        mm2px(Vec(71.12f, 89.5f)), module, static_cast<int>(OpcVcvIr::ParamId::ReleaseTimeParam)));
+    // Knob row 2 (Y-center = 93.0)
+    addParam(createParamCentered<RoundBlackKnob>(
+        mm2px(Vec(25.40f, 93.0f)), module, static_cast<int>(OpcVcvIr::ParamId::AttackTimeParam)));
+    addParam(createParamCentered<RoundBlackKnob>(
+        mm2px(Vec(71.12f, 93.0f)), module, static_cast<int>(OpcVcvIr::ParamId::ReleaseTimeParam)));
     {
       auto* detectBtn =
-          createParam<OpcDetectModeButton>(mm2px(Vec(116.84f - 10.0f, 89.5f - 4.0f)), module,
+          createParam<OpcDetectModeButton>(mm2px(Vec(116.84f - 10.0f, 93.0f - 4.0f)), module,
                                            static_cast<int>(OpcVcvIr::ParamId::DetectionModeParam));
       detectBtn->box.size = mm2px(Vec(20.0f, 8.0f));
       detectBtn->fontPath = fp;
       addParam(detectBtn);
     }
 
-    makeLabel(mm2px(Vec(15.40f, 85.0f)), mm2px(Vec(20.0f, 4.0f)), "ATTACK", 8.f);
-    makeLabel(mm2px(Vec(61.12f, 85.0f)), mm2px(Vec(20.0f, 4.0f)), "RELEASE", 8.f);
-    makeLabel(mm2px(Vec(106.84f, 85.0f)), mm2px(Vec(20.0f, 4.0f)), "DETECT", 8.f);
+    makeLabel(mm2px(Vec(15.40f, 82.0f)), mm2px(Vec(20.0f, 4.0f)), "ATTACK", 10.f);
+    makeLabel(mm2px(Vec(61.12f, 82.0f)), mm2px(Vec(20.0f, 4.0f)), "RELEASE", 10.f);
+    makeLabel(mm2px(Vec(106.84f, 82.0f)), mm2px(Vec(20.0f, 4.0f)), "DETECT", 10.f);
 
-    // Port row 1 (Y-center = 102.5)
-    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(23.71f, 102.5f)), module,
+    // Port row 1 (Y-center = 106.0)
+    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(23.71f, 106.0f)), module,
                                              static_cast<int>(OpcVcvIr::InputId::AudioInL)));
-    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(47.41f, 102.5f)), module,
+    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(47.41f, 106.0f)), module,
                                              static_cast<int>(OpcVcvIr::InputId::AudioInR)));
-    addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(71.12f, 102.5f)), module,
+    addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(71.12f, 106.0f)), module,
                                                static_cast<int>(OpcVcvIr::OutputId::OutputL)));
-    addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(94.82f, 102.5f)), module,
+    addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(94.82f, 106.0f)), module,
                                                static_cast<int>(OpcVcvIr::OutputId::OutputR)));
-    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(118.53f, 102.5f)), module,
+    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(118.53f, 106.0f)), module,
                                              static_cast<int>(OpcVcvIr::InputId::SidechainIn)));
 
-    makeLabel(mm2px(Vec(17.71f, 108.0f)), mm2px(Vec(12.0f, 4.0f)), "IN L", 8.f);
-    makeLabel(mm2px(Vec(41.41f, 108.0f)), mm2px(Vec(12.0f, 4.0f)), "IN R", 8.f);
-    makeLabel(mm2px(Vec(65.12f, 108.0f)), mm2px(Vec(12.0f, 4.0f)), "OUT L", 8.f);
-    makeLabel(mm2px(Vec(88.82f, 108.0f)), mm2px(Vec(12.0f, 4.0f)), "OUT R", 8.f);
-    makeLabel(mm2px(Vec(112.53f, 108.0f)), mm2px(Vec(12.0f, 4.0f)), "SC IN", 8.f);
+    makeLabel(mm2px(Vec(17.71f, 111.0f)), mm2px(Vec(12.0f, 4.0f)), "IN L", 10.f);
+    makeLabel(mm2px(Vec(41.41f, 111.0f)), mm2px(Vec(12.0f, 4.0f)), "IN R", 10.f);
+    makeLabel(mm2px(Vec(65.12f, 111.0f)), mm2px(Vec(12.0f, 4.0f)), "OUT L", 10.f);
+    makeLabel(mm2px(Vec(88.82f, 111.0f)), mm2px(Vec(12.0f, 4.0f)), "OUT R", 10.f);
+    makeLabel(mm2px(Vec(112.53f, 111.0f)), mm2px(Vec(12.0f, 4.0f)), "SC IN", 10.f);
 
-    // Port row 2 (Y-center = 114.0)
-    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(35.56f, 114.0f)), module,
+    // Port row 2 (Y-center = 119.0)
+    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(35.56f, 119.0f)), module,
                                              static_cast<int>(OpcVcvIr::InputId::ThresholdCvIn)));
-    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(71.12f, 114.0f)), module,
+    addInput(createInputCentered<PJ301MPort>(mm2px(Vec(71.12f, 119.0f)), module,
                                              static_cast<int>(OpcVcvIr::InputId::BlendCvIn)));
     addInput(
-        createInputCentered<PJ301MPort>(mm2px(Vec(106.68f, 114.0f)), module,
+        createInputCentered<PJ301MPort>(mm2px(Vec(106.68f, 119.0f)), module,
                                         static_cast<int>(OpcVcvIr::InputId::DynamicsEnableCvIn)));
 
-    makeLabel(mm2px(Vec(29.56f, 119.5f)), mm2px(Vec(12.0f, 4.0f)), "THR CV", 8.f);
-    makeLabel(mm2px(Vec(65.12f, 119.5f)), mm2px(Vec(12.0f, 4.0f)), "BLD CV", 8.f);
-    makeLabel(mm2px(Vec(100.68f, 119.5f)), mm2px(Vec(12.0f, 4.0f)), "DYN EN", 8.f);
+    makeLabel(mm2px(Vec(29.56f, 124.0f)), mm2px(Vec(12.0f, 4.0f)), "THR CV", 10.f);
+    makeLabel(mm2px(Vec(65.12f, 124.0f)), mm2px(Vec(12.0f, 4.0f)), "BLD CV", 10.f);
+    makeLabel(mm2px(Vec(100.68f, 124.0f)), mm2px(Vec(12.0f, 4.0f)), "DYN EN", 10.f);
   }
 
   void appendContextMenu(Menu* menu) override

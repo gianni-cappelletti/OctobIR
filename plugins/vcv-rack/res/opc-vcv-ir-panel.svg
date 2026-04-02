@@ -10,9 +10,4 @@
   <rect x="63.0" y="15.5" width="74.0" height="9.0" fill="#F08830"/>
   <!-- Meter LCD zone -->
   <rect x="5.0" y="33.5" width="132.24" height="14.0" fill="#F08830"/>
-  <!-- Mounting holes -->
-  <circle cx="7.62" cy="7.62" r="3.57" fill="#1c1c30"/>
-  <circle cx="134.62" cy="7.62" r="3.57" fill="#1c1c30"/>
-  <circle cx="7.62" cy="120.88" r="3.57" fill="#1c1c30"/>
-  <circle cx="134.62" cy="120.88" r="3.57" fill="#1c1c30"/>
 </svg>
