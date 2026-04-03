@@ -1101,13 +1101,15 @@ struct OpcVcvIrWidget final : ModuleWidget
 
     // --- Helper lambdas ---
 
-    auto makeLabel = [&](math::Vec pos, math::Vec size, const char* txt, float fs = 10.f)
+    auto makeLabel = [&](math::Vec pos, math::Vec size, const char* txt, float fs = 10.f,
+                         NVGcolor col = nvgRGB(0x1a, 0x1a, 0x1a))
     {
       auto* lbl = createWidget<OpcPanelLabel>(pos);
       lbl->box.size = size;
       lbl->text = txt;
       lbl->fontPath = fpCourier;
       lbl->fontSize = fs;
+      lbl->color = col;
       addChild(lbl);
     };
 
@@ -1316,8 +1318,8 @@ struct OpcVcvIrWidget final : ModuleWidget
     const float pX8 = 192.f;  // OUT R
 
     {
-      auto* outBg = createWidget<OpcOutputBackground>(mm2px(Vec(pX7 - 14.f, portY - 6.f)));
-      outBg->box.size = mm2px(Vec(pX8 - pX7 + 28.f, 12.5f));
+      auto* outBg = createWidget<OpcOutputBackground>(mm2px(Vec(pX7 - 10.f, portY - 6.f)));
+      outBg->box.size = mm2px(Vec(pX8 - pX7 + 20.f, 16.0f));
       addChild(outBg);
     }
 
@@ -1344,8 +1346,11 @@ struct OpcVcvIrWidget final : ModuleWidget
     makeLabel(mm2px(Vec(pX4 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "DYN EN", 9.f);
     makeLabel(mm2px(Vec(pX5 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "IN L", 9.f);
     makeLabel(mm2px(Vec(pX6 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "IN R", 9.f);
-    makeLabel(mm2px(Vec(pX7 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "OUT L", 9.f);
-    makeLabel(mm2px(Vec(pX8 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "OUT R", 9.f);
+    const NVGcolor lightLabelCol = nvgRGB(0xd8, 0xd4, 0xd0);
+    makeLabel(mm2px(Vec(pX7 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "OUT L", 9.f,
+              lightLabelCol);
+    makeLabel(mm2px(Vec(pX8 - 6.f, portLabelY)), mm2px(Vec(12.0f, 4.0f)), "OUT R", 9.f,
+              lightLabelCol);
   }
 
   void draw(const DrawArgs& args) override
