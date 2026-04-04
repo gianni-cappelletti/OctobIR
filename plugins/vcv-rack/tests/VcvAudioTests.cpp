@@ -330,7 +330,7 @@ TEST_F(VcvAudioTest, MonoToStereo_ChannelsAreDifferent)
   ProcessArgs flushArgs{kSampleRate, 1.f / kSampleRate};
   module.process(flushArgs);
 
-  ASSERT_GE(module.irProcessor_.getNumIR1Channels(), 2u)
+  ASSERT_GE(module.getIRProcessor().getNumIR1Channels(), 2u)
       << "Stereo IR fixture failed to load or was decoded as mono";
 
   auto out = processMonoInput(module, dryInput_);
@@ -358,7 +358,7 @@ TEST_F(VcvAudioTest, ThresholdCv_ClampedToMax)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getThreshold(), 0.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getThreshold(), 0.f, 0.01f)
       << "Threshold CV at +5V should clamp to 0 dB";
 }
 
@@ -377,7 +377,7 @@ TEST_F(VcvAudioTest, BlendCv_ShiftsBlendToMax)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getBlend(), 1.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), 1.f, 0.01f)
       << "Blend CV at +5V should set blend to 1.0";
 }
 
@@ -396,7 +396,7 @@ TEST_F(VcvAudioTest, ThresholdCv_MidRangeScaling)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getThreshold(), -15.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -15.f, 0.01f)
       << "Threshold CV at +2.5V should add 15 dB to knob value";
 }
 
@@ -415,7 +415,7 @@ TEST_F(VcvAudioTest, ThresholdCv_AddsToNonZeroBase)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getThreshold(), -22.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -22.f, 0.01f)
       << "Threshold CV at -2V should subtract 12 dB from knob value of -10";
 }
 
@@ -434,7 +434,7 @@ TEST_F(VcvAudioTest, BlendCv_MidRangeScaling)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getBlend(), 0.5f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), 0.5f, 0.01f)
       << "Blend CV at +2.5V should set blend to 0.5";
 }
 
@@ -453,7 +453,7 @@ TEST_F(VcvAudioTest, BlendCv_AddsToNonZeroBase)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getBlend(), -0.1f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), -0.1f, 0.01f)
       << "Blend CV at +2V should add 0.4 to knob value of -0.5";
 }
 
@@ -472,7 +472,7 @@ TEST_F(VcvAudioTest, BlendCv_ClampWhenBaseAndCvExceedRange)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getBlend(), 1.0f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), 1.0f, 0.01f)
       << "Blend CV should clamp to 1.0 when base + CV exceeds range";
 }
 
@@ -490,7 +490,7 @@ TEST_F(VcvAudioTest, DynamicsEnableGate_HighOverridesParamOff)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_TRUE(module.irProcessor_.getDynamicModeEnabled())
+  EXPECT_TRUE(module.getIRProcessor().getDynamicModeEnabled())
       << "Gate at +5V should enable dynamic mode when param is OFF";
 }
 
@@ -508,7 +508,7 @@ TEST_F(VcvAudioTest, DynamicsEnableGate_LowOverridesParamOn)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_FALSE(module.irProcessor_.getDynamicModeEnabled())
+  EXPECT_FALSE(module.getIRProcessor().getDynamicModeEnabled())
       << "Gate at 0V should disable dynamic mode even when param is ON";
 }
 
@@ -526,7 +526,7 @@ TEST_F(VcvAudioTest, DynamicsEnableGate_JustBelowThreshold)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_FALSE(module.irProcessor_.getDynamicModeEnabled())
+  EXPECT_FALSE(module.getIRProcessor().getDynamicModeEnabled())
       << "Gate at 0.9V (below 1.0V threshold) should not enable dynamic mode";
 }
 
@@ -544,7 +544,7 @@ TEST_F(VcvAudioTest, DynamicsEnableGate_JustAboveThreshold)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_TRUE(module.irProcessor_.getDynamicModeEnabled())
+  EXPECT_TRUE(module.getIRProcessor().getDynamicModeEnabled())
       << "Gate at 1.1V (above 1.0V threshold) should enable dynamic mode";
 }
 
@@ -561,7 +561,7 @@ TEST_F(VcvAudioTest, DynamicsEnableGate_DisconnectedFallsBackToParam)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_TRUE(module.irProcessor_.getDynamicModeEnabled())
+  EXPECT_TRUE(module.getIRProcessor().getDynamicModeEnabled())
       << "With gate disconnected, dynamic mode should follow the param";
 }
 
@@ -748,7 +748,7 @@ TEST_F(VcvAudioTest, DynamicMode_ButtonOff_InputDrivesBlend)
 
   auto out = processMonoInput(module, dryInput_);
 
-  float blend = module.currentBlend_.load(std::memory_order_relaxed);
+  float blend = module.getCurrentBlend();
   EXPECT_GT(blend, 0.1f)
       << "With sidechain button OFF, loud input should drive dynamic blend away from center";
 }
@@ -775,7 +775,7 @@ TEST_F(VcvAudioTest, DynamicMode_ButtonOn_SCConnected_SidechainDrivesBlend)
   std::vector<float> silence(dryInput_.size(), 0.0f);
   auto out = processMonoWithSidechain(module, silence, dryInput_);
 
-  float blend = module.currentBlend_.load(std::memory_order_relaxed);
+  float blend = module.getCurrentBlend();
   EXPECT_GT(blend, 0.1f)
       << "With sidechain button ON and SC connected, loud sidechain should drive blend";
 }
@@ -801,9 +801,9 @@ TEST_F(VcvAudioTest, DynamicMode_ButtonOn_SCNotConnected_InputStillDrivesBlend)
   // Sidechain button ON but nothing connected -- input signal should still drive blend
   auto out = processMonoInput(module, dryInput_);
 
-  EXPECT_FALSE(module.irProcessor_.getSidechainEnabled())
+  EXPECT_FALSE(module.getIRProcessor().getSidechainEnabled())
       << "Core should see sidechain as disabled when SC input is not connected";
-  float blend = module.currentBlend_.load(std::memory_order_relaxed);
+  float blend = module.getCurrentBlend();
   EXPECT_GT(blend, 0.1f)
       << "With SC button ON but not connected, loud input should still drive dynamic blend";
 }
@@ -830,9 +830,9 @@ TEST_F(VcvAudioTest, SCConnected_ButtonOff_ConnectionDoesNotActivateSidechain)
   std::vector<float> silence(dryInput_.size(), 0.0f);
   auto out = processMonoWithSidechain(module, dryInput_, silence);
 
-  EXPECT_FALSE(module.irProcessor_.getSidechainEnabled())
+  EXPECT_FALSE(module.getIRProcessor().getSidechainEnabled())
       << "Core should see sidechain as disabled when button is OFF, even if SC is connected";
-  float blend = module.currentBlend_.load(std::memory_order_relaxed);
+  float blend = module.getCurrentBlend();
   EXPECT_GT(blend, 0.1f)
       << "With button OFF, loud main input should drive blend regardless of SC connection";
 }
@@ -853,7 +853,7 @@ TEST_F(VcvAudioTest, DynamicModeOff_NoDynamicBlendRegardless)
 
   auto out = processMonoWithSidechain(module, dryInput_, dryInput_);
 
-  float blend = module.currentBlend_.load(std::memory_order_relaxed);
+  float blend = module.getCurrentBlend();
   EXPECT_NEAR(blend, 0.3f, 0.05f)
       << "With dynamic mode OFF, blend should stay at static value regardless of sidechain";
 }
@@ -883,7 +883,7 @@ TEST_F(VcvAudioTest, SampleRateChange_AfterIRLoaded_StillProducesOutput)
   for (size_t i = 0; i < kLatencyFlushFrames; ++i)
     module.process(args);
 
-  ASSERT_TRUE(module.irProcessor_.isIR1Loaded())
+  ASSERT_TRUE(module.getIRProcessor().isIR1Loaded())
       << "IR should be loaded after sample rate change and processing";
 
   float peak = 0.0f;
@@ -939,7 +939,7 @@ TEST_F(VcvAudioTest, ThresholdCv_NegativeClampedToMin)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getThreshold(), -60.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -60.f, 0.01f)
       << "Threshold CV at -5V should clamp to -60 dB";
 }
 
@@ -957,7 +957,7 @@ TEST_F(VcvAudioTest, BlendCv_NegativeClampedToMin)
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.irProcessor_.getBlend(), -1.f, 0.01f)
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), -1.f, 0.01f)
       << "Blend CV at -5V should clamp to -1.0";
 }
 
@@ -986,9 +986,9 @@ TEST_F(VcvAudioTest, MeteringAtomics_UpdatedAfterProcessing)
   module.inputs[static_cast<size_t>(inL)].voltage = 1.0f;
   module.process(args);
 
-  EXPECT_GT(module.currentInputLevelDb_.load(std::memory_order_relaxed), -96.f)
+  EXPECT_GT(module.getCurrentInputLevelDb(), -96.f)
       << "Input level metering should reflect non-silent input";
-  EXPECT_NEAR(module.currentBlend_.load(std::memory_order_relaxed), 0.3f, 0.05f)
+  EXPECT_NEAR(module.getCurrentBlend(), 0.3f, 0.05f)
       << "Blend metering should reflect the blend param";
 }
 

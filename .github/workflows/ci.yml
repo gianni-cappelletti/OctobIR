@@ -137,13 +137,17 @@ jobs:
           -DBUILD_JUCE_PLUGIN=OFF \
           -DBUILD_VCV_PLUGIN=OFF \
           -DBUILD_TESTS=ON \
+          -DBUILD_VCV_TESTS=ON \
           -G Ninja
 
     - name: Build tests
-      run: cmake --build build/test --target octobir-core-tests -j
+      run: cmake --build build/test --target octobir-core-tests octobir-vcv-tests -j
 
-    - name: Run tests
+    - name: Run core tests
       run: ./build/test/libs/octobir-core/tests/octobir-core-tests
+
+    - name: Run VCV tests
+      run: ./build/test/plugins/vcv-rack/tests/octobir-vcv-tests
 
   build-vcv:
     name: Build VCV Plugin

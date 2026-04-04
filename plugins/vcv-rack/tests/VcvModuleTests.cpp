@@ -22,7 +22,7 @@ TEST(VcvModuleTest, ConstructorDoesNotCrash)
 TEST(VcvModuleTest, ConstructorInitializesDefaultSampleRate)
 {
   OpcVcvIr module;
-  EXPECT_EQ(module.last_system_sample_rate_, 44100u);
+  EXPECT_EQ(module.getLastSystemSampleRate(), 44100u);
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ TEST(VcvModuleTest, LoadIR_SetsIsIR1Loaded)
   module.inputs[static_cast<size_t>(OpcVcvIr::InputId::AudioInL)].connected = true;
   ProcessArgs args{44100.f, 1.f / 44100.f};
   module.process(args);
-  EXPECT_TRUE(module.irProcessor_.isIR1Loaded());
+  EXPECT_TRUE(module.getIRProcessor().isIR1Loaded());
 }
 
 // ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ TEST(VcvModuleTest, OnSampleRateChange_UpdatesLastRate)
   OpcVcvIr module;
   SampleRateChangeEvent e{48000.f};
   module.onSampleRateChange(e);
-  EXPECT_EQ(module.last_system_sample_rate_, 48000u);
+  EXPECT_EQ(module.getLastSystemSampleRate(), 48000u);
 }
 
 // ---------------------------------------------------------------------------

@@ -64,6 +64,8 @@ struct OpcVcvIr final : Module
     return currentInputLevelDb_.load(std::memory_order_relaxed);
   }
   float getCurrentBlend() const { return currentBlend_.load(std::memory_order_relaxed); }
+  const octob::IRProcessor& getIRProcessor() const { return irProcessor_; }
+  uint32_t getLastSystemSampleRate() const { return lastSystemSampleRate_; }
 
  private:
   octob::IRProcessor irProcessor_;
