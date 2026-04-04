@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "AudioBuffer.hpp"
 #include "IRLoader.hpp"
 #include "Types.hpp"
 
@@ -48,8 +47,6 @@ class IRProcessor
   void processMono(const Sample* input, Sample* output, FrameCount numFrames);
   void processStereo(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
                      FrameCount numFrames);
-  void processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL, Sample* outputR,
-                       FrameCount numFrames);
   void processMonoToStereo(const Sample* input, Sample* outputL, Sample* outputR,
                            FrameCount numFrames);
 
@@ -60,10 +57,6 @@ class IRProcessor
   void processStereoWithSidechain(const Sample* inputL, const Sample* inputR,
                                   const Sample* sidechainL, const Sample* sidechainR,
                                   Sample* outputL, Sample* outputR, FrameCount numFrames);
-  void processDualMonoWithSidechain(const Sample* inputL, const Sample* inputR,
-                                    const Sample* sidechainL, const Sample* sidechainR,
-                                    Sample* outputL, Sample* outputR, FrameCount numFrames);
-
   bool isIR1Loaded() const { return ir1Loaded_.load(); }
   bool isIR2Loaded() const { return ir2Loaded_.load(); }
   std::string getCurrentIR1Path() const { return currentIR1Path_; }

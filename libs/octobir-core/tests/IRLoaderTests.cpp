@@ -105,7 +105,18 @@ TEST_F(IRLoaderTest, MinimumPhase_DelayedImpulse_PeakAtOrigin)
   WDL_ImpulseBuffer buf;
   ASSERT_TRUE(loader.resampleAndInitialize(buf, kSampleRate));
 
-  EXPECT_EQ(IRLoader::findPeakSampleIndex(buf), 0);
+  const WDL_FFT_REAL* data = buf.impulses[0].Get();
+  float peakVal = 0.0f;
+  int peakIdx = 0;
+  for (int i = 0; i < buf.GetLength(); ++i)
+  {
+    if (std::abs(data[i]) > peakVal)
+    {
+      peakVal = std::abs(data[i]);
+      peakIdx = i;
+    }
+  }
+  EXPECT_EQ(peakIdx, 0);
 }
 
 // Minimum phase conversion preserves the magnitude spectrum exactly, so by

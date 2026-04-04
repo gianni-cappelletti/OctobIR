@@ -868,12 +868,6 @@ void IRProcessor::processStereo(const Sample* inputL, const Sample* inputR, Samp
   applyOutputGain(outputR, numFrames);
 }
 
-void IRProcessor::processDualMono(const Sample* inputL, const Sample* inputR, Sample* outputL,
-                                  Sample* outputR, FrameCount numFrames)
-{
-  processStereo(inputL, inputR, outputL, outputR, numFrames);
-}
-
 void IRProcessor::processMonoToStereo(const Sample* input, Sample* outputL, Sample* outputR,
                                       FrameCount numFrames)
 {
@@ -1570,14 +1564,6 @@ void IRProcessor::processStereoWithSidechain(const Sample* inputL, const Sample*
 
   applyOutputGain(outputL, numFrames);
   applyOutputGain(outputR, numFrames);
-}
-
-void IRProcessor::processDualMonoWithSidechain(const Sample* inputL, const Sample* inputR,
-                                               const Sample* sidechainL, const Sample* sidechainR,
-                                               Sample* outputL, Sample* outputR,
-                                               FrameCount numFrames)
-{
-  processStereoWithSidechain(inputL, inputR, sidechainL, sidechainR, outputL, outputR, numFrames);
 }
 
 float IRProcessor::calculateDynamicBlend(float inputLevelDb) const

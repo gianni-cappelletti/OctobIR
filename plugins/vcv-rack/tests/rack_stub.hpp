@@ -4,9 +4,7 @@
 // Provides just enough surface area to compile and run the module struct
 // without a running Rack engine or GUI.
 
-#include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
@@ -27,15 +25,13 @@
 enum json_type_t : uint8_t
 {
   JSON_OBJECT_T,
-  JSON_STRING_T,
-  JSON_BOOLEAN_T
+  JSON_STRING_T
 };
 
 struct json_t
 {
   json_type_t type;
   std::string strValue;
-  bool boolValue = false;
   std::map<std::string, json_t*> children;
 
   ~json_t()
@@ -62,13 +58,6 @@ inline json_t* json_string(const char* s)
   return j;
 }
 
-inline json_t* json_boolean(bool b)
-{
-  auto* j = new json_t{JSON_BOOLEAN_T};
-  j->boolValue = b;
-  return j;
-}
-
 inline void json_object_set_new(json_t* obj, const char* key, json_t* val)
 {
   if (obj != nullptr && key != nullptr && val != nullptr)
@@ -91,11 +80,6 @@ inline bool json_is_string(const json_t* j)
 inline const char* json_string_value(const json_t* j)
 {
   return (j != nullptr && j->type == JSON_STRING_T) ? j->strValue.c_str() : "";
-}
-
-inline bool json_boolean_value(const json_t* j)
-{
-  return (j != nullptr && j->type == JSON_BOOLEAN_T) ? j->boolValue : false;
 }
 
 inline void json_decref(json_t* j)
@@ -157,14 +141,6 @@ struct SampleRateChangeEvent
 {
   float sampleRate = 44100.f;
 };
-
-namespace dsp
-{
-inline float dbToAmplitude(float db)
-{
-  return std::pow(10.f, db / 20.f);
-}
-}  // namespace dsp
 
 template <typename T>
 T clamp(T x, T lo, T hi)
