@@ -1064,6 +1064,47 @@ struct OpcOutputBackground : TransparentWidget
 };
 
 // ---------------------------------------------------------------------------
+// Branding widgets
+// ---------------------------------------------------------------------------
+
+struct OpcLogoWidget : Widget
+{
+  std::string imagePath;
+  int imageHandle = -1;
+
+  void draw(const DrawArgs& args) override
+  {
+    NVGcontext* vg = args.vg;
+    if (imageHandle < 0 && !imagePath.empty())
+      imageHandle = nvgCreateImage(vg, imagePath.c_str(), 0);
+    if (imageHandle < 0)
+      return;
+
+    int imgW = 0, imgH = 0;
+    nvgImageSize(vg, imageHandle, &imgW, &imgH);
+    if (imgW <= 0 || imgH <= 0)
+      return;
+
+    float aspect = static_cast<float>(imgW) / static_cast<float>(imgH);
+    float drawH = box.size.y;
+    float drawW = drawH * aspect;
+    if (drawW > box.size.x)
+    {
+      drawW = box.size.x;
+      drawH = drawW / aspect;
+    }
+    float x = (box.size.x - drawW) * 0.5f;
+    float y = (box.size.y - drawH) * 0.5f;
+
+    NVGpaint paint = nvgImagePattern(vg, x, y, drawW, drawH, 0.f, imageHandle, 1.0f);
+    nvgBeginPath(vg);
+    nvgRect(vg, x, y, drawW, drawH);
+    nvgFillPaint(vg, paint);
+    nvgFill(vg);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Main widget
 // ---------------------------------------------------------------------------
 
@@ -1293,6 +1334,14 @@ struct OpcVcvIrWidget final : ModuleWidget
       detectBtn->box.size = mm2px(Vec(24.0f, 8.0f));
       detectBtn->fontPath = fpCourier;
       addParam(detectBtn);
+    }
+
+    // --- Logo ---
+    {
+      auto* logo = createWidget<OpcLogoWidget>(mm2px(Vec(10.f, 86.f)));
+      logo->box.size = mm2px(Vec(24.f, 16.f));
+      logo->imagePath = asset::plugin(pluginInstance, "res/OctoberLogo.png");
+      addChild(logo);
     }
 
     // --- Port row: IN L/R (left), CV (middle), OUT L/R (right) ---
