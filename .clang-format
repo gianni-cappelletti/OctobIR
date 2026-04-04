@@ -23,27 +23,7 @@ AlignOperands: true
 AlignTrailingComments: true
 
 # Braces - Allman style (braces on new lines)
-# Using Custom instead of Allman to explicitly set BeforeLambdaBody,
-# which varies between clang-format versions under the Allman preset.
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterCaseLabel: true
-  AfterClass: true
-  AfterControlStatement: Always
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterStruct: true
-  AfterUnion: true
-  AfterExternBlock: true
-  BeforeCatch: true
-  BeforeElse: true
-  BeforeLambdaBody: true
-  BeforeWhile: false
-  IndentBraces: false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
+BreakBeforeBraces: Allman
 
 # Breaking
 AllowShortFunctionsOnASingleLine: Inline

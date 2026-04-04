@@ -22,26 +22,22 @@ echo "✓ Submodules initialized"
 echo ""
 echo "Installing required development tools..."
 
-# Check for clang-format
-if ! command -v clang-format &> /dev/null; then
-    echo "Installing clang-format..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        if ! command -v brew &> /dev/null; then
-            echo "Error: Homebrew is required but not installed"
-            echo "Install from: https://brew.sh"
-            exit 1
-        fi
-        brew install clang-format
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        sudo apt-get update
-        sudo apt-get install -y clang-format
-    else
-        echo "Error: Unsupported platform for automatic installation"
-        echo "Please manually install clang-format"
-        exit 1
-    fi
+# Install pinned clang-format via pip for version consistency across platforms.
+# The exact version must match ci.yml to prevent formatting divergence.
+CLANG_FORMAT_VERSION="22.1.2"
+echo "Installing clang-format ${CLANG_FORMAT_VERSION} via pip..."
+if command -v pip3 &> /dev/null; then
+    pip3 install --user "clang-format==${CLANG_FORMAT_VERSION}" --break-system-packages 2>/dev/null \
+        || pip3 install --user "clang-format==${CLANG_FORMAT_VERSION}"
+    echo "✓ clang-format ${CLANG_FORMAT_VERSION} installed via pip"
+elif command -v pip &> /dev/null; then
+    pip install --user "clang-format==${CLANG_FORMAT_VERSION}" --break-system-packages 2>/dev/null \
+        || pip install --user "clang-format==${CLANG_FORMAT_VERSION}"
+    echo "✓ clang-format ${CLANG_FORMAT_VERSION} installed via pip"
 else
-    echo "✓ clang-format already installed"
+    echo "Error: pip is required to install clang-format"
+    echo "Install Python/pip first, then re-run this script"
+    exit 1
 fi
 
 # Check for clang-tidy
