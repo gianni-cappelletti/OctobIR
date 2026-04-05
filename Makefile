@@ -154,7 +154,27 @@ octobass-juce: header
 		-DBUILD_OCTOBASS_JUCE=ON
 	@cmake --build build/release-octobass-juce --target OctoBASS_All --config Release -j$(NPROC)
 	@echo ""
-	@echo "OctoBASS JUCE plugin built successfully"
+	@echo "Installing plugins to system directories..."
+	@if [ -e ~/Library/Audio/Plug-Ins/VST3/OctoBASS.vst3 ] && [ ! -w ~/Library/Audio/Plug-Ins/VST3/OctoBASS.vst3 ]; then \
+		echo ""; \
+		echo "Error: Existing VST3 plugin is not writable (may be owned by root)."; \
+		echo "Please remove it first:"; \
+		echo "  sudo rm -rf ~/Library/Audio/Plug-Ins/VST3/OctoBASS.vst3"; \
+		echo "  sudo rm -rf ~/Library/Audio/Plug-Ins/Components/OctoBASS.component"; \
+		echo "Then run: make octobass-juce"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@cp -rf build/release-octobass-juce/plugins/octobass/juce/OctoBASS_artefacts/Release/VST3/OctoBASS.vst3 \
+		~/Library/Audio/Plug-Ins/VST3/
+	@echo "  VST3 installed"
+	@cp -rf build/release-octobass-juce/plugins/octobass/juce/OctoBASS_artefacts/Release/AU/OctoBASS.component \
+		~/Library/Audio/Plug-Ins/Components/
+	@echo "  AU installed"
+	@echo ""
+	@echo "OctoBASS JUCE plugin installed:"
+	@echo "  VST3: ~/Library/Audio/Plug-Ins/VST3/OctoBASS.vst3"
+	@echo "  AU:   ~/Library/Audio/Plug-Ins/Components/OctoBASS.component"
 
 # ── Core libraries ─────────────────────────────────────────────
 core: header
