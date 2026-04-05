@@ -24,6 +24,7 @@ option(BUILD_OCTOBIR_CORE_TESTS "Build OctobIR core library tests" OFF)
 option(BUILD_OCTOBIR_JUCE_TESTS "Build OctobIR JUCE plugin tests" OFF)
 option(BUILD_OCTOBIR_VCV_TESTS "Build OctobIR VCV plugin tests" OFF)
 option(BUILD_OCTOBASS_JUCE_TESTS "Build OctoBASS JUCE plugin tests" OFF)
+option(BUILD_OCTOBASS_CORE_TESTS "Build OctoBASS core library tests" OFF)
 
 # JUCE framework (shared by all JUCE plugins and their tests)
 if(BUILD_OCTOBIR_JUCE OR BUILD_OCTOBASS_JUCE OR
@@ -33,7 +34,7 @@ if(BUILD_OCTOBIR_JUCE OR BUILD_OCTOBASS_JUCE OR
 endif()
 
 # octobir-core is used by both OctobIR and OctoBASS (IR convolution in high-freq chain)
-if(BUILD_OCTOBIR OR BUILD_OCTOBASS OR BUILD_OCTOBIR_CORE_TESTS)
+if(BUILD_OCTOBIR OR BUILD_OCTOBASS OR BUILD_OCTOBIR_CORE_TESTS OR BUILD_OCTOBASS_CORE_TESTS)
     add_subdirectory(libs/octobir-core)
 endif()
 
@@ -47,7 +48,10 @@ if(BUILD_OCTOBIR_VCV OR BUILD_OCTOBIR_VCV_TESTS)
 endif()
 
 # OctoBASS
-# octobass-core will be added here in Phase 2
+if(BUILD_OCTOBASS OR BUILD_OCTOBASS_JUCE OR BUILD_OCTOBASS_CORE_TESTS)
+    add_subdirectory(libs/octobass-core)
+endif()
+
 if(BUILD_OCTOBASS_JUCE OR BUILD_OCTOBASS_JUCE_TESTS)
     add_subdirectory(plugins/octobass/juce)
 endif()

@@ -1,0 +1,24 @@
+#pragma once
+
+#include <octobir-core/Types.hpp>
+
+namespace octob
+{
+
+// Crossover defaults and limits
+constexpr float DefaultCrossoverFrequency = 250.0f;
+constexpr float MinCrossoverFrequency = 50.0f;
+constexpr float MaxCrossoverFrequency = 1000.0f;
+
+// Level defaults and limits
+constexpr float DefaultBandLevelDb = 0.0f;
+constexpr float MinBandLevelDb = -24.0f;
+constexpr float MaxBandLevelDb = 12.0f;
+
+constexpr float DefaultOutputGainDb = 0.0f;
+constexpr float MinOutputGainDb = -24.0f;
+constexpr float MaxOutputGainDb = 24.0f;
+
+constexpr float DefaultDryWetMix = 1.0f;
+
+}  // namespace octob

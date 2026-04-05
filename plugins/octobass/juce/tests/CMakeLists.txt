@@ -42,7 +42,7 @@ target_compile_definitions(octobass-plugin-tests
 
 target_link_libraries(octobass-plugin-tests
     PRIVATE
-        octobir-core
+        octobass-core
         juce-ui-shared
         October_SharedResources
         juce::juce_audio_utils

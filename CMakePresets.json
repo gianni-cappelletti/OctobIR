@@ -111,6 +111,19 @@
       }
     },
     {
+      "name": "test-octobass-core",
+      "displayName": "OctoBASS Core Tests",
+      "inherits": ["_dev-base", "_asan"],
+      "binaryDir": "${sourceDir}/build/test-octobass-core",
+      "cacheVariables": {
+        "BUILD_OCTOBIR": "OFF",
+        "BUILD_OCTOBIR_JUCE": "OFF",
+        "BUILD_OCTOBIR_VCV": "OFF",
+        "BUILD_OCTOBASS_JUCE": "OFF",
+        "BUILD_OCTOBASS_CORE_TESTS": "ON"
+      }
+    },
+    {
       "name": "test-octobass-juce",
       "displayName": "OctoBASS JUCE Tests",
       "inherits": ["_dev-base", "_asan"],
@@ -133,6 +146,7 @@
     { "name": "test-octobir-core", "configurePreset": "test-octobir-core", "jobs": 0 },
     { "name": "test-octobir-juce", "configurePreset": "test-octobir-juce", "jobs": 0 },
     { "name": "test-octobir-vcv", "configurePreset": "test-octobir-vcv", "jobs": 0 },
+    { "name": "test-octobass-core", "configurePreset": "test-octobass-core", "jobs": 0 },
     { "name": "test-octobass-juce", "configurePreset": "test-octobass-juce", "jobs": 0 }
   ]
 }

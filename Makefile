@@ -60,7 +60,7 @@ $(foreach p,$(JUCE_PLUGINS),$(eval $(call JUCE_PLUGIN_TARGETS,$(p))))
 
 # ── Convenience aggregate targets ──────────────────────────────
 .PHONY: octobir octobass all test core header help clean tidy format license
-.PHONY: octobir-vcv test-octobir test-octobir-core test-octobir-vcv test-octobass install-vcv
+.PHONY: octobir-vcv test-octobir test-octobir-core test-octobir-vcv test-octobass test-octobass-core install-vcv
 
 header:
 	@./scripts/show-header.sh
@@ -82,7 +82,8 @@ help: header
 	@echo "  make test-octobir-core  - Run octobir-core unit tests"
 	@echo "  make test-octobir-juce  - Run OctobIR JUCE plugin tests"
 	@echo "  make test-octobir-vcv   - Run OctobIR VCV plugin tests"
-	@echo "  make test-octobass      - Run all OctoBASS tests"
+	@echo "  make test-octobass        - Run all OctoBASS tests"
+	@echo "  make test-octobass-core - Run octobass-core unit tests"
 	@echo "  make test-octobass-juce - Run OctoBASS JUCE plugin tests"
 	@echo ""
 	@echo "Code quality:"
@@ -187,7 +188,14 @@ test-octobir-vcv:
 	@echo "Running OctobIR VCV plugin tests..."
 	@$(TEST_RUNNER) ./build/test-octobir-vcv/plugins/octobir/vcv-rack/tests/octobir-vcv-tests
 
-test-octobass: test-octobass-juce
+test-octobass: test-octobass-core test-octobass-juce
+
+test-octobass-core:
+	@rm -rf build/test-octobass-core
+	@cmake --preset test-octobass-core
+	@cmake --build build/test-octobass-core --target octobass-core-tests -j$(NPROC)
+	@echo "Running octobass-core tests..."
+	@$(TEST_RUNNER) ./build/test-octobass-core/libs/octobass-core/tests/octobass-core-tests
 
 test-octobass-juce:
 	@rm -rf build/test-octobass-juce
