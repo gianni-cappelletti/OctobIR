@@ -233,3 +233,31 @@ TEST_F(BassProcessorAudioTest, ProcessBass_WithIR_DiffersFromDry)
 
   EXPECT_GT(diffRMS, 1e-6) << "IR convolution should change the output";
 }
+
+TEST_F(BassProcessorAudioTest, ProcessBass_MagnitudePreserved_SkipTransient)
+{
+  constexpr size_t kSkip = 4 * kBlockSize;
+
+  BassProcessor proc;
+  proc.setSampleRate(static_cast<double>(bassSampleRate_));
+  proc.setMaxBlockSize(kBlockSize);
+
+  auto output = processFullSignal(proc, bassInput_);
+
+  ASSERT_GT(output.size(), kSkip) << "Output too short for transient skip";
+
+  size_t compareLen = output.size() - kSkip;
+
+  double inputRMS = 0.0, outputRMS = 0.0;
+  for (size_t i = kSkip; i < output.size(); ++i)
+  {
+    inputRMS += static_cast<double>(bassInput_[i]) * bassInput_[i];
+    outputRMS += static_cast<double>(output[i]) * output[i];
+  }
+  inputRMS = std::sqrt(inputRMS / static_cast<double>(compareLen));
+  outputRMS = std::sqrt(outputRMS / static_cast<double>(compareLen));
+
+  double ratioDb = 20.0 * std::log10(outputRMS / inputRMS);
+  EXPECT_NEAR(ratioDb, 0.0, 0.5)
+      << "After transient skip, output magnitude should closely match input";
+}

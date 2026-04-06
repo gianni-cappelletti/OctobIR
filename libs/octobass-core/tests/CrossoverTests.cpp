@@ -44,6 +44,32 @@ double computeRMS(const std::vector<float>& buf, size_t start = 0, size_t len = 
   return std::sqrt(sum / static_cast<double>(len));
 }
 
+double pearsonCorrelation(const std::vector<float>& a, const std::vector<float>& b, size_t start,
+                          size_t len)
+{
+  double meanA = 0.0, meanB = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+  {
+    meanA += a[i];
+    meanB += b[i];
+  }
+  meanA /= static_cast<double>(len);
+  meanB /= static_cast<double>(len);
+
+  double num = 0.0, varA = 0.0, varB = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+  {
+    double da = a[i] - meanA;
+    double db = b[i] - meanB;
+    num += da * db;
+    varA += da * da;
+    varB += db * db;
+  }
+
+  double denom = std::sqrt(varA * varB);
+  return (denom > 0.0) ? num / denom : 0.0;
+}
+
 }  // namespace
 
 class CrossoverTest : public ::testing::Test
@@ -213,4 +239,31 @@ TEST_F(CrossoverTest, DifferentSampleRates)
 
     EXPECT_NEAR(ratioDb, 0.0, 0.5) << "Reconstruction failed at sample rate = " << sr;
   }
+}
+
+// LR4 all-pass produces magnitude-flat reconstruction (LP+HP sums to unity gain at all
+// frequencies) but introduces frequency-dependent group delay. The time-domain waveform is
+// reshaped, so we verify magnitude preservation (tight RMS tolerance) rather than sample
+// identity. Correlation is checked loosely since the all-pass phase distorts broadband signals.
+TEST_F(CrossoverTest, MagnitudeFlatReconstruction)
+{
+  constexpr size_t kNumSamples = 8192;
+  constexpr size_t kSkip = 1024;
+  auto input = generateWhiteNoise(kNumSamples);
+
+  std::vector<float> low(kNumSamples);
+  std::vector<float> high(kNumSamples);
+  xover.process(input.data(), low.data(), high.data(), kNumSamples);
+
+  std::vector<float> sum(kNumSamples);
+  for (size_t i = 0; i < kNumSamples; ++i)
+    sum[i] = low[i] + high[i];
+
+  double inputRMS = computeRMS(input, kSkip, kNumSamples - kSkip);
+  double sumRMS = computeRMS(sum, kSkip, kNumSamples - kSkip);
+  double ratioDb = 20.0 * std::log10(sumRMS / inputRMS);
+  EXPECT_NEAR(ratioDb, 0.0, 0.1) << "LP+HP magnitude should match input within 0.1 dB";
+
+  double r = pearsonCorrelation(input, sum, kSkip, kNumSamples - kSkip);
+  EXPECT_GT(r, 0.90) << "Pearson correlation between input and LP+HP sum: r=" << r;
 }

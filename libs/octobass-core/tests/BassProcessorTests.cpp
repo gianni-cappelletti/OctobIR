@@ -31,6 +31,52 @@ float peakLevel(const std::vector<float>& buf)
   return peak;
 }
 
+std::vector<float> generateWhiteNoise(size_t numSamples, unsigned int seed = 42)
+{
+  std::vector<float> buf(numSamples);
+  unsigned int state = seed;
+  for (size_t i = 0; i < numSamples; ++i)
+  {
+    state = state * 1664525u + 1013904223u;
+    buf[i] = static_cast<float>(static_cast<int>(state)) / static_cast<float>(0x7FFFFFFF);
+  }
+  return buf;
+}
+
+double computeRMS(const std::vector<float>& buf, size_t start, size_t len)
+{
+  double sum = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+    sum += static_cast<double>(buf[i]) * buf[i];
+  return std::sqrt(sum / static_cast<double>(len));
+}
+
+double pearsonCorrelation(const std::vector<float>& a, const std::vector<float>& b, size_t start,
+                          size_t len)
+{
+  double meanA = 0.0, meanB = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+  {
+    meanA += a[i];
+    meanB += b[i];
+  }
+  meanA /= static_cast<double>(len);
+  meanB /= static_cast<double>(len);
+
+  double num = 0.0, varA = 0.0, varB = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+  {
+    double da = a[i] - meanA;
+    double db = b[i] - meanB;
+    num += da * db;
+    varA += da * da;
+    varB += db * db;
+  }
+
+  double denom = std::sqrt(varA * varB);
+  return (denom > 0.0) ? num / denom : 0.0;
+}
+
 }  // namespace
 
 class BassProcessorTest : public ::testing::Test
@@ -224,4 +270,66 @@ TEST_F(BassProcessorTest, SilentInput_SilentOutput)
 
   for (size_t i = 0; i < kNumSamples; ++i)
     EXPECT_FLOAT_EQ(output[i], 0.0f) << "Output not silent at sample " << i;
+}
+
+TEST_F(BassProcessorTest, CrossoverFrequencySweep_NoIR_SimilarOutput)
+{
+  constexpr size_t kNumBlocks = 16;
+  constexpr size_t kTotalSamples = kNumBlocks * kBlockSize;
+  constexpr size_t kSkip = 4 * kBlockSize;
+  auto input = generateWhiteNoise(kTotalSamples);
+
+  float frequencies[] = {100.0f, 250.0f, 500.0f, 800.0f};
+
+  for (float freq : frequencies)
+  {
+    BassProcessor p;
+    p.setSampleRate(44100.0);
+    p.setMaxBlockSize(kBlockSize);
+    p.setCrossoverFrequency(freq);
+
+    std::vector<float> output(kTotalSamples);
+    for (size_t b = 0; b < kNumBlocks; ++b)
+      p.processMono(input.data() + b * kBlockSize, output.data() + b * kBlockSize, kBlockSize);
+
+    // LR4 all-pass introduces frequency-dependent group delay; higher crossover frequencies
+    // cause more phase distortion in the broadband test signal, lowering time-domain correlation.
+    double r = pearsonCorrelation(input, output, kSkip, kTotalSamples - kSkip);
+    EXPECT_GT(r, 0.80) << "Correlation too low at crossover freq " << freq << " Hz: r=" << r;
+
+    double inputRMS = computeRMS(input, kSkip, kTotalSamples - kSkip);
+    double outputRMS = computeRMS(output, kSkip, kTotalSamples - kSkip);
+    double ratioDb = 20.0 * std::log10(outputRMS / inputRMS);
+    EXPECT_NEAR(ratioDb, 0.0, 0.5) << "RMS mismatch at crossover freq " << freq << " Hz";
+  }
+}
+
+TEST_F(BassProcessorTest, BlockBoundaryContinuity)
+{
+  constexpr size_t kTotalSamples = 4096;
+  constexpr size_t kSmallBlock = 512;
+  constexpr size_t kSkip = 1024;
+  auto input = generateSine(100.0f, 44100.0f, kTotalSamples);
+
+  // Configuration A: one large block
+  BassProcessor procA;
+  procA.setSampleRate(44100.0);
+  procA.setMaxBlockSize(kTotalSamples);
+  std::vector<float> outputA(kTotalSamples);
+  procA.processMono(input.data(), outputA.data(), kTotalSamples);
+
+  // Configuration B: many small blocks
+  BassProcessor procB;
+  procB.setSampleRate(44100.0);
+  procB.setMaxBlockSize(kSmallBlock);
+  std::vector<float> outputB(kTotalSamples);
+  for (size_t b = 0; b < kTotalSamples / kSmallBlock; ++b)
+    procB.processMono(input.data() + b * kSmallBlock, outputB.data() + b * kSmallBlock,
+                      kSmallBlock);
+
+  float maxErr = 0.0f;
+  for (size_t i = kSkip; i < kTotalSamples; ++i)
+    maxErr = std::max(maxErr, std::abs(outputA[i] - outputB[i]));
+
+  EXPECT_LT(maxErr, 1e-5f) << "Block boundary discontinuity: max error = " << maxErr;
 }

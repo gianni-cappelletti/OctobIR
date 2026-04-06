@@ -21,31 +21,34 @@ class Crossover
   SampleRate getSampleRate() const { return sampleRate_; }
 
  private:
-  struct BiquadState
+  struct SVFState
   {
-    Sample x1 = 0.0f, x2 = 0.0f;
-    Sample y1 = 0.0f, y2 = 0.0f;
+    Sample ic1eq = 0.0f;
+    Sample ic2eq = 0.0f;
   };
 
-  struct BiquadCoeffs
+  struct SVFCoeffs
   {
-    float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f;
-    float a1 = 0.0f, a2 = 0.0f;
+    float g = 0.0f;
+    float k = 0.0f;
+    float a1 = 0.0f;
+    float a2 = 0.0f;
+    float a3 = 0.0f;
   };
 
-  BiquadCoeffs lpCoeffs_;
-  BiquadCoeffs hpCoeffs_;
-  BiquadState lpState1_;
-  BiquadState lpState2_;
-  BiquadState hpState1_;
-  BiquadState hpState2_;
+  SVFCoeffs coeffs_;
+  SVFState lpState1_;
+  SVFState lpState2_;
+  SVFState hpState1_;
+  SVFState hpState2_;
 
   float frequency_;
   SampleRate sampleRate_;
 
   void updateCoefficients();
 
-  static Sample processBiquad(const BiquadCoeffs& c, BiquadState& s, Sample input);
+  static Sample tickLP(const SVFCoeffs& c, SVFState& s, Sample input);
+  static Sample tickHP(const SVFCoeffs& c, SVFState& s, Sample input);
 };
 
 }  // namespace octob

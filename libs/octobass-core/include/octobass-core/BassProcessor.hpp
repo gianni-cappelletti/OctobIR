@@ -54,6 +54,7 @@ class BassProcessor
   std::vector<Sample> lowBandBuffer_;
   std::vector<Sample> highBandBuffer_;
   std::vector<Sample> dryBuffer_;
+  std::vector<Sample> delayedLowBuffer_;
 
   // Delay compensation for low band path
   std::vector<Sample> lowBandDelayBuffer_;

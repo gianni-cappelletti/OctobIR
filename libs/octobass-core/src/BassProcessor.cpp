@@ -39,6 +39,7 @@ void BassProcessor::setMaxBlockSize(FrameCount maxBlockSize)
   lowBandBuffer_.resize(maxBlockSize, 0.0f);
   highBandBuffer_.resize(maxBlockSize, 0.0f);
   dryBuffer_.resize(maxBlockSize, 0.0f);
+  delayedLowBuffer_.resize(maxBlockSize, 0.0f);
   irProcessor_.setMaxBlockSize(maxBlockSize);
   updateDelayBuffer();
 }
@@ -125,12 +126,12 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
   // Apply delay compensation to low band
   if (currentIRLatency_ > 0 && !lowBandDelayBuffer_.empty())
   {
-    std::vector<Sample> delayedLow(numFrames);
+    Sample* delayedLow = delayedLowBuffer_.data();
     writeToDelayBuffer(lowBandDelayBuffer_, lowBandDelayWritePos_, lowBandBuffer_.data(),
                        numFrames);
-    readFromDelayBuffer(lowBandDelayBuffer_, lowBandDelayWritePos_, delayedLow.data(), numFrames,
+    readFromDelayBuffer(lowBandDelayBuffer_, lowBandDelayWritePos_, delayedLow, numFrames,
                         currentIRLatency_);
-    std::copy(delayedLow.begin(), delayedLow.end(), lowBandBuffer_.data());
+    std::copy(delayedLow, delayedLow + numFrames, lowBandBuffer_.data());
   }
 
   // Apply band levels and sum
@@ -154,6 +155,7 @@ void BassProcessor::reset()
   std::fill(lowBandBuffer_.begin(), lowBandBuffer_.end(), 0.0f);
   std::fill(highBandBuffer_.begin(), highBandBuffer_.end(), 0.0f);
   std::fill(dryBuffer_.begin(), dryBuffer_.end(), 0.0f);
+  std::fill(delayedLowBuffer_.begin(), delayedLowBuffer_.end(), 0.0f);
   std::fill(lowBandDelayBuffer_.begin(), lowBandDelayBuffer_.end(), 0.0f);
   lowBandDelayWritePos_ = 0;
   currentIRLatency_ = 0;
