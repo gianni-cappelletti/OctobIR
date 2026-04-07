@@ -53,33 +53,6 @@ void normalizeToUnitPeak(std::vector<float>& samples)
       s /= peak;
 }
 
-double pearsonCorrelation(const std::vector<float>& a, const std::vector<float>& b)
-{
-  const size_t n = std::min(a.size(), b.size());
-
-  double meanA = 0.0, meanB = 0.0;
-  for (size_t i = 0; i < n; ++i)
-  {
-    meanA += a[i];
-    meanB += b[i];
-  }
-  meanA /= static_cast<double>(n);
-  meanB /= static_cast<double>(n);
-
-  double num = 0.0, varA = 0.0, varB = 0.0;
-  for (size_t i = 0; i < n; ++i)
-  {
-    double da = a[i] - meanA;
-    double db = b[i] - meanB;
-    num += da * db;
-    varA += da * da;
-    varB += db * db;
-  }
-
-  double denom = std::sqrt(varA * varB);
-  return (denom > 0.0) ? num / denom : 0.0;
-}
-
 // Process input through BassProcessor in blocks, return the full output.
 std::vector<float> processFullSignal(BassProcessor& proc, const std::vector<float>& input)
 {

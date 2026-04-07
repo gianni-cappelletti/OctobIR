@@ -16,8 +16,12 @@ ALL_PLUGINS  := $(sort $(JUCE_PLUGINS) $(VCV_PLUGINS))
 # ── Platform detection ──────────────────────────────────────────
 UNAME_S := $(shell uname -s)
 NPROC   := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+# Test binaries are built with ASan (-fsanitize=address) via CMake presets.
+# On Linux, LSan (leak detection) is supported on top of ASan.
+# On macOS, Apple Clang does not support LSan — ASan alone handles memory errors.
+# Note: macOS `leaks` tool is incompatible with ASan's malloc replacement.
 ifeq ($(UNAME_S),Darwin)
-    TEST_RUNNER := MallocStackLogging=1 leaks --atExit --
+    TEST_RUNNER :=
 else
     TEST_RUNNER := ASAN_OPTIONS=detect_leaks=1
 endif
@@ -26,41 +30,11 @@ ALL_SOURCES  := $(shell find libs plugins -name "*.cpp" -o -name "*.hpp" -o -nam
 CORE_SOURCES := $(shell find libs/octobir-core/src -name "*.cpp")
 VCV_SOURCES  := $(shell find plugins/octobir/vcv-rack/src -name "*.cpp" 2>/dev/null)
 
-# ── JUCE plugin targets (generated per plugin) ─────────────────
-# For each JUCE plugin, generates:
-#   <name>-juce        Build and install
-#   test-<name>-juce   Run tests with ASan
-define JUCE_PLUGIN_TARGETS
-
-.PHONY: $(1)-juce test-$(1)-juce
-
-$(1)-juce: header
-	@echo "Building and installing $(1) JUCE plugin (Release)..."
-	@rm -rf build/release-$(1)-juce
-	@cmake --preset release \
-		-DBUILD_$(call to_upper,$(1))_JUCE=ON \
-		-DBUILD_$(call to_upper,$(1))_VCV=OFF
-	@cmake --build build/release --target $(call juce_target,$(1)) --config Release -j$(NPROC)
-
-test-$(1)-juce:
-	@rm -rf build/test-$(1)-juce
-	@cmake --preset test-$(1)-juce
-	@cmake --build build/test-$(1)-juce --target $(call juce_test_target,$(1)) -j$(NPROC)
-	@echo "Running $(1) JUCE plugin tests..."
-	@$(TEST_RUNNER) ./build/test-$(1)-juce/plugins/$(1)/juce/tests/$(call juce_test_target,$(1))
-
-endef
-
-# Helper functions
-to_upper = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
-juce_target = $(if $(filter octobir,$(1)),OctobIR_All,$(if $(filter octobass,$(1)),OctoBASS_All,$(1)_All))
-juce_test_target = $(if $(filter octobir,$(1)),octobir-plugin-tests,$(if $(filter octobass,$(1)),octobass-plugin-tests,$(1)-plugin-tests))
-
-$(foreach p,$(JUCE_PLUGINS),$(eval $(call JUCE_PLUGIN_TARGETS,$(p))))
-
 # ── Convenience aggregate targets ──────────────────────────────
 .PHONY: octobir octobass all test core header help clean tidy format license
-.PHONY: octobir-vcv test-octobir test-octobir-core test-octobir-vcv test-octobass test-octobass-core install-vcv
+.PHONY: octobir-juce octobir-vcv octobass-juce
+.PHONY: test-octobir test-octobir-core test-octobir-juce test-octobir-vcv
+.PHONY: test-octobass test-octobass-core test-octobass-juce install-vcv
 
 header:
 	@./scripts/show-header.sh

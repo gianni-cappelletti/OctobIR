@@ -51,30 +51,32 @@ double computeRMS(const std::vector<float>& buf, size_t start, size_t len)
   return std::sqrt(sum / static_cast<double>(len));
 }
 
-double pearsonCorrelation(const std::vector<float>& a, const std::vector<float>& b, size_t start,
-                          size_t len)
+// Verify magnitude-flat transfer function by measuring gain at discrete sine frequencies.
+// Processes each sine through the BassProcessor and checks output RMS vs input RMS.
+void assertFlatMagnitudeAtFrequencies(BassProcessor& proc, float sampleRate, int blockSize,
+                                      const float* testFreqs, size_t numFreqs, double tolDb,
+                                      const char* label)
 {
-  double meanA = 0.0, meanB = 0.0;
-  for (size_t i = start; i < start + len; ++i)
-  {
-    meanA += a[i];
-    meanB += b[i];
-  }
-  meanA /= static_cast<double>(len);
-  meanB /= static_cast<double>(len);
+  constexpr size_t kNumSamples = 16384;
+  constexpr size_t kSkip = 4096;
+  const size_t numBlocks = kNumSamples / static_cast<size_t>(blockSize);
 
-  double num = 0.0, varA = 0.0, varB = 0.0;
-  for (size_t i = start; i < start + len; ++i)
+  for (size_t f = 0; f < numFreqs; ++f)
   {
-    double da = a[i] - meanA;
-    double db = b[i] - meanB;
-    num += da * db;
-    varA += da * da;
-    varB += db * db;
-  }
+    proc.reset();
+    auto input = generateSine(testFreqs[f], sampleRate, kNumSamples);
 
-  double denom = std::sqrt(varA * varB);
-  return (denom > 0.0) ? num / denom : 0.0;
+    std::vector<float> output(kNumSamples);
+    for (size_t b = 0; b < numBlocks; ++b)
+      proc.processMono(input.data() + b * blockSize, output.data() + b * blockSize, blockSize);
+
+    double inputRMS = computeRMS(input, kSkip, kNumSamples - kSkip);
+    double outputRMS = computeRMS(output, kSkip, kNumSamples - kSkip);
+    double ratioDb = 20.0 * std::log10(outputRMS / inputRMS);
+
+    EXPECT_NEAR(ratioDb, 0.0, tolDb)
+        << label << ": magnitude at " << testFreqs[f] << " Hz deviates by " << ratioDb << " dB";
+  }
 }
 
 }  // namespace
@@ -279,28 +281,31 @@ TEST_F(BassProcessorTest, CrossoverFrequencySweep_NoIR_SimilarOutput)
   constexpr size_t kSkip = 4 * kBlockSize;
   auto input = generateWhiteNoise(kTotalSamples);
 
-  float frequencies[] = {100.0f, 250.0f, 500.0f, 800.0f};
+  float crossoverFreqs[] = {100.0f, 250.0f, 500.0f, 800.0f};
+  float testTones[] = {30.0f,  60.0f,  100.0f, 150.0f, 200.0f,
+                       300.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f};
 
-  for (float freq : frequencies)
+  for (float freq : crossoverFreqs)
   {
     BassProcessor p;
     p.setSampleRate(44100.0);
     p.setMaxBlockSize(kBlockSize);
     p.setCrossoverFrequency(freq);
 
+    // Broadband RMS check with white noise
     std::vector<float> output(kTotalSamples);
     for (size_t b = 0; b < kNumBlocks; ++b)
       p.processMono(input.data() + b * kBlockSize, output.data() + b * kBlockSize, kBlockSize);
-
-    // LR4 all-pass introduces frequency-dependent group delay; higher crossover frequencies
-    // cause more phase distortion in the broadband test signal, lowering time-domain correlation.
-    double r = pearsonCorrelation(input, output, kSkip, kTotalSamples - kSkip);
-    EXPECT_GT(r, 0.80) << "Correlation too low at crossover freq " << freq << " Hz: r=" << r;
 
     double inputRMS = computeRMS(input, kSkip, kTotalSamples - kSkip);
     double outputRMS = computeRMS(output, kSkip, kTotalSamples - kSkip);
     double ratioDb = 20.0 * std::log10(outputRMS / inputRMS);
     EXPECT_NEAR(ratioDb, 0.0, 0.5) << "RMS mismatch at crossover freq " << freq << " Hz";
+
+    // Per-frequency magnitude flatness via sine sweep
+    std::string label = "Crossover at " + std::to_string(static_cast<int>(freq)) + " Hz";
+    assertFlatMagnitudeAtFrequencies(p, 44100.0f, kBlockSize, testTones, 10, 0.5,
+                                     label.c_str());
   }
 }
 
