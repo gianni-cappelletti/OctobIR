@@ -8,8 +8,8 @@ namespace octob
 namespace
 {
 // SSL G-bus style targets at full amount
-constexpr float kTargetThresholdDb = -24.0f;
-constexpr float kTargetRatio = 6.0f;
+constexpr float kTargetThresholdDb = -30.0f;
+constexpr float kTargetRatio = 8.0f;
 constexpr float kKneeDb = 6.0f;
 
 constexpr float kAttackMs = 5.0f;

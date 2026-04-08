@@ -56,16 +56,9 @@ void OptoCompressor::process(const Sample* input, Sample* output, FrameCount num
   {
     float in = input[i];
 
-    // Feedback topology: detect on the output of the previous sample.
-    // For the first sample, gain reduction is based on the previous envelope state.
-    float gainLinear = CompressorMode::dbToLinear(gainReductionDb_);
-    float out = in * gainLinear;
-
-    // T4 cell: detect the output level (feedback)
-    float detectedLevel = std::fabs(out);
-
-    // Scale detection by amount (0 = no drive into T4, 1 = full drive)
-    float drive = detectedLevel * amount_ * 8.0f;
+    // Feed-forward: detect on input, drive the T4 cell from the input level
+    float detectedLevel = std::fabs(in);
+    float drive = detectedLevel * amount_ * 6.0f;
 
     // Fast state: responds to transients (~10ms)
     fastState_ = fastAttackCoeff_ * fastState_ + (1.0f - fastAttackCoeff_) * drive;
@@ -82,7 +75,6 @@ void OptoCompressor::process(const Sample* input, Sample* output, FrameCount num
     }
     else
     {
-      // Discharge rate gets slower as charge is higher (program-dependent release)
       float effectiveDischargeRate = dischargeRate_ * (1.0f - 0.5f * charge_);
       charge_ *= effectiveDischargeRate;
     }
@@ -95,13 +87,13 @@ void OptoCompressor::process(const Sample* input, Sample* output, FrameCount num
     if (std::fabs(charge_) < 1e-8f)
       charge_ = 0.0f;
 
-    // Gain reduction: derived from the T4 cell states
-    // The slow state represents the "resistance" of the photoresistor
-    float reductionLinear = 1.0f / (1.0f + slowState_ * 5.0f);
+    // Gain reduction derived from the T4 cell slow state
+    float reductionLinear = 1.0f / (1.0f + slowState_ * 4.0f);
     gainReductionDb_ = CompressorMode::clamp(CompressorMode::linearToDb(reductionLinear),
                                              kMaxGainReductionDb, 0.0f);
 
-    output[i] = out;
+    float gainLinear = CompressorMode::dbToLinear(gainReductionDb_);
+    output[i] = in * gainLinear;
   }
 }
 

@@ -5,8 +5,9 @@
 namespace octob
 {
 
-// Feedback FET compressor modeled after the 1176.
-// Nonlinear FET gain element with fast time constants for aggressive, punchy compression.
+// Feed-forward FET compressor inspired by the 1176.
+// Peak detection on the input with ultra-fast time constants for aggressive, punchy compression.
+// Uses a standard dB-domain gain computer with high ratio for near-limiting behavior.
 class FETCompressor : public CompressorMode
 {
  public:
@@ -22,17 +23,19 @@ class FETCompressor : public CompressorMode
   SampleRate sampleRate_;
   float amount_;
 
-  // FET operating parameters (interpolated from amount)
-  float bias_;
-  float kneeExponent_;
+  // Compression parameters (interpolated from amount)
+  float thresholdDb_;
+  float ratio_;
+  float kneeDb_;
   float attackCoeff_;
   float releaseCoeff_;
 
   // State
-  float envelopeLinear_;
+  float envelopeDb_;
   float gainReductionDb_;
 
   void updateParameters();
+  float computeStaticCurve(float inputDb) const;
 };
 
 }  // namespace octob

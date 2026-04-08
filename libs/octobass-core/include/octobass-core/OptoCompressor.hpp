@@ -5,7 +5,7 @@
 namespace octob
 {
 
-// Feedback opto compressor modeled after the LA-2A.
+// Feed-forward opto compressor inspired by the LA-2A.
 // T4 cell model with program-dependent release for smooth, musical leveling.
 class OptoCompressor : public CompressorMode
 {

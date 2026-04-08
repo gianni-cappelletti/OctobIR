@@ -151,12 +151,12 @@ TEST_F(CompressorAudioTest, GainReduction_IncreasesWithSquash)
   }
 }
 
-TEST_F(CompressorAudioTest, FeedbackModes_StableAtExtremes)
+TEST_F(CompressorAudioTest, AllModes_StableAtExtremes)
 {
   constexpr size_t kNumSamples = 44100;
   auto loud = generateSine(60.0f, 44100.0f, kNumSamples, 0.95f);
 
-  for (int mode : {1, 2})
+  for (int mode = 0; mode < NumCompressionModes; ++mode)
   {
     Compressor c;
     c.setSampleRate(44100.0);
@@ -172,7 +172,8 @@ TEST_F(CompressorAudioTest, FeedbackModes_StableAtExtremes)
     }
 
     float peak = peakLevel(output);
-    EXPECT_LT(peak, 2.0f) << "Mode " << mode << " output is unreasonably loud: " << peak;
+    EXPECT_LT(peak, 1.0f)
+        << "Mode " << mode << " output should not exceed unity with loud input";
   }
 }
 
