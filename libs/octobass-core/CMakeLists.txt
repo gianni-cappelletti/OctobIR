@@ -6,7 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCES
     src/BassProcessor.cpp
+    src/BusCompressor.cpp
+    src/Compressor.cpp
     src/Crossover.cpp
+    src/FETCompressor.cpp
+    src/OptoCompressor.cpp
+    src/VCACompressor.cpp
 )
 
 add_library(octobass-core STATIC ${SOURCES})
@@ -32,7 +37,7 @@ elseif(WIN32)
 endif()
 
 set_target_properties(octobass-core PROPERTIES
-    PUBLIC_HEADER "include/octobass-core/BassProcessor.hpp;include/octobass-core/Crossover.hpp;include/octobass-core/Types.hpp"
+    PUBLIC_HEADER "include/octobass-core/BassProcessor.hpp;include/octobass-core/BusCompressor.hpp;include/octobass-core/Compressor.hpp;include/octobass-core/CompressorMode.hpp;include/octobass-core/Crossover.hpp;include/octobass-core/FETCompressor.hpp;include/octobass-core/OptoCompressor.hpp;include/octobass-core/Types.hpp;include/octobass-core/VCACompressor.hpp"
     POSITION_INDEPENDENT_CODE ON
 )
 

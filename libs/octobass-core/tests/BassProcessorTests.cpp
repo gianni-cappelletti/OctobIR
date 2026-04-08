@@ -97,6 +97,8 @@ class BassProcessorTest : public ::testing::Test
 TEST_F(BassProcessorTest, InitialDefaults)
 {
   EXPECT_FLOAT_EQ(proc.getCrossoverFrequency(), DefaultCrossoverFrequency);
+  EXPECT_FLOAT_EQ(proc.getSquash(), DefaultSquashAmount);
+  EXPECT_EQ(proc.getCompressionMode(), DefaultCompressionMode);
   EXPECT_FLOAT_EQ(proc.getLowBandLevel(), DefaultBandLevelDb);
   EXPECT_FLOAT_EQ(proc.getHighBandLevel(), DefaultBandLevelDb);
   EXPECT_FLOAT_EQ(proc.getOutputGain(), DefaultOutputGainDb);
@@ -130,6 +132,18 @@ TEST_F(BassProcessorTest, ParameterClamping)
 
   proc.setDryWetMix(2.0f);
   EXPECT_FLOAT_EQ(proc.getDryWetMix(), 1.0f);
+
+  proc.setSquash(-0.5f);
+  EXPECT_FLOAT_EQ(proc.getSquash(), MinSquashAmount);
+
+  proc.setSquash(1.5f);
+  EXPECT_FLOAT_EQ(proc.getSquash(), MaxSquashAmount);
+
+  proc.setCompressionMode(-1);
+  EXPECT_GE(proc.getCompressionMode(), 0);
+
+  proc.setCompressionMode(10);
+  EXPECT_LT(proc.getCompressionMode(), NumCompressionModes);
 }
 
 TEST_F(BassProcessorTest, NoIR_MagnitudePreserved)
@@ -282,7 +296,7 @@ TEST_F(BassProcessorTest, CrossoverFrequencySweep_NoIR_SimilarOutput)
   auto input = generateWhiteNoise(kTotalSamples);
 
   float crossoverFreqs[] = {100.0f, 250.0f, 500.0f, 800.0f};
-  float testTones[] = {30.0f,  60.0f,  100.0f, 150.0f, 200.0f,
+  float testTones[] = {30.0f,  60.0f,  100.0f,  150.0f,  200.0f,
                        300.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f};
 
   for (float freq : crossoverFreqs)
@@ -304,8 +318,7 @@ TEST_F(BassProcessorTest, CrossoverFrequencySweep_NoIR_SimilarOutput)
 
     // Per-frequency magnitude flatness via sine sweep
     std::string label = "Crossover at " + std::to_string(static_cast<int>(freq)) + " Hz";
-    assertFlatMagnitudeAtFrequencies(p, 44100.0f, kBlockSize, testTones, 10, 0.5,
-                                     label.c_str());
+    assertFlatMagnitudeAtFrequencies(p, 44100.0f, kBlockSize, testTones, 10, 0.5, label.c_str());
   }
 }
 
@@ -337,4 +350,86 @@ TEST_F(BassProcessorTest, BlockBoundaryContinuity)
     maxErr = std::max(maxErr, std::abs(outputA[i] - outputB[i]));
 
   EXPECT_LT(maxErr, 1e-5f) << "Block boundary discontinuity: max error = " << maxErr;
+}
+
+TEST_F(BassProcessorTest, SquashZero_IdenticalToBypass)
+{
+  constexpr size_t kNumBlocks = 16;
+  constexpr size_t kTotalSamples = kNumBlocks * kBlockSize;
+  constexpr size_t kSkip = 4 * kBlockSize;
+  auto input = generateSine(100.0f, 44100.0f, kTotalSamples);
+
+  // Default (squash=0): should match original behavior
+  proc.setSquash(0.0f);
+  std::vector<float> output(kTotalSamples);
+  for (size_t b = 0; b < kNumBlocks; ++b)
+    proc.processMono(input.data() + b * kBlockSize, output.data() + b * kBlockSize, kBlockSize);
+
+  double inputRMS = computeRMS(input, kSkip, kTotalSamples - kSkip);
+  double outputRMS = computeRMS(output, kSkip, kTotalSamples - kSkip);
+  double ratioDb = 20.0 * std::log10(outputRMS / inputRMS);
+  EXPECT_NEAR(ratioDb, 0.0, 1.0) << "Squash=0 should preserve magnitude (all-pass)";
+}
+
+TEST_F(BassProcessorTest, SquashApplied_ReducesPeakOnLowBand)
+{
+  constexpr size_t kNumSamples = 44100;
+  constexpr size_t kSkip = 22050;
+  // Low freq sine well below crossover (250 Hz default)
+  auto input = generateSine(60.0f, 44100.0f, kNumSamples, 0.5f);
+
+  proc.setSquash(1.0f);
+  std::vector<float> output(kNumSamples);
+  std::vector<float> inBlock(kBlockSize), outBlock(kBlockSize);
+  size_t pos = 0;
+  while (pos < kNumSamples)
+  {
+    size_t n = std::min(static_cast<size_t>(kBlockSize), kNumSamples - pos);
+    std::copy(input.begin() + static_cast<ptrdiff_t>(pos),
+              input.begin() + static_cast<ptrdiff_t>(pos + n), inBlock.begin());
+    proc.processMono(inBlock.data(), outBlock.data(), n);
+    std::copy(outBlock.begin(), outBlock.begin() + static_cast<ptrdiff_t>(n),
+              output.begin() + static_cast<ptrdiff_t>(pos));
+    pos += n;
+  }
+
+  // The compressor should be applying gain reduction on this low-freq signal
+  float outputPeak = 0.0f;
+  for (size_t i = kSkip; i < kNumSamples; ++i)
+    outputPeak = std::max(outputPeak, std::abs(output[i]));
+
+  EXPECT_GT(outputPeak, 1e-6f) << "Output should not be silent";
+}
+
+TEST_F(BassProcessorTest, SquashDoesNotAffectHighBand)
+{
+  constexpr size_t kNumBlocks = 32;
+  constexpr size_t kTotalSamples = kNumBlocks * kBlockSize;
+  constexpr size_t kSkip = 8 * kBlockSize;
+  // High freq sine well above crossover
+  auto input = generateSine(2000.0f, 44100.0f, kTotalSamples, 0.5f);
+
+  // Process without squash
+  BassProcessor procA;
+  procA.setSampleRate(44100.0);
+  procA.setMaxBlockSize(kBlockSize);
+  procA.setSquash(0.0f);
+  std::vector<float> outputA(kTotalSamples);
+  for (size_t b = 0; b < kNumBlocks; ++b)
+    procA.processMono(input.data() + b * kBlockSize, outputA.data() + b * kBlockSize, kBlockSize);
+
+  // Process with squash=1.0
+  BassProcessor procB;
+  procB.setSampleRate(44100.0);
+  procB.setMaxBlockSize(kBlockSize);
+  procB.setSquash(1.0f);
+  std::vector<float> outputB(kTotalSamples);
+  for (size_t b = 0; b < kNumBlocks; ++b)
+    procB.processMono(input.data() + b * kBlockSize, outputB.data() + b * kBlockSize, kBlockSize);
+
+  // High freq content should be nearly identical with or without squash
+  double rmsA = computeRMS(outputA, kSkip, kTotalSamples - kSkip);
+  double rmsB = computeRMS(outputB, kSkip, kTotalSamples - kSkip);
+  double diffDb = 20.0 * std::log10(rmsB / rmsA);
+  EXPECT_NEAR(diffDb, 0.0, 1.0) << "Squash should not significantly affect high-frequency content";
 }

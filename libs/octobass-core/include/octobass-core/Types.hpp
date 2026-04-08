@@ -21,4 +21,12 @@ constexpr float MaxOutputGainDb = 24.0f;
 
 constexpr float DefaultDryWetMix = 1.0f;
 
+// Compressor (squash) defaults and limits
+constexpr float DefaultSquashAmount = 0.0f;
+constexpr float MinSquashAmount = 0.0f;
+constexpr float MaxSquashAmount = 1.0f;
+
+constexpr int DefaultCompressionMode = 0;
+constexpr int NumCompressionModes = 4;
+
 }  // namespace octob

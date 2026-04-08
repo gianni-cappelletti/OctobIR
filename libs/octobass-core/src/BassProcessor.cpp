@@ -31,6 +31,7 @@ BassProcessor::~BassProcessor() = default;
 void BassProcessor::setSampleRate(SampleRate sampleRate)
 {
   crossover_.setSampleRate(sampleRate);
+  compressor_.setSampleRate(sampleRate);
   irProcessor_.setSampleRate(sampleRate);
 }
 
@@ -76,6 +77,16 @@ std::string BassProcessor::getCurrentIRPath() const
 void BassProcessor::setCrossoverFrequency(float frequencyHz)
 {
   crossover_.setFrequency(frequencyHz);
+}
+
+void BassProcessor::setSquash(float amount)
+{
+  compressor_.setSquash(amount);
+}
+
+void BassProcessor::setCompressionMode(int mode)
+{
+  compressor_.setMode(mode);
 }
 
 void BassProcessor::setLowBandLevel(float levelDb)
@@ -134,6 +145,12 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
     std::copy(delayedLow, delayedLow + numFrames, lowBandBuffer_.data());
   }
 
+  // Apply compression to low band (skip entirely when squash is off)
+  if (compressor_.getSquash() > 0.0f)
+  {
+    compressor_.process(lowBandBuffer_.data(), lowBandBuffer_.data(), numFrames);
+  }
+
   // Apply band levels and sum
   for (FrameCount i = 0; i < numFrames; ++i)
   {
@@ -150,6 +167,7 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
 void BassProcessor::reset()
 {
   crossover_.reset();
+  compressor_.reset();
   irProcessor_.reset();
 
   std::fill(lowBandBuffer_.begin(), lowBandBuffer_.end(), 0.0f);

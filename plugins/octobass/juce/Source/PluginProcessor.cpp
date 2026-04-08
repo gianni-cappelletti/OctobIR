@@ -4,8 +4,8 @@
 
 OctoBassProcessor::OctoBassProcessor()
     : AudioProcessor(BusesProperties()
-                         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+                         .withInput("Input", juce::AudioChannelSet::mono(), true)
+                         .withOutput("Output", juce::AudioChannelSet::mono(), true)),
       apvts_(*this, nullptr, "OctoBassParams", createParameterLayout())
 {
 }
@@ -14,30 +14,80 @@ OctoBassProcessor::~OctoBassProcessor() = default;
 
 juce::AudioProcessorValueTreeState::ParameterLayout OctoBassProcessor::createParameterLayout()
 {
-  std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-  return {params.begin(), params.end()};
+  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "crossoverFrequency", "Crossover",
+      juce::NormalisableRange<float>(octob::MinCrossoverFrequency, octob::MaxCrossoverFrequency,
+                                     1.0f),
+      octob::DefaultCrossoverFrequency, juce::String(),
+      juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(static_cast<int>(value)) + " Hz"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "squash", "Squash",
+      juce::NormalisableRange<float>(octob::MinSquashAmount, octob::MaxSquashAmount, 0.01f),
+      octob::DefaultSquashAmount, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + "%"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterChoice>(
+      "compressionMode", "Compression Mode", juce::StringArray("Tight", "Smooth", "Punch", "Glue"),
+      octob::DefaultCompressionMode));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "lowBandLevel", "Low Level",
+      juce::NormalisableRange<float>(octob::MinBandLevelDb, octob::MaxBandLevelDb, 0.1f),
+      octob::DefaultBandLevelDb, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "highBandLevel", "High Level",
+      juce::NormalisableRange<float>(octob::MinBandLevelDb, octob::MaxBandLevelDb, 0.1f),
+      octob::DefaultBandLevelDb, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "outputGain", "Output Gain",
+      juce::NormalisableRange<float>(octob::MinOutputGainDb, octob::MaxOutputGainDb, 0.1f),
+      octob::DefaultOutputGainDb, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "dryWetMix", "Dry/Wet", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+      octob::DefaultDryWetMix, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + "%"; }));
+
+  return layout;
 }
 
-void OctoBassProcessor::prepareToPlay(double /*sampleRate*/, int /*samplesPerBlock*/) {}
+void OctoBassProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+{
+  bassProcessor_.setSampleRate(sampleRate);
+  bassProcessor_.setMaxBlockSize(static_cast<size_t>(samplesPerBlock));
+}
 
 void OctoBassProcessor::releaseResources() {}
 
 bool OctoBassProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-      layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-    return false;
-
-  if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-    return false;
-
-  return true;
+  return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::mono() &&
+         layouts.getMainInputChannelSet() == juce::AudioChannelSet::mono();
 }
 
-void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& /*buffer*/,
+void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                      juce::MidiBuffer& /*midiMessages*/)
 {
-  // Pass-through: input audio is unchanged on the output
+  bassProcessor_.setCrossoverFrequency(*apvts_.getRawParameterValue("crossoverFrequency"));
+  bassProcessor_.setSquash(*apvts_.getRawParameterValue("squash"));
+  bassProcessor_.setCompressionMode(
+      static_cast<int>(*apvts_.getRawParameterValue("compressionMode")));
+  bassProcessor_.setLowBandLevel(*apvts_.getRawParameterValue("lowBandLevel"));
+  bassProcessor_.setHighBandLevel(*apvts_.getRawParameterValue("highBandLevel"));
+  bassProcessor_.setOutputGain(*apvts_.getRawParameterValue("outputGain"));
+  bassProcessor_.setDryWetMix(*apvts_.getRawParameterValue("dryWetMix"));
+
+  bassProcessor_.processMono(buffer.getReadPointer(0), buffer.getWritePointer(0),
+                             static_cast<size_t>(buffer.getNumSamples()));
 }
 
 juce::AudioProcessorEditor* OctoBassProcessor::createEditor()

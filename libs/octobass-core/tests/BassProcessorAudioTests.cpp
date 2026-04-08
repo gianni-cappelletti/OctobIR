@@ -234,3 +234,58 @@ TEST_F(BassProcessorAudioTest, ProcessBass_MagnitudePreserved_SkipTransient)
   EXPECT_NEAR(ratioDb, 0.0, 0.5)
       << "After transient skip, output magnitude should closely match input";
 }
+
+TEST_F(BassProcessorAudioTest, ProcessBass_WithSquash_NonSilent)
+{
+  BassProcessor proc;
+  proc.setSampleRate(static_cast<double>(bassSampleRate_));
+  proc.setMaxBlockSize(kBlockSize);
+  proc.setSquash(0.5f);
+
+  auto output = processFullSignal(proc, bassInput_);
+
+  float peak = peakLevel(output);
+  EXPECT_GT(peak, 1e-6f) << "Output should not be silent with squash=0.5";
+}
+
+TEST_F(BassProcessorAudioTest, ProcessBass_WithSquash_RMSPreserved)
+{
+  // The auto makeup gain should keep RMS roughly constant
+  BassProcessor procDry;
+  procDry.setSampleRate(static_cast<double>(bassSampleRate_));
+  procDry.setMaxBlockSize(kBlockSize);
+  auto outputDry = processFullSignal(procDry, bassInput_);
+
+  BassProcessor procWet;
+  procWet.setSampleRate(static_cast<double>(bassSampleRate_));
+  procWet.setMaxBlockSize(kBlockSize);
+  procWet.setSquash(0.7f);
+  auto outputWet = processFullSignal(procWet, bassInput_);
+
+  double dryRMS = computeRMS(outputDry);
+  double wetRMS = computeRMS(outputWet);
+
+  double ratioDb = 20.0 * std::log10(wetRMS / dryRMS);
+  std::cout << "[SquashRMS] Dry RMS: " << dryRMS << ", Wet RMS: " << wetRMS
+            << ", Ratio: " << ratioDb << " dB\n";
+  EXPECT_NEAR(ratioDb, 0.0, 4.0)
+      << "Auto makeup gain should keep RMS roughly preserved with squash=0.7";
+}
+
+TEST_F(BassProcessorAudioTest, ProcessBass_AllModes_ProduceOutput)
+{
+  for (int mode = 0; mode < octob::NumCompressionModes; ++mode)
+  {
+    BassProcessor proc;
+    proc.setSampleRate(static_cast<double>(bassSampleRate_));
+    proc.setMaxBlockSize(kBlockSize);
+    proc.setSquash(1.0f);
+    proc.setCompressionMode(mode);
+
+    auto output = processFullSignal(proc, bassInput_);
+
+    float peak = peakLevel(output);
+    EXPECT_GT(peak, 1e-6f) << "Mode " << mode << " should produce non-silent output";
+    EXPECT_LT(peak, 10.0f) << "Mode " << mode << " should not clip excessively";
+  }
+}

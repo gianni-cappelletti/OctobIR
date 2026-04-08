@@ -46,9 +46,8 @@ double computeRMS(const std::vector<float>& buf, size_t start = 0, size_t len = 
 
 // Verify magnitude-flat transfer function by measuring gain at discrete sine frequencies.
 // Processes each sine through the crossover, sums LP+HP, and checks output RMS vs input RMS.
-void assertFlatMagnitudeAtFrequencies(Crossover& xover, float sampleRate,
-                                      const float* testFreqs, size_t numFreqs, double tolDb,
-                                      const char* label)
+void assertFlatMagnitudeAtFrequencies(Crossover& xover, float sampleRate, const float* testFreqs,
+                                      size_t numFreqs, double tolDb, const char* label)
 {
   constexpr size_t kNumSamples = 16384;
   constexpr size_t kSkip = 4096;
@@ -268,8 +267,7 @@ TEST_F(CrossoverTest, MagnitudeFlatReconstruction)
   double ratioDb = 20.0 * std::log10(sumRMS / inputRMS);
   EXPECT_NEAR(ratioDb, 0.0, 0.1) << "LP+HP magnitude should match input within 0.1 dB";
 
-  float testFreqs[] = {30.0f,  60.0f,  100.0f, 150.0f, 200.0f,
-                        300.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f};
-  assertFlatMagnitudeAtFrequencies(xover, 44100.0f, testFreqs, 10, 0.1,
-                                   "LP+HP reconstruction");
+  float testFreqs[] = {30.0f,  60.0f,  100.0f,  150.0f,  200.0f,
+                       300.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f};
+  assertFlatMagnitudeAtFrequencies(xover, 44100.0f, testFreqs, 10, 0.1, "LP+HP reconstruction");
 }

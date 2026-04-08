@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "Compressor.hpp"
 #include "Crossover.hpp"
 #include "Types.hpp"
 
@@ -28,6 +29,10 @@ class BassProcessor
   // Crossover
   void setCrossoverFrequency(float frequencyHz);
 
+  // Compressor
+  void setSquash(float amount);
+  void setCompressionMode(int mode);
+
   // Levels
   void setLowBandLevel(float levelDb);
   void setHighBandLevel(float levelDb);
@@ -42,6 +47,8 @@ class BassProcessor
   // Queries
   int getLatencySamples() const;
   float getCrossoverFrequency() const { return crossover_.getFrequency(); }
+  float getSquash() const { return compressor_.getSquash(); }
+  int getCompressionMode() const { return compressor_.getMode(); }
   float getLowBandLevel() const { return lowBandLevelDb_; }
   float getHighBandLevel() const { return highBandLevelDb_; }
   float getOutputGain() const { return outputGainDb_; }
@@ -49,6 +56,7 @@ class BassProcessor
 
  private:
   Crossover crossover_;
+  Compressor compressor_;
   IRProcessor irProcessor_;
 
   std::vector<Sample> lowBandBuffer_;

@@ -2,6 +2,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <octobass-core/BassProcessor.hpp>
+
 class OctoBassProcessor : public juce::AudioProcessor
 {
  public:
@@ -39,6 +41,8 @@ class OctoBassProcessor : public juce::AudioProcessor
  private:
   juce::AudioProcessorValueTreeState apvts_;
   juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+  octob::BassProcessor bassProcessor_;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctoBassProcessor)
 };
