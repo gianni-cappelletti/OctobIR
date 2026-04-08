@@ -110,6 +110,20 @@ float OptoCompressor::getGainReductionDb() const
   return gainReductionDb_;
 }
 
+float OptoCompressor::getStaticMakeupDb() const
+{
+  // Opto has no explicit threshold/ratio. Estimate from the T4 cell response
+  // at a nominal reference level (~0.3 amplitude, typical bass RMS).
+  constexpr float kNominalLevel = 0.3f;
+  constexpr float kDriveScale = 6.0f;
+  constexpr float kCurveScale = 4.0f;
+
+  float nominalDrive = kNominalLevel * amount_ * kDriveScale;
+  float nominalReduction = 1.0f / (1.0f + nominalDrive * kCurveScale);
+  float grDb = CompressorMode::linearToDb(nominalReduction);
+  return -grDb * 0.5f;
+}
+
 void OptoCompressor::updateCoefficients()
 {
   fastAttackCoeff_ = msToCoeff(kFastAttackMs, sampleRate_);

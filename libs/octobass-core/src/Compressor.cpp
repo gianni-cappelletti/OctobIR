@@ -28,8 +28,13 @@ void Compressor::setSquash(float amount)
 
 void Compressor::setMode(int mode)
 {
-  mode_ = static_cast<int>(
+  int clamped = static_cast<int>(
       clamp(static_cast<float>(mode), 0.0f, static_cast<float>(NumCompressionModes - 1)));
+
+  if (clamped == mode_)
+    return;
+
+  mode_ = clamped;
 
   switch (mode_)
   {
@@ -70,6 +75,11 @@ void Compressor::reset()
 float Compressor::getGainReductionDb() const
 {
   return activeMode_->getGainReductionDb();
+}
+
+float Compressor::getStaticMakeupDb() const
+{
+  return activeMode_->getStaticMakeupDb();
 }
 
 float Compressor::clamp(float value, float minVal, float maxVal)

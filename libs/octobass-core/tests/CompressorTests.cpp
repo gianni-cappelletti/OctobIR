@@ -164,6 +164,45 @@ TEST_F(CompressorTest, DifferentSampleRates)
   }
 }
 
+// Regression: DAWs call setMode/setSquash every processBlock even when values
+// haven't changed. setMode must not reset envelope state on redundant calls,
+// otherwise gain discontinuities appear at every block boundary.
+TEST_F(CompressorTest, RedundantSetMode_DoesNotResetState)
+{
+  constexpr size_t kBlockSize = 512;
+  constexpr size_t kTotalSamples = 8192;
+  constexpr size_t kSkip = 2048;
+  auto input = generateSine(80.0f, 44100.0f, kTotalSamples, 0.5f);
+
+  // Process without redundant setMode calls
+  Compressor compA;
+  compA.setSampleRate(44100.0);
+  compA.setMode(0);
+  compA.setSquash(1.0f);
+  auto outputA = processInBlocks(compA, input, kBlockSize);
+
+  // Process WITH redundant setMode calls every block (simulates DAW behavior)
+  Compressor compB;
+  compB.setSampleRate(44100.0);
+  compB.setMode(0);
+  compB.setSquash(1.0f);
+  std::vector<float> outputB(kTotalSamples);
+  for (size_t pos = 0; pos < kTotalSamples; pos += kBlockSize)
+  {
+    compB.setMode(0);
+    compB.setSquash(1.0f);
+    size_t n = std::min(kBlockSize, kTotalSamples - pos);
+    compB.process(input.data() + pos, outputB.data() + pos, n);
+  }
+
+  float maxErr = 0.0f;
+  for (size_t i = kSkip; i < kTotalSamples; ++i)
+    maxErr = std::max(maxErr, std::abs(outputA[i] - outputB[i]));
+
+  EXPECT_LT(maxErr, 1e-4f)
+      << "Redundant setMode calls should not alter output (max error = " << maxErr << ")";
+}
+
 TEST_F(CompressorTest, ModeSwitching_ResetsState)
 {
   constexpr size_t kNumSamples = 4096;

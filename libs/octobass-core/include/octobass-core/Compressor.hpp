@@ -26,6 +26,7 @@ class Compressor
   float getSquash() const { return squash_; }
   int getMode() const { return mode_; }
   float getGainReductionDb() const;
+  float getStaticMakeupDb() const;
 
  private:
   VCACompressor vca_;

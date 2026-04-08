@@ -17,6 +17,7 @@ class VCACompressor : public CompressorMode
   void process(const Sample* input, Sample* output, FrameCount numFrames) override;
   void reset() override;
   float getGainReductionDb() const override;
+  float getStaticMakeupDb() const override;
 
  private:
   SampleRate sampleRate_;

@@ -85,6 +85,10 @@ class BassProcessor
   float outputGainDb_;
   float dryWetMix_;
 
+  // Static makeup gain smoother (5ms to prevent clicks on parameter change)
+  float currentMakeupLinear_;
+  float makeupSmoothCoeff_;
+
   float lowBandLevelLinear_;
   float highInputGainLinear_;
   float highOutputGainLinear_;

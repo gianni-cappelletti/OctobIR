@@ -15,6 +15,8 @@ BassProcessor::BassProcessor()
       highOutputGainDb_(DefaultHighOutputGainDb),
       outputGainDb_(DefaultOutputGainDb),
       dryWetMix_(DefaultDryWetMix),
+      currentMakeupLinear_(1.0f),
+      makeupSmoothCoeff_(0.0f),
       lowBandLevelLinear_(1.0f),
       highInputGainLinear_(1.0f),
       highOutputGainLinear_(1.0f),
@@ -36,6 +38,12 @@ void BassProcessor::setSampleRate(SampleRate sampleRate)
   compressor_.setSampleRate(sampleRate);
   namProcessor_.setSampleRate(sampleRate);
   irProcessor_.setSampleRate(sampleRate);
+
+  // 5ms smoothing on static makeup gain to prevent clicks during parameter changes
+  constexpr float kMakeupSmoothMs = 5.0f;
+  float srFloat = static_cast<float>(sampleRate);
+  makeupSmoothCoeff_ =
+      1.0f - std::exp(-1.0f / (srFloat * kMakeupSmoothMs * 0.001f));
 }
 
 void BassProcessor::setMaxBlockSize(FrameCount maxBlockSize)
@@ -198,6 +206,15 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
   if (compressor_.getSquash() > 0.0f)
   {
     compressor_.process(lowBandBuffer_.data(), lowBandBuffer_.data(), numFrames);
+
+    // Static makeup gain: compensate level based on compressor parameters, not signal.
+    // Smoothed over 5ms to prevent clicks during parameter changes.
+    float targetMakeupLinear = dbToLinear(compressor_.getStaticMakeupDb());
+    for (FrameCount i = 0; i < numFrames; ++i)
+    {
+      currentMakeupLinear_ += (targetMakeupLinear - currentMakeupLinear_) * makeupSmoothCoeff_;
+      lowBandBuffer_[i] *= currentMakeupLinear_;
+    }
   }
 
   // Apply band levels and sum
@@ -219,6 +236,7 @@ void BassProcessor::reset()
   compressor_.reset();
   namProcessor_.reset();
   irProcessor_.reset();
+  currentMakeupLinear_ = 1.0f;
 
   std::fill(lowBandBuffer_.begin(), lowBandBuffer_.end(), 0.0f);
   std::fill(highBandBuffer_.begin(), highBandBuffer_.end(), 0.0f);

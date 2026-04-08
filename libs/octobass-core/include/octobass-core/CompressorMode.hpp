@@ -19,6 +19,10 @@ class CompressorMode
   virtual void reset() = 0;
   virtual float getGainReductionDb() const = 0;
 
+  // Static makeup gain derived purely from current parameters (no signal tracking).
+  // Formula: -threshold * (1 - 1/ratio) / 2  for threshold/ratio modes.
+  virtual float getStaticMakeupDb() const = 0;
+
  protected:
   static float linearToDb(float linear)
   {

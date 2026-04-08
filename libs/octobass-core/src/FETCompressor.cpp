@@ -96,6 +96,13 @@ float FETCompressor::getGainReductionDb() const
   return gainReductionDb_;
 }
 
+float FETCompressor::getStaticMakeupDb() const
+{
+  if (ratio_ <= 1.0f)
+    return 0.0f;
+  return -thresholdDb_ * (1.0f - 1.0f / ratio_) * 0.5f;
+}
+
 void FETCompressor::updateParameters()
 {
   thresholdDb_ = amount_ * kTargetThresholdDb;
