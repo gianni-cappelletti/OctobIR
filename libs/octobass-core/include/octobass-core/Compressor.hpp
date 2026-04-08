@@ -9,9 +9,8 @@
 namespace octob
 {
 
-// Wrapper owning all four compressor modes with unified RMS-tracking makeup gain.
-// Delegates processing to the active mode and applies makeup gain to ensure
-// consistent output volume across modes for fair A/B comparison.
+// Wrapper owning all four compressor modes.
+// Delegates processing to the active mode selected by setMode().
 class Compressor
 {
  public:
@@ -39,15 +38,7 @@ class Compressor
   float squash_;
   int mode_;
 
-  // Unified RMS-tracking makeup gain state
-  double inputRmsSquared_;
-  double outputRmsSquared_;
-  float smoothedMakeupDb_;
-  float rmsAlpha_;
-  float makeupSmoothAlpha_;
-
   static float clamp(float value, float minVal, float maxVal);
-  void updateRmsCoefficients();
 };
 
 }  // namespace octob

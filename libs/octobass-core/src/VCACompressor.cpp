@@ -8,13 +8,13 @@ namespace octob
 namespace
 {
 // dbx 160-style targets at full amount
-constexpr float kTargetThresholdDb = -30.0f;
-constexpr float kTargetRatio = 8.0f;
+constexpr float kTargetThresholdDb = -36.0f;
+constexpr float kTargetRatio = 12.0f;
 constexpr float kKneeDb = 3.0f;
 
-constexpr float kAttackMs = 3.0f;
-constexpr float kFastReleaseMs = 50.0f;
-constexpr float kSlowReleaseMs = 200.0f;
+constexpr float kAttackMs = 1.0f;
+constexpr float kFastReleaseMs = 40.0f;
+constexpr float kSlowReleaseMs = 150.0f;
 constexpr float kRmsWindowMs = 20.0f;
 
 float msToCoeff(float ms, SampleRate sampleRate)

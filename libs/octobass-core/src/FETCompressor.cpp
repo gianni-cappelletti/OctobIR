@@ -9,14 +9,14 @@ namespace
 {
 // FET operating point targets at full amount
 constexpr float kMinBias = 0.0f;
-constexpr float kMaxBias = 1.5f;
+constexpr float kMaxBias = 3.5f;
 constexpr float kMinKneeExponent = 1.0f;
-constexpr float kMaxKneeExponent = 4.0f;
+constexpr float kMaxKneeExponent = 6.0f;
 
 constexpr float kAttackMsLow = 0.8f;
 constexpr float kAttackMsHigh = 0.05f;
 constexpr float kReleaseMsLow = 100.0f;
-constexpr float kReleaseMsHigh = 50.0f;
+constexpr float kReleaseMsHigh = 35.0f;
 
 // Maximum gain reduction to prevent runaway in feedback loop
 constexpr float kMaxGainReductionDb = -40.0f;

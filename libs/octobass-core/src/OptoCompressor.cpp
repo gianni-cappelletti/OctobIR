@@ -14,7 +14,7 @@ constexpr float kChargeRateMs = 200.0f;
 constexpr float kDischargeRateMs = 2000.0f;
 
 // Maximum gain reduction to prevent runaway in feedback loop
-constexpr float kMaxGainReductionDb = -30.0f;
+constexpr float kMaxGainReductionDb = -40.0f;
 
 float msToCoeff(float ms, SampleRate sampleRate)
 {
@@ -65,7 +65,7 @@ void OptoCompressor::process(const Sample* input, Sample* output, FrameCount num
     float detectedLevel = std::fabs(out);
 
     // Scale detection by amount (0 = no drive into T4, 1 = full drive)
-    float drive = detectedLevel * amount_ * 4.0f;
+    float drive = detectedLevel * amount_ * 8.0f;
 
     // Fast state: responds to transients (~10ms)
     fastState_ = fastAttackCoeff_ * fastState_ + (1.0f - fastAttackCoeff_) * drive;
@@ -97,7 +97,7 @@ void OptoCompressor::process(const Sample* input, Sample* output, FrameCount num
 
     // Gain reduction: derived from the T4 cell states
     // The slow state represents the "resistance" of the photoresistor
-    float reductionLinear = 1.0f / (1.0f + slowState_ * 3.0f);
+    float reductionLinear = 1.0f / (1.0f + slowState_ * 5.0f);
     gainReductionDb_ = CompressorMode::clamp(CompressorMode::linearToDb(reductionLinear),
                                              kMaxGainReductionDb, 0.0f);
 

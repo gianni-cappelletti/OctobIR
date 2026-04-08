@@ -248,28 +248,96 @@ TEST_F(BassProcessorAudioTest, ProcessBass_WithSquash_NonSilent)
   EXPECT_GT(peak, 1e-6f) << "Output should not be silent with squash=0.5";
 }
 
-TEST_F(BassProcessorAudioTest, ProcessBass_WithSquash_RMSPreserved)
+// Test compression on a signal that is entirely below the crossover frequency,
+// so that ALL energy passes through the compression path with no high-band dilution.
+TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_ReducesLevel)
 {
-  // The auto makeup gain should keep RMS roughly constant
+  constexpr float kFreqHz = 80.0f;
+  constexpr size_t kDurationSamples = 88200;
+  constexpr size_t kSkip = 44100;
+
+  // Generate a pure sub-crossover tone (80Hz << 250Hz default crossover)
+  std::vector<float> lowTone(kDurationSamples);
+  for (size_t i = 0; i < kDurationSamples; ++i)
+    lowTone[i] =
+        0.5f * static_cast<float>(std::sin(2.0 * 3.14159265358979323846 * kFreqHz *
+                                           static_cast<double>(i) / bassSampleRate_));
+
+  // Process without compression
   BassProcessor procDry;
   procDry.setSampleRate(static_cast<double>(bassSampleRate_));
   procDry.setMaxBlockSize(kBlockSize);
-  auto outputDry = processFullSignal(procDry, bassInput_);
+  auto outputDry = processFullSignal(procDry, lowTone);
 
-  BassProcessor procWet;
-  procWet.setSampleRate(static_cast<double>(bassSampleRate_));
-  procWet.setMaxBlockSize(kBlockSize);
-  procWet.setSquash(0.7f);
-  auto outputWet = processFullSignal(procWet, bassInput_);
+  double dryRMS = 0.0;
+  for (size_t i = kSkip; i < kDurationSamples; ++i)
+    dryRMS += static_cast<double>(outputDry[i]) * outputDry[i];
+  dryRMS = std::sqrt(dryRMS / static_cast<double>(kDurationSamples - kSkip));
 
-  double dryRMS = computeRMS(outputDry);
-  double wetRMS = computeRMS(outputWet);
+  for (int mode = 0; mode < octob::NumCompressionModes; ++mode)
+  {
+    BassProcessor procWet;
+    procWet.setSampleRate(static_cast<double>(bassSampleRate_));
+    procWet.setMaxBlockSize(kBlockSize);
+    procWet.setSquash(1.0f);
+    procWet.setCompressionMode(mode);
+    auto outputWet = processFullSignal(procWet, lowTone);
 
-  double ratioDb = 20.0 * std::log10(wetRMS / dryRMS);
-  std::cout << "[SquashRMS] Dry RMS: " << dryRMS << ", Wet RMS: " << wetRMS
-            << ", Ratio: " << ratioDb << " dB\n";
-  EXPECT_NEAR(ratioDb, 0.0, 4.0)
-      << "Auto makeup gain should keep RMS roughly preserved with squash=0.7";
+    double wetRMS = 0.0;
+    for (size_t i = kSkip; i < kDurationSamples; ++i)
+      wetRMS += static_cast<double>(outputWet[i]) * outputWet[i];
+    wetRMS = std::sqrt(wetRMS / static_cast<double>(kDurationSamples - kSkip));
+
+    double ratioDb = 20.0 * std::log10(wetRMS / dryRMS);
+    std::cout << "[LowBandSquash] Mode " << mode << ": Dry RMS=" << dryRMS
+              << ", Wet RMS=" << wetRMS << ", Reduction=" << ratioDb << " dB\n";
+
+    EXPECT_LT(ratioDb, -3.0)
+        << "Mode " << mode
+        << " at full squash should significantly reduce a sub-crossover signal";
+  }
+}
+
+// Verify compression does not boost the signal above its input peak through
+// the full BassProcessor chain, using an isolated low-band signal.
+TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_NoOvershoot)
+{
+  constexpr size_t kBurstLen = 66150;
+  constexpr size_t kSilenceLen = 4410;
+  constexpr size_t kReburstLen = 22050;
+  constexpr size_t kTotal = kBurstLen + kSilenceLen + kReburstLen;
+  constexpr float kFreq = 80.0f;
+  constexpr float kAmplitude = 0.6f;
+  constexpr double kTwoPi = 2.0 * 3.14159265358979323846;
+
+  std::vector<float> input(kTotal, 0.0f);
+  for (size_t i = 0; i < kBurstLen; ++i)
+    input[i] = kAmplitude * static_cast<float>(
+                                std::sin(kTwoPi * kFreq * static_cast<double>(i) / bassSampleRate_));
+  for (size_t i = kBurstLen + kSilenceLen; i < kTotal; ++i)
+  {
+    size_t j = i - kBurstLen - kSilenceLen;
+    input[i] = kAmplitude * static_cast<float>(
+                                std::sin(kTwoPi * kFreq * static_cast<double>(j) / bassSampleRate_));
+  }
+
+  float inputPeak = peakLevel(input);
+
+  for (int mode : {0, 1, 2, 3})
+  {
+    BassProcessor proc;
+    proc.setSampleRate(static_cast<double>(bassSampleRate_));
+    proc.setMaxBlockSize(kBlockSize);
+    proc.setSquash(1.0f);
+    proc.setCompressionMode(mode);
+
+    auto output = processFullSignal(proc, input);
+    float outputPeak = peakLevel(output);
+
+    EXPECT_LE(outputPeak, inputPeak * 1.05f)
+        << "Mode " << mode << " output peak (" << outputPeak
+        << ") should not overshoot input peak (" << inputPeak << ")";
+  }
 }
 
 TEST_F(BassProcessorAudioTest, ProcessBass_AllModes_ProduceOutput)
