@@ -261,16 +261,16 @@ TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_WithStaticMakeup)
 
   std::vector<float> lowTone(kDurationSamples);
   for (size_t i = 0; i < kDurationSamples; ++i)
-    lowTone[i] =
-        0.5f * static_cast<float>(std::sin(kTwoPi * kFreqHz *
-                                           static_cast<double>(i) / bassSampleRate_));
+    lowTone[i] = 0.5f * static_cast<float>(
+                            std::sin(kTwoPi * kFreqHz * static_cast<double>(i) / bassSampleRate_));
 
   BassProcessor procDry;
   procDry.setSampleRate(static_cast<double>(bassSampleRate_));
   procDry.setMaxBlockSize(kBlockSize);
   auto outputDry = processFullSignal(procDry, lowTone);
 
-  auto measureRMS = [](const std::vector<float>& buf, size_t start, size_t end) {
+  auto measureRMS = [](const std::vector<float>& buf, size_t start, size_t end)
+  {
     double sum = 0.0;
     for (size_t i = start; i < end; ++i)
       sum += static_cast<double>(buf[i]) * buf[i];
@@ -293,15 +293,14 @@ TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_WithStaticMakeup)
     double ratioDb = 20.0 * std::log10(wetRMS / dryRMS);
     modeRmsValues.push_back(wetRMS);
 
-    std::cout << "[LowBandMakeup] Mode " << mode
-              << ": Dry=" << dryRMS << ", Wet=" << wetRMS
+    std::cout << "[LowBandMakeup] Mode " << mode << ": Dry=" << dryRMS << ", Wet=" << wetRMS
               << ", Ratio=" << ratioDb << " dB\n";
 
     // Static makeup should keep the output within ~8dB of the dry level.
     // Without makeup, modes reduce by 17-23dB; with makeup, the formula
     // compensates roughly half the expected GR.
-    EXPECT_GT(ratioDb, -12.0)
-        << "Mode " << mode << " with static makeup should be within 12dB of dry";
+    EXPECT_GT(ratioDb, -12.0) << "Mode " << mode
+                              << " with static makeup should be within 12dB of dry";
   }
 
   // Modes should produce similar output levels (the point of makeup for A/B).
@@ -329,13 +328,15 @@ TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_NoOvershoot)
 
   std::vector<float> input(kTotal, 0.0f);
   for (size_t i = 0; i < kBurstLen; ++i)
-    input[i] = kAmplitude * static_cast<float>(
-                                std::sin(kTwoPi * kFreq * static_cast<double>(i) / bassSampleRate_));
+    input[i] =
+        kAmplitude *
+        static_cast<float>(std::sin(kTwoPi * kFreq * static_cast<double>(i) / bassSampleRate_));
   for (size_t i = kBurstLen + kSilenceLen; i < kTotal; ++i)
   {
     size_t j = i - kBurstLen - kSilenceLen;
-    input[i] = kAmplitude * static_cast<float>(
-                                std::sin(kTwoPi * kFreq * static_cast<double>(j) / bassSampleRate_));
+    input[i] =
+        kAmplitude *
+        static_cast<float>(std::sin(kTwoPi * kFreq * static_cast<double>(j) / bassSampleRate_));
   }
 
   float inputPeak = peakLevel(input);
@@ -355,9 +356,8 @@ TEST_F(BassProcessorAudioTest, ProcessBass_LowBandSquash_NoOvershoot)
     // briefly exceed 0dBFS on transient re-entry before the compressor engages.
     // The low band level and output gain controls handle final limiting.
     // Internal peaks should stay within a reasonable range (~+6dBFS).
-    EXPECT_LT(outputPeak, 2.0f)
-        << "Mode " << mode << " internal peak (" << outputPeak
-        << ") is unreasonably high";
+    EXPECT_LT(outputPeak, 2.0f) << "Mode " << mode << " internal peak (" << outputPeak
+                                << ") is unreasonably high";
   }
 }
 

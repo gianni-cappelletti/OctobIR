@@ -1,15 +1,15 @@
 #include "octobass-core/NamProcessor.hpp"
 
+#include <NAM/container.h>
+#include <NAM/convnet.h>
+#include <NAM/get_dsp.h>
+#include <NAM/lstm.h>
+#include <NAM/wavenet.h>
+
 #include <algorithm>
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
-
-#include <NAM/convnet.h>
-#include <NAM/container.h>
-#include <NAM/get_dsp.h>
-#include <NAM/lstm.h>
-#include <NAM/wavenet.h>
 
 // Force the linker to include NAM architecture object files from the static
 // archive. Each .cpp has a static ConfigParserHelper that registers the
@@ -53,10 +53,7 @@ struct NamProcessor::Impl
   }
 };
 
-NamProcessor::NamProcessor()
-    : impl_(std::make_unique<Impl>())
-{
-}
+NamProcessor::NamProcessor() : impl_(std::make_unique<Impl>()) {}
 
 NamProcessor::~NamProcessor() = default;
 

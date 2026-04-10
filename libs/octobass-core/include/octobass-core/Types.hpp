@@ -38,4 +38,12 @@ constexpr float DefaultHighOutputGainDb = 0.0f;
 constexpr float MinHighOutputGainDb = -24.0f;
 constexpr float MaxHighOutputGainDb = 24.0f;
 
+// High band wet/dry blend
+constexpr float DefaultHighBandMix = 1.0f;
+
+// Noise gate defaults and limits
+constexpr float DefaultGateThresholdDb = -96.0f;
+constexpr float MinGateThresholdDb = -96.0f;
+constexpr float MaxGateThresholdDb = 0.0f;
+
 }  // namespace octob

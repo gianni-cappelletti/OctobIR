@@ -11,6 +11,7 @@ set(SOURCES
     src/Crossover.cpp
     src/FETCompressor.cpp
     src/NamProcessor.cpp
+    src/NoiseGate.cpp
     src/OptoCompressor.cpp
     src/VCACompressor.cpp
 )
@@ -77,7 +78,7 @@ elseif(WIN32)
 endif()
 
 set_target_properties(octobass-core PROPERTIES
-    PUBLIC_HEADER "include/octobass-core/BassProcessor.hpp;include/octobass-core/BusCompressor.hpp;include/octobass-core/Compressor.hpp;include/octobass-core/CompressorMode.hpp;include/octobass-core/Crossover.hpp;include/octobass-core/FETCompressor.hpp;include/octobass-core/NamProcessor.hpp;include/octobass-core/OptoCompressor.hpp;include/octobass-core/Types.hpp;include/octobass-core/VCACompressor.hpp"
+    PUBLIC_HEADER "include/octobass-core/BassProcessor.hpp;include/octobass-core/BusCompressor.hpp;include/octobass-core/Compressor.hpp;include/octobass-core/CompressorMode.hpp;include/octobass-core/Crossover.hpp;include/octobass-core/FETCompressor.hpp;include/octobass-core/NamProcessor.hpp;include/octobass-core/NoiseGate.hpp;include/octobass-core/OptoCompressor.hpp;include/octobass-core/Types.hpp;include/octobass-core/VCACompressor.hpp"
     POSITION_INDEPENDENT_CODE ON
 )
 

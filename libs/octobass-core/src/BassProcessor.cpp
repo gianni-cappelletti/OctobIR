@@ -15,6 +15,7 @@ BassProcessor::BassProcessor()
       highOutputGainDb_(DefaultHighOutputGainDb),
       outputGainDb_(DefaultOutputGainDb),
       dryWetMix_(DefaultDryWetMix),
+      highBandMix_(DefaultHighBandMix),
       currentMakeupLinear_(1.0f),
       makeupSmoothCoeff_(0.0f),
       lowBandLevelLinear_(1.0f),
@@ -38,12 +39,12 @@ void BassProcessor::setSampleRate(SampleRate sampleRate)
   compressor_.setSampleRate(sampleRate);
   namProcessor_.setSampleRate(sampleRate);
   irProcessor_.setSampleRate(sampleRate);
+  noiseGate_.setSampleRate(sampleRate);
 
   // 5ms smoothing on static makeup gain to prevent clicks during parameter changes
   constexpr float kMakeupSmoothMs = 5.0f;
   float srFloat = static_cast<float>(sampleRate);
-  makeupSmoothCoeff_ =
-      1.0f - std::exp(-1.0f / (srFloat * kMakeupSmoothMs * 0.001f));
+  makeupSmoothCoeff_ = 1.0f - std::exp(-1.0f / (srFloat * kMakeupSmoothMs * 0.001f));
 }
 
 void BassProcessor::setMaxBlockSize(FrameCount maxBlockSize)
@@ -51,6 +52,7 @@ void BassProcessor::setMaxBlockSize(FrameCount maxBlockSize)
   lowBandBuffer_.resize(maxBlockSize, 0.0f);
   highBandBuffer_.resize(maxBlockSize, 0.0f);
   dryBuffer_.resize(maxBlockSize, 0.0f);
+  dryHighBandBuffer_.resize(maxBlockSize, 0.0f);
   delayedLowBuffer_.resize(maxBlockSize, 0.0f);
   namProcessor_.setMaxBlockSize(maxBlockSize);
   irProcessor_.setMaxBlockSize(maxBlockSize);
@@ -156,6 +158,16 @@ void BassProcessor::setDryWetMix(float mix)
   dryWetMix_ = clamp(mix, 0.0f, 1.0f);
 }
 
+void BassProcessor::setGateThreshold(float thresholdDb)
+{
+  noiseGate_.setThresholdDb(thresholdDb);
+}
+
+void BassProcessor::setHighBandMix(float mix)
+{
+  highBandMix_ = clamp(mix, 0.0f, 1.0f);
+}
+
 void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount numFrames)
 {
   if (numFrames == 0)
@@ -166,6 +178,11 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
 
   // Split into low and high bands
   crossover_.process(input, lowBandBuffer_.data(), highBandBuffer_.data(), numFrames);
+
+  // Save dry high band for wet/dry blend before any processing
+  if (highBandMix_ < 1.0f)
+    std::copy(highBandBuffer_.data(), highBandBuffer_.data() + numFrames,
+              dryHighBandBuffer_.data());
 
   // High band chain: InputGain -> NAM -> IR -> OutputGain
 
@@ -182,6 +199,15 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
   // 4. Apply output gain to high band
   for (FrameCount i = 0; i < numFrames; ++i)
     highBandBuffer_[i] *= highOutputGainLinear_;
+
+  // 5. High band wet/dry blend
+  if (highBandMix_ < 1.0f)
+  {
+    float wet = highBandMix_;
+    float dry = 1.0f - wet;
+    for (FrameCount i = 0; i < numFrames; ++i)
+      highBandBuffer_[i] = dryHighBandBuffer_[i] * dry + highBandBuffer_[i] * wet;
+  }
 
   // Update latency compensation if IR latency changed
   int irLatency = irProcessor_.getLatencySamples();
@@ -217,17 +243,17 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
     }
   }
 
-  // Apply band levels and sum
+  // Apply band levels, sum, and output gain into highBandBuffer_ (reused as scratch)
   for (FrameCount i = 0; i < numFrames; ++i)
-  {
-    float wet = lowBandBuffer_[i] * lowBandLevelLinear_ + highBandBuffer_[i];
+    highBandBuffer_[i] =
+        (lowBandBuffer_[i] * lowBandLevelLinear_ + highBandBuffer_[i]) * outputGainLinear_;
 
-    // Apply output gain
-    wet *= outputGainLinear_;
+  // Noise gate: key signal is the clean pre-split input, applied to the wet sum
+  noiseGate_.process(dryBuffer_.data(), highBandBuffer_.data(), highBandBuffer_.data(), numFrames);
 
-    // Dry/wet blend
-    output[i] = dryBuffer_[i] * (1.0f - dryWetMix_) + wet * dryWetMix_;
-  }
+  // Dry/wet blend
+  for (FrameCount i = 0; i < numFrames; ++i)
+    output[i] = dryBuffer_[i] * (1.0f - dryWetMix_) + highBandBuffer_[i] * dryWetMix_;
 }
 
 void BassProcessor::reset()
@@ -236,11 +262,13 @@ void BassProcessor::reset()
   compressor_.reset();
   namProcessor_.reset();
   irProcessor_.reset();
+  noiseGate_.reset();
   currentMakeupLinear_ = 1.0f;
 
   std::fill(lowBandBuffer_.begin(), lowBandBuffer_.end(), 0.0f);
   std::fill(highBandBuffer_.begin(), highBandBuffer_.end(), 0.0f);
   std::fill(dryBuffer_.begin(), dryBuffer_.end(), 0.0f);
+  std::fill(dryHighBandBuffer_.begin(), dryHighBandBuffer_.end(), 0.0f);
   std::fill(delayedLowBuffer_.begin(), delayedLowBuffer_.end(), 0.0f);
   std::fill(lowBandDelayBuffer_.begin(), lowBandDelayBuffer_.end(), 0.0f);
   lowBandDelayWritePos_ = 0;

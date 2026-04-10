@@ -65,6 +65,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctoBassProcessor::createPar
       octob::DefaultDryWetMix, juce::String(), juce::AudioProcessorParameter::genericParameter,
       [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + "%"; }));
 
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "gateThreshold", "Gate",
+      juce::NormalisableRange<float>(octob::MinGateThresholdDb, octob::MaxGateThresholdDb, 0.1f),
+      octob::DefaultGateThresholdDb, juce::String(),
+      juce::AudioProcessorParameter::genericParameter, [](float value, int)
+      { return value <= -90.0f ? juce::String("Off") : juce::String(value, 1) + " dB"; }));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "highBandMix", "High Blend", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+      octob::DefaultHighBandMix, juce::String(), juce::AudioProcessorParameter::genericParameter,
+      [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + "%"; }));
+
   return layout;
 }
 
@@ -94,6 +106,8 @@ void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   bassProcessor_.setHighOutputGain(*apvts_.getRawParameterValue("highOutputGain"));
   bassProcessor_.setOutputGain(*apvts_.getRawParameterValue("outputGain"));
   bassProcessor_.setDryWetMix(*apvts_.getRawParameterValue("dryWetMix"));
+  bassProcessor_.setGateThreshold(*apvts_.getRawParameterValue("gateThreshold"));
+  bassProcessor_.setHighBandMix(*apvts_.getRawParameterValue("highBandMix"));
 
   bassProcessor_.processMono(buffer.getReadPointer(0), buffer.getWritePointer(0),
                              static_cast<size_t>(buffer.getNumSamples()));
@@ -197,8 +211,8 @@ bool OctoBassProcessor::loadImpulseResponse(const juce::String& filepath,
   if (bassProcessor_.loadImpulseResponse(filepath.toStdString(), err))
   {
     currentIRPath_ = filepath;
-    DBG("Loaded IR: " + filepath + " (Latency: " +
-        juce::String(bassProcessor_.getLatencySamples()) + " samples)");
+    DBG("Loaded IR: " + filepath +
+        " (Latency: " + juce::String(bassProcessor_.getLatencySamples()) + " samples)");
     triggerAsyncUpdate();
     errorMessage.clear();
     return true;

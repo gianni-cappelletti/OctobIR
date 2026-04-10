@@ -172,8 +172,7 @@ TEST_F(CompressorAudioTest, AllModes_StableAtExtremes)
     }
 
     float peak = peakLevel(output);
-    EXPECT_LT(peak, 1.0f)
-        << "Mode " << mode << " output should not exceed unity with loud input";
+    EXPECT_LT(peak, 1.0f) << "Mode " << mode << " output should not exceed unity with loud input";
   }
 }
 
@@ -198,9 +197,9 @@ TEST_F(CompressorAudioTest, FullSquash_ReducesOutputLevel)
     // All modes should produce significant reduction with the aggressive tuning.
     // Feed-forward (VCA, Bus) will compress harder than feedback (Opto, FET),
     // but all should hit at least 3dB on a 0.5 amplitude signal.
-    EXPECT_LT(reductionDb, -3.0)
-        << "Mode " << mode << " at squash=1.0: output RMS should be significantly "
-        << "lower than input (got " << reductionDb << " dB)";
+    EXPECT_LT(reductionDb, -3.0) << "Mode " << mode
+                                 << " at squash=1.0: output RMS should be significantly "
+                                 << "lower than input (got " << reductionDb << " dB)";
   }
 }
 
@@ -215,13 +214,13 @@ TEST_F(CompressorAudioTest, NoOvershoot_OnTransientReentry)
 
   std::vector<float> input(kTotal, 0.0f);
   for (size_t i = 0; i < kBurstLen; ++i)
-    input[i] = kAmplitude *
-               static_cast<float>(std::sin(2.0 * kPi * 80.0 * static_cast<double>(i) / kSampleRate));
+    input[i] = kAmplitude * static_cast<float>(
+                                std::sin(2.0 * kPi * 80.0 * static_cast<double>(i) / kSampleRate));
   for (size_t i = kBurstLen + kSilenceLen; i < kTotal; ++i)
   {
     size_t j = i - kBurstLen - kSilenceLen;
-    input[i] = kAmplitude *
-               static_cast<float>(std::sin(2.0 * kPi * 80.0 * static_cast<double>(j) / kSampleRate));
+    input[i] = kAmplitude * static_cast<float>(
+                                std::sin(2.0 * kPi * 80.0 * static_cast<double>(j) / kSampleRate));
   }
 
   float inputPeak = peakLevel(input);
@@ -237,9 +236,8 @@ TEST_F(CompressorAudioTest, NoOvershoot_OnTransientReentry)
     float outputPeak = peakLevel(output);
 
     EXPECT_LE(outputPeak, inputPeak * 1.01f)
-        << "Mode " << mode << " output peak (" << outputPeak
-        << ") exceeds input peak (" << inputPeak
-        << ") -- compressor should only attenuate";
+        << "Mode " << mode << " output peak (" << outputPeak << ") exceeds input peak ("
+        << inputPeak << ") -- compressor should only attenuate";
   }
 }
 
@@ -262,8 +260,8 @@ TEST_F(CompressorAudioTest, HalfSquash_ProducesModerateReduction)
     double reductionDb = 20.0 * std::log10(outputRMS / inputRMS);
 
     // At half squash, all modes should produce at least some measurable reduction.
-    EXPECT_LT(reductionDb, -0.5)
-        << "Mode " << mode << " at squash=0.5: should produce at least moderate "
-        << "compression (got " << reductionDb << " dB)";
+    EXPECT_LT(reductionDb, -0.5) << "Mode " << mode
+                                 << " at squash=0.5: should produce at least moderate "
+                                 << "compression (got " << reductionDb << " dB)";
   }
 }

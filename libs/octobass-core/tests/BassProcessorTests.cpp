@@ -477,8 +477,8 @@ TEST_F(BassProcessorTest, HighInputGain_AffectsLevel)
   procDefault.setMaxBlockSize(kBlockSize);
   std::vector<float> outputDefault(kTotalSamples);
   for (size_t b = 0; b < kNumBlocks; ++b)
-    procDefault.processMono(input.data() + b * kBlockSize,
-                            outputDefault.data() + b * kBlockSize, kBlockSize);
+    procDefault.processMono(input.data() + b * kBlockSize, outputDefault.data() + b * kBlockSize,
+                            kBlockSize);
 
   // Process with +12 dB input gain
   BassProcessor procBoosted;
@@ -487,8 +487,8 @@ TEST_F(BassProcessorTest, HighInputGain_AffectsLevel)
   procBoosted.setHighInputGain(12.0f);
   std::vector<float> outputBoosted(kTotalSamples);
   for (size_t b = 0; b < kNumBlocks; ++b)
-    procBoosted.processMono(input.data() + b * kBlockSize,
-                            outputBoosted.data() + b * kBlockSize, kBlockSize);
+    procBoosted.processMono(input.data() + b * kBlockSize, outputBoosted.data() + b * kBlockSize,
+                            kBlockSize);
 
   double rmsDefault = computeRMS(outputDefault, kSkip, kTotalSamples - kSkip);
   double rmsBoosted = computeRMS(outputBoosted, kSkip, kTotalSamples - kSkip);
@@ -509,8 +509,8 @@ TEST_F(BassProcessorTest, HighOutputGain_AffectsLevel)
   procDefault.setMaxBlockSize(kBlockSize);
   std::vector<float> outputDefault(kTotalSamples);
   for (size_t b = 0; b < kNumBlocks; ++b)
-    procDefault.processMono(input.data() + b * kBlockSize,
-                            outputDefault.data() + b * kBlockSize, kBlockSize);
+    procDefault.processMono(input.data() + b * kBlockSize, outputDefault.data() + b * kBlockSize,
+                            kBlockSize);
 
   // Process with +12 dB output gain
   BassProcessor procBoosted;
@@ -519,8 +519,8 @@ TEST_F(BassProcessorTest, HighOutputGain_AffectsLevel)
   procBoosted.setHighOutputGain(12.0f);
   std::vector<float> outputBoosted(kTotalSamples);
   for (size_t b = 0; b < kNumBlocks; ++b)
-    procBoosted.processMono(input.data() + b * kBlockSize,
-                            outputBoosted.data() + b * kBlockSize, kBlockSize);
+    procBoosted.processMono(input.data() + b * kBlockSize, outputBoosted.data() + b * kBlockSize,
+                            kBlockSize);
 
   double rmsDefault = computeRMS(outputDefault, kSkip, kTotalSamples - kSkip);
   double rmsBoosted = computeRMS(outputBoosted, kSkip, kTotalSamples - kSkip);

@@ -199,8 +199,8 @@ TEST_F(CompressorTest, RedundantSetMode_DoesNotResetState)
   for (size_t i = kSkip; i < kTotalSamples; ++i)
     maxErr = std::max(maxErr, std::abs(outputA[i] - outputB[i]));
 
-  EXPECT_LT(maxErr, 1e-4f)
-      << "Redundant setMode calls should not alter output (max error = " << maxErr << ")";
+  EXPECT_LT(maxErr, 1e-4f) << "Redundant setMode calls should not alter output (max error = "
+                           << maxErr << ")";
 }
 
 TEST_F(CompressorTest, ModeSwitching_ResetsState)

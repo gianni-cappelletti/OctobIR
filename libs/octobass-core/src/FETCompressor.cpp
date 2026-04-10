@@ -60,9 +60,7 @@ void FETCompressor::process(const Sample* input, Sample* output, FrameCount numF
 
     // Feed-forward: compute instantaneous level and gain reduction in dB.
     // No smoothing on the level — the smoother acts on the GR output instead.
-    float inputLevelDb = (std::fabs(in) > 1e-30f)
-                             ? 20.0f * std::log10(std::fabs(in))
-                             : -96.0f;
+    float inputLevelDb = (std::fabs(in) > 1e-30f) ? 20.0f * std::log10(std::fabs(in)) : -96.0f;
 
     float targetDb = computeStaticCurve(inputLevelDb);
     float instantGrDb = targetDb - inputLevelDb;

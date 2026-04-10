@@ -7,6 +7,7 @@
 #include "Compressor.hpp"
 #include "Crossover.hpp"
 #include "NamProcessor.hpp"
+#include "NoiseGate.hpp"
 #include "Types.hpp"
 
 namespace octob
@@ -40,6 +41,12 @@ class BassProcessor
   void setSquash(float amount);
   void setCompressionMode(int mode);
 
+  // Noise gate
+  void setGateThreshold(float thresholdDb);
+
+  // High band blend
+  void setHighBandMix(float mix);
+
   // Levels
   void setLowBandLevel(float levelDb);
   void setHighInputGain(float gainDb);
@@ -62,16 +69,20 @@ class BassProcessor
   float getHighOutputGain() const { return highOutputGainDb_; }
   float getOutputGain() const { return outputGainDb_; }
   float getDryWetMix() const { return dryWetMix_; }
+  float getGateThreshold() const { return noiseGate_.getThresholdDb(); }
+  float getHighBandMix() const { return highBandMix_; }
 
  private:
   Crossover crossover_;
   Compressor compressor_;
   NamProcessor namProcessor_;
   IRProcessor irProcessor_;
+  NoiseGate noiseGate_;
 
   std::vector<Sample> lowBandBuffer_;
   std::vector<Sample> highBandBuffer_;
   std::vector<Sample> dryBuffer_;
+  std::vector<Sample> dryHighBandBuffer_;
   std::vector<Sample> delayedLowBuffer_;
 
   // Delay compensation for low band path
@@ -84,6 +95,7 @@ class BassProcessor
   float highOutputGainDb_;
   float outputGainDb_;
   float dryWetMix_;
+  float highBandMix_;
 
   // Static makeup gain smoother (5ms to prevent clicks on parameter change)
   float currentMakeupLinear_;
