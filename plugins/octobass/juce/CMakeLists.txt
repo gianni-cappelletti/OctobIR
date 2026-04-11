@@ -40,6 +40,7 @@ target_compile_definitions(OctoBASS
 target_link_libraries(OctoBASS
     PRIVATE
         juce::juce_audio_utils
+        juce::juce_dsp
         octobass-core
         juce-ui-shared
         October_SharedResources

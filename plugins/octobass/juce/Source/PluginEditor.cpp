@@ -64,15 +64,16 @@ OctoBassEditor::OctoBassEditor(OctoBassProcessor& p) : AudioProcessorEditor(&p),
 
   if (auto typeface = laf_.getLCDTypeface())
   {
-    frequencyLCD_.setTypeface(typeface);
+    spectrumDisplay_.setTypeface(typeface);
     namLCDDisplay_.setTypeface(typeface);
     irLCDDisplay_.setTypeface(typeface);
   }
 
-  // Frequency analysis placeholder
-  addAndMakeVisible(frequencyLCD_);
-  frequencyLCD_.setTextColour(juce::Colour(0xff1c1c30));
-  frequencyLCD_.setText("");
+  // Spectrum analyzer display
+  addAndMakeVisible(spectrumDisplay_);
+  spectrumAnalyzer_.setSampleRate(audioProcessor.getSampleRate());
+  lastSampleRate_ = audioProcessor.getSampleRate();
+  startTimerHz(30);
 
   // --- LOW zone: Squash ---
   addAndMakeVisible(squashLabel_);
@@ -260,7 +261,27 @@ OctoBassEditor::OctoBassEditor(OctoBassProcessor& p) : AudioProcessorEditor(&p),
 
 OctoBassEditor::~OctoBassEditor()
 {
+  stopTimer();
   setLookAndFeel(nullptr);
+}
+
+void OctoBassEditor::timerCallback()
+{
+  double currentRate = audioProcessor.getSampleRate();
+  if (currentRate > 0.0 && std::abs(currentRate - lastSampleRate_) > 1.0)
+  {
+    spectrumAnalyzer_.setSampleRate(currentRate);
+    lastSampleRate_ = currentRate;
+  }
+
+  spectrumAnalyzer_.processFromFifo(audioProcessor.getSpectrumFifo(),
+                                    audioProcessor.getSpectrumFifoBuffer().data());
+
+  spectrumDisplay_.setBandLevels(spectrumAnalyzer_.getBandLevels().data(),
+                                 SpectrumAnalyzer::kNumBands);
+
+  float crossoverHz = *audioProcessor.getAPVTS().getRawParameterValue("crossoverFrequency");
+  spectrumDisplay_.setCrossoverNormPosition(LCDSpectrumDisplay::freqToNormX(crossoverHz));
 }
 
 void OctoBassEditor::paint(juce::Graphics& g)
@@ -364,7 +385,7 @@ void OctoBassEditor::resized()
   const int rightW = kDesignWidth - pad - rightX;
 
   // === LCD (full width) ===
-  frequencyLCD_.setBounds(pad, lcdY, kDesignWidth - 2 * pad, lcdH);
+  spectrumDisplay_.setBounds(pad, lcdY, kDesignWidth - 2 * pad, lcdH);
 
   // === LEFT ZONE ===
   const int halfLeft = leftW / 2;

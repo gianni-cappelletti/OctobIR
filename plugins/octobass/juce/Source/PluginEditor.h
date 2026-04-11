@@ -3,10 +3,12 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "LCDDisplay.h"
+#include "LCDSpectrumDisplay.h"
 #include "OctoberLookAndFeel.h"
 #include "PluginProcessor.h"
+#include "SpectrumAnalyzer.h"
 
-class OctoBassEditor : public juce::AudioProcessorEditor
+class OctoBassEditor : public juce::AudioProcessorEditor, private juce::Timer
 {
  public:
   static constexpr int kDesignWidth = 760;
@@ -19,13 +21,16 @@ class OctoBassEditor : public juce::AudioProcessorEditor
   void resized() override;
 
  private:
+  void timerCallback() override;
   // Must be declared before all widgets -- LookAndFeel must outlive the components that use it
   OctoberLookAndFeel laf_;
 
   OctoBassProcessor& audioProcessor;
 
-  // Frequency analysis LCD (placeholder)
-  LCDDisplay frequencyLCD_;
+  // Spectrum analyzer display
+  LCDSpectrumDisplay spectrumDisplay_;
+  SpectrumAnalyzer spectrumAnalyzer_;
+  double lastSampleRate_ = 0.0;
 
   // LOW zone controls
   juce::Label squashLabel_;

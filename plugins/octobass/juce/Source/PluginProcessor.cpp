@@ -87,6 +87,7 @@ void OctoBassProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
   bassProcessor_.setSampleRate(sampleRate);
   bassProcessor_.setMaxBlockSize(static_cast<size_t>(samplesPerBlock));
+  spectrumFifo_.reset();
 }
 
 void OctoBassProcessor::releaseResources() {}
@@ -136,6 +137,21 @@ void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
   bassProcessor_.processMono(buffer.getReadPointer(0), buffer.getWritePointer(0),
                              static_cast<size_t>(buffer.getNumSamples()));
+
+  // Push output samples into spectrum analyzer FIFO
+  {
+    const float* output = buffer.getReadPointer(0);
+    const int numSamples = buffer.getNumSamples();
+    const auto scope = spectrumFifo_.write(numSamples);
+
+    if (scope.blockSize1 > 0)
+      std::copy(output, output + scope.blockSize1,
+                spectrumFifoBuffer_.data() + scope.startIndex1);
+
+    if (scope.blockSize2 > 0)
+      std::copy(output + scope.blockSize1, output + scope.blockSize1 + scope.blockSize2,
+                spectrumFifoBuffer_.data() + scope.startIndex2);
+  }
 
   if (bassProcessor_.getLatencySamples() != AudioProcessor::getLatencySamples())
     triggerAsyncUpdate();

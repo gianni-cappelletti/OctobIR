@@ -4,6 +4,8 @@
 
 #include <octobass-core/BassProcessor.hpp>
 
+#include <array>
+
 class OctoBassProcessor : public juce::AudioProcessor, private juce::AsyncUpdater
 {
  public:
@@ -52,6 +54,14 @@ class OctoBassProcessor : public juce::AudioProcessor, private juce::AsyncUpdate
 
   int getLatencySamples() const;
 
+  // Spectrum analyzer FIFO (single-writer audio thread, single-reader GUI timer)
+  static constexpr int kSpectrumFifoSize = 8192;
+  juce::AbstractFifo& getSpectrumFifo() { return spectrumFifo_; }
+  const std::array<float, kSpectrumFifoSize>& getSpectrumFifoBuffer() const
+  {
+    return spectrumFifoBuffer_;
+  }
+
  private:
   juce::AudioProcessorValueTreeState apvts_;
   juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -67,6 +77,9 @@ class OctoBassProcessor : public juce::AudioProcessor, private juce::AsyncUpdate
   juce::SpinLock pendingStateLock_;
   juce::ValueTree pendingState_;
   void handleAsyncUpdate() override;
+
+  juce::AbstractFifo spectrumFifo_{kSpectrumFifoSize};
+  std::array<float, kSpectrumFifoSize> spectrumFifoBuffer_{};
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OctoBassProcessor)
 };
