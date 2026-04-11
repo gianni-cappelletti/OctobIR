@@ -6,6 +6,7 @@
 
 #include "Compressor.hpp"
 #include "Crossover.hpp"
+#include "GraphicEQ.hpp"
 #include "NamProcessor.hpp"
 #include "NoiseGate.hpp"
 #include "Types.hpp"
@@ -51,6 +52,10 @@ class BassProcessor
   void setLowBandSolo(bool solo);
   void setHighBandSolo(bool solo);
 
+  // Graphic EQ
+  void setGraphicEQBandGain(int bandIndex, float gainDb);
+  float getGraphicEQBandGain(int bandIndex) const;
+
   // Levels
   void setLowBandLevel(float levelDb);
   void setHighInputGain(float gainDb);
@@ -79,12 +84,14 @@ class BassProcessor
   bool getHighBandSolo() const { return highBandSolo_; }
 
  private:
+  GraphicEQ graphicEQ_;
   Crossover crossover_;
   Compressor compressor_;
   NamProcessor namProcessor_;
   IRProcessor irProcessor_;
   NoiseGate noiseGate_;
 
+  std::vector<Sample> eqBuffer_;
   std::vector<Sample> lowBandBuffer_;
   std::vector<Sample> highBandBuffer_;
   std::vector<Sample> dryBuffer_;

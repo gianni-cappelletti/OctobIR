@@ -17,6 +17,7 @@ add_executable(octobass-core-tests
   CompressorTests.cpp
   CompressorAudioTests.cpp
   CrossoverTests.cpp
+  GraphicEQTests.cpp
   NoiseGateTests.cpp
   BassProcessorTests.cpp
   BassProcessorAudioTests.cpp

@@ -5,6 +5,8 @@
 
 #include "PluginProcessor.h"
 
+#include <octobass-core/Types.hpp>
+
 static const std::string kIrPath = std::string(TEST_DATA_DIR) + "/INPUT_ir_a.wav";
 
 class OctoBassProcessorTest : public ::testing::Test
@@ -214,6 +216,44 @@ TEST_F(OctoBassProcessorTest, StateRoundTrip)
 
   EXPECT_NEAR(squash2->load(), 0.7f, 0.02f);
   EXPECT_NEAR(mode2->load(), 2.0f, 0.1f);
+}
+
+TEST_F(OctoBassProcessorTest, EQParametersExist)
+{
+  for (int i = 0; i < octob::kGraphicEQNumBands; ++i)
+  {
+    auto* param =
+        processor.getAPVTS().getRawParameterValue("eqBandGain" + juce::String(i));
+    ASSERT_NE(param, nullptr) << "Missing EQ parameter for band " << i;
+    EXPECT_NEAR(param->load(), 0.0f, 0.01f)
+        << "EQ band " << i << " should default to 0 dB";
+  }
+}
+
+TEST_F(OctoBassProcessorTest, StateRoundTripWithEQ)
+{
+  // Set a few EQ bands to non-default values
+  auto* band5 = processor.getAPVTS().getParameter("eqBandGain5");
+  auto* band14 = processor.getAPVTS().getParameter("eqBandGain14");
+  ASSERT_NE(band5, nullptr);
+  ASSERT_NE(band14, nullptr);
+
+  band5->setValueNotifyingHost(band5->convertTo0to1(6.0f));
+  band14->setValueNotifyingHost(band14->convertTo0to1(-3.0f));
+
+  juce::MemoryBlock stateData;
+  processor.getStateInformation(stateData);
+
+  OctoBassProcessor processor2;
+  processor2.setStateInformation(stateData.getData(), static_cast<int>(stateData.getSize()));
+
+  auto* band5_2 = processor2.getAPVTS().getRawParameterValue("eqBandGain5");
+  auto* band14_2 = processor2.getAPVTS().getRawParameterValue("eqBandGain14");
+  ASSERT_NE(band5_2, nullptr);
+  ASSERT_NE(band14_2, nullptr);
+
+  EXPECT_NEAR(band5_2->load(), 6.0f, 0.2f);
+  EXPECT_NEAR(band14_2->load(), -3.0f, 0.2f);
 }
 
 TEST_F(OctoBassProcessorTest, StateRoundTripWithIRPath)

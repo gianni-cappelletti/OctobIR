@@ -61,7 +61,7 @@ class LCDSpectrumDisplay : public juce::Component
     drawLCDBackground(g, bounds);
 
     auto content = getLocalBounds().reduced(kPad);
-    auto yAxisArea = content.removeFromLeft(kYAxisW);
+    content.removeFromLeft(kYAxisW);
     content.removeFromTop(kTopPad);
     auto xAxisArea = content.removeFromBottom(kXAxisH);
     auto barArea = content;
@@ -77,32 +77,31 @@ class LCDSpectrumDisplay : public juce::Component
     float barAreaLeft = static_cast<float>(barArea.getX());
     float barAreaWidth = static_cast<float>(barArea.getWidth());
 
-    // Y-axis labels and grid lines
-    g.setFont(labelFont);
+    // Grid lines (no labels)
     for (int db : kYAxisDbValues)
     {
       float normY =
           static_cast<float>(db - kMinDb) / static_cast<float>(kMaxDb - kMinDb);
       float y = barAreaTop + barAreaHeight * (1.0f - normY);
 
-      g.setColour(juce::Colour(0xff1c1c30));
-      auto labelRect = juce::Rectangle<float>(
-          static_cast<float>(yAxisArea.getX()), y - 4.0f,
-          static_cast<float>(yAxisArea.getWidth()) - 2.0f, 8.0f);
-      g.drawText(juce::String(db), labelRect.toNearestInt(),
-                 juce::Justification::centredRight, false);
-
       g.setColour(juce::Colour(0xff1c1c30).withAlpha(0.12f));
       g.drawHorizontalLine(static_cast<int>(y), barAreaLeft,
                            barAreaLeft + barAreaWidth);
     }
 
+    // Axis lines
+    g.setColour(juce::Colour(0xff1c1c30));
+    g.drawVerticalLine(static_cast<int>(barAreaLeft), barAreaTop,
+                       barAreaTop + barAreaHeight);
+    g.drawHorizontalLine(static_cast<int>(barAreaTop + barAreaHeight),
+                         barAreaLeft, barAreaLeft + barAreaWidth);
+
     // Bar dimensions
     float barSlotWidth = barAreaWidth / static_cast<float>(kNumBands);
     float barWidth = barSlotWidth - static_cast<float>(kBarGap);
 
-    // Draw bars
-    g.setColour(juce::Colour(0xff1c1c30));
+    // Draw bars (faint backdrop for EQ overlay)
+    g.setColour(juce::Colour(0xff1c1c30).withAlpha(0.25f));
     for (int i = 0; i < kNumBands; ++i)
     {
       float normLevel =
@@ -152,7 +151,6 @@ class LCDSpectrumDisplay : public juce::Component
                                                         juce::AccessibilityRole::group);
   }
 
- private:
   struct XAxisLabel
   {
     int bandIndex;
@@ -161,12 +159,13 @@ class LCDSpectrumDisplay : public juce::Component
 
   static constexpr int kPad = 6;
   static constexpr int kTopPad = 6;
-  static constexpr int kYAxisW = 28;
+  static constexpr int kYAxisW = 4;
   static constexpr int kXAxisH = 14;
   static constexpr int kBarGap = 2;
   static constexpr float kLabelFontH = 7.0f;
   static constexpr float kMarkerW = 4.0f;
 
+ private:
   static constexpr std::array<int, 5> kYAxisDbValues = {{0, -20, -40, -60, -80}};
 
   static constexpr std::array<XAxisLabel, 7> kXAxisLabels = {

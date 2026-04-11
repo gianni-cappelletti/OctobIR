@@ -64,13 +64,19 @@ OctoBassEditor::OctoBassEditor(OctoBassProcessor& p) : AudioProcessorEditor(&p),
 
   if (auto typeface = laf_.getLCDTypeface())
   {
-    spectrumDisplay_.setTypeface(typeface);
+    graphicEQDisplay_.setTypeface(typeface);
     namLCDDisplay_.setTypeface(typeface);
     irLCDDisplay_.setTypeface(typeface);
   }
 
-  // Spectrum analyzer display
-  addAndMakeVisible(spectrumDisplay_);
+  // Spectrum analyzer + EQ display
+  addAndMakeVisible(graphicEQDisplay_);
+  graphicEQDisplay_.onBandGainChanged = [this](int band, float gainDb)
+  {
+    auto* param = audioProcessor.getAPVTS().getParameter("eqBandGain" + juce::String(band));
+    if (param != nullptr)
+      param->setValueNotifyingHost(param->convertTo0to1(gainDb));
+  };
   spectrumAnalyzer_.setSampleRate(audioProcessor.getSampleRate());
   lastSampleRate_ = audioProcessor.getSampleRate();
   startTimerHz(30);
@@ -277,11 +283,17 @@ void OctoBassEditor::timerCallback()
   spectrumAnalyzer_.processFromFifo(audioProcessor.getSpectrumFifo(),
                                     audioProcessor.getSpectrumFifoBuffer().data());
 
-  spectrumDisplay_.setBandLevels(spectrumAnalyzer_.getBandLevels().data(),
-                                 SpectrumAnalyzer::kNumBands);
+  graphicEQDisplay_.setBandLevels(spectrumAnalyzer_.getBandLevels().data(),
+                                  SpectrumAnalyzer::kNumBands);
 
   float crossoverHz = *audioProcessor.getAPVTS().getRawParameterValue("crossoverFrequency");
-  spectrumDisplay_.setCrossoverNormPosition(LCDSpectrumDisplay::freqToNormX(crossoverHz));
+  graphicEQDisplay_.setCrossoverNormPosition(LCDSpectrumDisplay::freqToNormX(crossoverHz));
+
+  for (int i = 0; i < octob::kGraphicEQNumBands; ++i)
+  {
+    float gain = *audioProcessor.getAPVTS().getRawParameterValue("eqBandGain" + juce::String(i));
+    graphicEQDisplay_.setEQBandGain(i, gain);
+  }
 }
 
 void OctoBassEditor::paint(juce::Graphics& g)
@@ -385,7 +397,7 @@ void OctoBassEditor::resized()
   const int rightW = kDesignWidth - pad - rightX;
 
   // === LCD (full width) ===
-  spectrumDisplay_.setBounds(pad, lcdY, kDesignWidth - 2 * pad, lcdH);
+  graphicEQDisplay_.setBounds(pad, lcdY, kDesignWidth - 2 * pad, lcdH);
 
   // === LEFT ZONE ===
   const int halfLeft = leftW / 2;

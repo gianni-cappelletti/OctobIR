@@ -2,8 +2,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "GraphicEQDisplay.h"
 #include "LCDDisplay.h"
-#include "LCDSpectrumDisplay.h"
 #include "OctoberLookAndFeel.h"
 #include "PluginProcessor.h"
 #include "SpectrumAnalyzer.h"
@@ -27,8 +27,8 @@ class OctoBassEditor : public juce::AudioProcessorEditor, private juce::Timer
 
   OctoBassProcessor& audioProcessor;
 
-  // Spectrum analyzer display
-  LCDSpectrumDisplay spectrumDisplay_;
+  // Spectrum analyzer + EQ display
+  GraphicEQDisplay graphicEQDisplay_;
   SpectrumAnalyzer spectrumAnalyzer_;
   double lastSampleRate_ = 0.0;
 

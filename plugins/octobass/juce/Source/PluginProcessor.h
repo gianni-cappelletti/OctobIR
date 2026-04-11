@@ -3,8 +3,10 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <octobass-core/BassProcessor.hpp>
+#include <octobass-core/Types.hpp>
 
 #include <array>
+#include <atomic>
 
 class OctoBassProcessor : public juce::AudioProcessor, private juce::AsyncUpdater
 {
@@ -77,6 +79,8 @@ class OctoBassProcessor : public juce::AudioProcessor, private juce::AsyncUpdate
   juce::SpinLock pendingStateLock_;
   juce::ValueTree pendingState_;
   void handleAsyncUpdate() override;
+
+  std::array<std::atomic<float>*, octob::kGraphicEQNumBands> eqBandGainParams_{};
 
   juce::AbstractFifo spectrumFifo_{kSpectrumFifoSize};
   std::array<float, kSpectrumFifoSize> spectrumFifoBuffer_{};

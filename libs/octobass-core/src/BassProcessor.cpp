@@ -37,6 +37,7 @@ BassProcessor::~BassProcessor() = default;
 
 void BassProcessor::setSampleRate(SampleRate sampleRate)
 {
+  graphicEQ_.setSampleRate(sampleRate);
   crossover_.setSampleRate(sampleRate);
   compressor_.setSampleRate(sampleRate);
   namProcessor_.setSampleRate(sampleRate);
@@ -51,6 +52,7 @@ void BassProcessor::setSampleRate(SampleRate sampleRate)
 
 void BassProcessor::setMaxBlockSize(FrameCount maxBlockSize)
 {
+  eqBuffer_.resize(maxBlockSize, 0.0f);
   lowBandBuffer_.resize(maxBlockSize, 0.0f);
   highBandBuffer_.resize(maxBlockSize, 0.0f);
   dryBuffer_.resize(maxBlockSize, 0.0f);
@@ -114,6 +116,16 @@ bool BassProcessor::isNamModelLoaded() const
 std::string BassProcessor::getCurrentNamModelPath() const
 {
   return currentNamModelPath_;
+}
+
+void BassProcessor::setGraphicEQBandGain(int bandIndex, float gainDb)
+{
+  graphicEQ_.setBandGain(bandIndex, gainDb);
+}
+
+float BassProcessor::getGraphicEQBandGain(int bandIndex) const
+{
+  return graphicEQ_.getBandGain(bandIndex);
 }
 
 void BassProcessor::setCrossoverFrequency(float frequencyHz)
@@ -188,8 +200,11 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
   // Save dry input for dry/wet blend
   std::copy(input, input + numFrames, dryBuffer_.data());
 
+  // Apply graphic EQ before crossover
+  graphicEQ_.process(input, eqBuffer_.data(), numFrames);
+
   // Split into low and high bands
-  crossover_.process(input, lowBandBuffer_.data(), highBandBuffer_.data(), numFrames);
+  crossover_.process(eqBuffer_.data(), lowBandBuffer_.data(), highBandBuffer_.data(), numFrames);
 
   // Save dry high band for wet/dry blend before any processing
   if (highBandMix_ < 1.0f)
@@ -276,6 +291,7 @@ void BassProcessor::processMono(const Sample* input, Sample* output, FrameCount 
 
 void BassProcessor::reset()
 {
+  graphicEQ_.reset();
   crossover_.reset();
   compressor_.reset();
   namProcessor_.reset();
@@ -283,6 +299,7 @@ void BassProcessor::reset()
   noiseGate_.reset();
   currentMakeupLinear_ = 1.0f;
 
+  std::fill(eqBuffer_.begin(), eqBuffer_.end(), 0.0f);
   std::fill(lowBandBuffer_.begin(), lowBandBuffer_.end(), 0.0f);
   std::fill(highBandBuffer_.begin(), highBandBuffer_.end(), 0.0f);
   std::fill(dryBuffer_.begin(), dryBuffer_.end(), 0.0f);

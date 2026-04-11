@@ -8,6 +8,9 @@ OctoBassProcessor::OctoBassProcessor()
                          .withOutput("Output", juce::AudioChannelSet::mono(), true)),
       apvts_(*this, nullptr, "OctoBassParams", createParameterLayout())
 {
+  for (int i = 0; i < octob::kGraphicEQNumBands; ++i)
+    eqBandGainParams_[static_cast<size_t>(i)] =
+        apvts_.getRawParameterValue("eqBandGain" + juce::String(i));
 }
 
 OctoBassProcessor::~OctoBassProcessor() = default;
@@ -80,6 +83,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout OctoBassProcessor::createPar
   layout.add(std::make_unique<juce::AudioParameterBool>("lowBandSolo", "Low Solo", false));
   layout.add(std::make_unique<juce::AudioParameterBool>("highBandSolo", "High Solo", false));
 
+  for (int i = 0; i < octob::kGraphicEQNumBands; ++i)
+  {
+    auto id = "eqBandGain" + juce::String(i);
+    auto name = "EQ Band " + juce::String(i + 1);
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        id, name,
+        juce::NormalisableRange<float>(octob::MinGraphicEQGainDb, octob::MaxGraphicEQGainDb, 0.1f),
+        octob::DefaultGraphicEQGainDb, juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 1) + " dB"; }));
+  }
+
   return layout;
 }
 
@@ -113,6 +128,9 @@ void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   bassProcessor_.setDryWetMix(*apvts_.getRawParameterValue("dryWetMix"));
   bassProcessor_.setGateThreshold(*apvts_.getRawParameterValue("gateThreshold"));
   bassProcessor_.setHighBandMix(*apvts_.getRawParameterValue("highBandMix"));
+
+  for (int i = 0; i < octob::kGraphicEQNumBands; ++i)
+    bassProcessor_.setGraphicEQBandGain(i, eqBandGainParams_[static_cast<size_t>(i)]->load());
 
   // Solo: enforce mutual exclusivity -- if both are on, the newly engaged one wins
   bool lowSolo = *apvts_.getRawParameterValue("lowBandSolo") >= 0.5f;
