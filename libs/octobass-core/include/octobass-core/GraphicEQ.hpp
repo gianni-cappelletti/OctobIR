@@ -24,35 +24,12 @@ class GraphicEQ
 
   void reset();
 
- private:
-  struct BiquadCoeffs
-  {
-    float b0 = 1.0f;
-    float b1 = 0.0f;
-    float b2 = 0.0f;
-    float a1 = 0.0f;
-    float a2 = 0.0f;
-  };
+  // Compute the combined magnitude response in dB at a given frequency.
+  // This evaluates the actual biquad transfer function for all active bands.
+  static float computeMagnitudeResponseDb(const float* gainsDb, float freqHz,
+                                          SampleRate sampleRate);
 
-  struct BiquadState
-  {
-    float z1 = 0.0f;
-    float z2 = 0.0f;
-  };
-
-  void updateCoefficients(int bandIndex);
-
-  static Sample tick(const BiquadCoeffs& c, BiquadState& s, Sample input);
-  static float computeQ(float absGainDb);
-
-  std::array<float, kGraphicEQNumBands> gainsDb_{};
-  std::array<BiquadCoeffs, kGraphicEQNumBands> coeffs_{};
-  std::array<BiquadState, kGraphicEQNumBands> states_{};
-
-  uint32_t activeBandMask_ = 0;
-  SampleRate sampleRate_ = 44100.0;
-
-  // Center frequencies derived from SpectrumAnalyzer band ranges: sqrt(lowHz * highHz)
+  // 24 bands from SpectrumAnalyzer ranges: sqrt(lowHz * highHz) per band
   static constexpr std::array<float, kGraphicEQNumBands> kCenterFreqs = {{
       28.23f,    // Band 0:  <50 Hz combined
       50.10f,    // Band 1:  50 Hz
@@ -83,6 +60,35 @@ class GraphicEQ
   // Proportional-Q constants (API 550A-style)
   static constexpr float kQMin = 0.3f;
   static constexpr float kQMax = 2.0f;
+
+  static float computeQ(float absGainDb);
+
+ private:
+  struct BiquadCoeffs
+  {
+    float b0 = 1.0f;
+    float b1 = 0.0f;
+    float b2 = 0.0f;
+    float a1 = 0.0f;
+    float a2 = 0.0f;
+  };
+
+  struct BiquadState
+  {
+    float z1 = 0.0f;
+    float z2 = 0.0f;
+  };
+
+  void updateCoefficients(int bandIndex);
+
+  static Sample tick(const BiquadCoeffs& c, BiquadState& s, Sample input);
+
+  std::array<float, kGraphicEQNumBands> gainsDb_{};
+  std::array<BiquadCoeffs, kGraphicEQNumBands> coeffs_{};
+  std::array<BiquadState, kGraphicEQNumBands> states_{};
+
+  uint32_t activeBandMask_ = 0;
+  SampleRate sampleRate_ = 44100.0;
 };
 
 }  // namespace octob

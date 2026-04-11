@@ -277,6 +277,7 @@ void OctoBassEditor::timerCallback()
   if (currentRate > 0.0 && std::abs(currentRate - lastSampleRate_) > 1.0)
   {
     spectrumAnalyzer_.setSampleRate(currentRate);
+    graphicEQDisplay_.setSampleRate(currentRate);
     lastSampleRate_ = currentRate;
   }
 

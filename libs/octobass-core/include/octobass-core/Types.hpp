@@ -49,7 +49,7 @@ constexpr float MaxGateThresholdDb = 0.0f;
 // Graphic EQ defaults and limits
 constexpr int kGraphicEQNumBands = 24;
 constexpr float DefaultGraphicEQGainDb = 0.0f;
-constexpr float MinGraphicEQGainDb = -12.0f;
-constexpr float MaxGraphicEQGainDb = 12.0f;
+constexpr float MinGraphicEQGainDb = -18.0f;
+constexpr float MaxGraphicEQGainDb = 18.0f;
 
 }  // namespace octob
