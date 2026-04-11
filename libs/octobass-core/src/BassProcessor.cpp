@@ -322,7 +322,7 @@ float BassProcessor::clamp(float value, float minVal, float maxVal)
 
 float BassProcessor::dbToLinear(float db)
 {
-  return std::pow(10.0f, db / 20.0f);
+  return std::exp2(db * 0.16609640474f);
 }
 
 void BassProcessor::writeToDelayBuffer(std::vector<Sample>& buffer, size_t& writePos,

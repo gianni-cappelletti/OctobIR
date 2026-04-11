@@ -57,7 +57,7 @@ void NoiseGate::process(const Sample* keyInput, const Sample* signalInput, Sampl
   for (FrameCount i = 0; i < numFrames; ++i)
   {
     float absLevel = std::fabs(keyInput[i]);
-    float levelDb = (absLevel > 1e-30f) ? 20.0f * std::log10(absLevel) : -96.0f;
+    float levelDb = (absLevel > 1e-30f) ? std::log2(absLevel) * 6.02059991f : -96.0f;
 
     if (levelDb >= thresholdDb_)
     {

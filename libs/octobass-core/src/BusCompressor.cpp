@@ -66,7 +66,8 @@ void BusCompressor::process(const Sample* input, Sample* output, FrameCount numF
                   (1.0 - static_cast<double>(rmsCoeff_)) * inSquared;
 
     float levelDb =
-        (rmsSquared_ > 1e-30) ? 10.0f * std::log10(static_cast<float>(rmsSquared_)) : -96.0f;
+        (rmsSquared_ > 1e-30) ? std::log2(static_cast<float>(rmsSquared_)) * (kLog2ToDb * 0.5f)
+                              : -96.0f;
 
     // Gain computer (soft-knee curve)
     float targetDb = computeStaticCurve(levelDb);

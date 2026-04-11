@@ -40,6 +40,8 @@ struct json_t
       delete kv.second;
   }
 
+  explicit json_t(json_type_t t) : type(t) {}
+
   json_t(const json_t&) = delete;
   json_t& operator=(const json_t&) = delete;
   json_t(json_t&&) = delete;

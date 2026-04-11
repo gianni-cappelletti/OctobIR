@@ -100,6 +100,7 @@ bool OctoBassProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 void OctoBassProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                      juce::MidiBuffer& /*midiMessages*/)
 {
+  juce::ScopedNoDenormals noDenormals;
   bassProcessor_.setCrossoverFrequency(*apvts_.getRawParameterValue("crossoverFrequency"));
   bassProcessor_.setSquash(*apvts_.getRawParameterValue("squash"));
   bassProcessor_.setCompressionMode(
