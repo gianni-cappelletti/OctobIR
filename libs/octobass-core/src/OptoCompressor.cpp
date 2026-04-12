@@ -8,8 +8,8 @@ namespace octob
 namespace
 {
 // T4 cell time constants
-constexpr float kFastAttackMs = 10.0f;
-constexpr float kSlowAttackMs = 60.0f;
+constexpr float kFastAttackMs = 5.0f;
+constexpr float kSlowAttackMs = 30.0f;
 constexpr float kChargeRateMs = 200.0f;
 constexpr float kDischargeRateMs = 2000.0f;
 

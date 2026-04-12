@@ -12,10 +12,10 @@ constexpr float kTargetThresholdDb = -30.0f;
 constexpr float kTargetRatio = 8.0f;
 constexpr float kKneeDb = 6.0f;
 
-constexpr float kAttackMs = 5.0f;
+constexpr float kAttackMs = 3.0f;
 constexpr float kFastReleaseMs = 80.0f;
 constexpr float kSlowReleaseMs = 400.0f;
-constexpr float kRmsWindowMs = 25.0f;
+constexpr float kRmsWindowMs = 12.0f;
 
 float msToCoeff(float ms, SampleRate sampleRate)
 {
@@ -65,9 +65,9 @@ void BusCompressor::process(const Sample* input, Sample* output, FrameCount numF
     rmsSquared_ = static_cast<double>(rmsCoeff_) * rmsSquared_ +
                   (1.0 - static_cast<double>(rmsCoeff_)) * inSquared;
 
-    float levelDb =
-        (rmsSquared_ > 1e-30) ? std::log2(static_cast<float>(rmsSquared_)) * (kLog2ToDb * 0.5f)
-                              : -96.0f;
+    float levelDb = (rmsSquared_ > 1e-30)
+                        ? std::log2(static_cast<float>(rmsSquared_)) * (kLog2ToDb * 0.5f)
+                        : -96.0f;
 
     // Gain computer (soft-knee curve)
     float targetDb = computeStaticCurve(levelDb);
