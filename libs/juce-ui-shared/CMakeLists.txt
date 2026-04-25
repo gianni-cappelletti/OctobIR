@@ -8,9 +8,11 @@ juce_add_binary_data(October_SharedResources SOURCES
     Resources/Fonts/CourierPrime-Regular.ttf
     Resources/Fonts/PressStart2P-Regular.ttf
     Resources/Images/OctoberLogo.png)
+set_target_properties(October_SharedResources PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(juce-ui-shared STATIC
     Source/OctoberLookAndFeel.cpp)
+set_target_properties(juce-ui-shared PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(juce-ui-shared
     PUBLIC
