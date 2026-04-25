@@ -171,6 +171,10 @@ jobs:
     - name: Install CMake
       uses: lukka/get-cmake@latest
 
+    # --target "$TARGET" is required: without it cmake builds ALL_BUILD,
+    # which pulls in the other plugin's vcv-rack target. VCV Rack is not
+    # supported on Windows, so vcv-plugin.vcxproj fails with MSB1003.
+    # Linux already does the same thing.
     - name: Build plugin
       shell: bash
       run: |
@@ -181,7 +185,7 @@ jobs:
           -DBUILD_${UPPER_PLUGIN}_JUCE=ON \
           -DBUILD_${UPPER_PLUGIN}_VCV=OFF \
           -G "Visual Studio 17 2022" -A x64
-        cmake --build build/release --config Release -j
+        cmake --build build/release --target "$TARGET" --config Release -j
 
     - name: Upload build artefacts
       uses: actions/upload-artifact@v4
