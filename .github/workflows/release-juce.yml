@@ -136,15 +136,6 @@ jobs:
             product_name: OctoBASS
 
     steps:
-    # Windows strips trailing dots from directory names. The runner creates the
-    # workspace at a dot-stripped path but GITHUB_WORKSPACE retains the dots,
-    # causing actions/checkout to fail. Fix the env var to match the real path.
-    - name: Fix workspace path
-      shell: powershell
-      run: |
-        $fixed = $env:GITHUB_WORKSPACE -replace '\.(?=\\|$)', ''
-        echo "GITHUB_WORKSPACE=$fixed" >> $env:GITHUB_ENV
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
