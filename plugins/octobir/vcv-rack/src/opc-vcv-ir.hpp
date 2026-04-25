@@ -68,6 +68,12 @@ struct OpcVcvIr final : Module
   uint32_t getLastSystemSampleRate() const { return lastSystemSampleRate_; }
 
  private:
+  // VCV Rack audio convention is +/-5 V; the core IRProcessor expects normalized
+  // +/-1.0 samples (DAW convention). Scale on the way in and out so the detector,
+  // threshold, knee and range curves see the same level domain as the DAW build.
+  static constexpr float kVcvAudioToNormalized = 0.2f;
+  static constexpr float kNormalizedToVcvAudio = 5.0f;
+
   octob::IRProcessor irProcessor_;
   std::atomic<float> currentInputLevelDb_{-96.f};
   std::atomic<float> currentBlend_{0.f};
@@ -75,6 +81,8 @@ struct OpcVcvIr final : Module
   std::string loaded_file_path1_;
   std::string loaded_file_path2_;
   mutable std::mutex path_mutex_;
+  bool sidechainConnTracked_ = false;
+  bool prevSidechainConnected_ = false;
 
  public:
   OpcVcvIr()
@@ -211,24 +219,60 @@ struct OpcVcvIr final : Module
             ? inputs[static_cast<int>(InputId::DynamicsEnableCvIn)].getVoltage() > 1.0f
             : params[static_cast<int>(ParamId::DynamicModeParam)].getValue() > 0.5f;
 
+    const bool scConnected = inputs[static_cast<int>(InputId::SidechainIn)].isConnected();
+
+    // Auto-enable the sidechain button on the rising edge of an SC cable being
+    // patched in. We seed the previous-connection state on the first process tick
+    // (after dataFromJson has run) so reloading a saved patch with an existing
+    // SC cable does not retrigger and override the user's saved button state.
+    if (!sidechainConnTracked_)
+    {
+      prevSidechainConnected_ = scConnected;
+      sidechainConnTracked_ = true;
+    }
+    else if (scConnected && !prevSidechainConnected_)
+    {
+      auto& scParam = params[static_cast<int>(ParamId::SidechainEnableParam)];
+      if (scParam.getValue() < 0.5f)
+      {
+        scParam.setValue(1.f);
+        INFO("Sidechain input connected; auto-enabling sidechain button");
+      }
+    }
+    prevSidechainConnected_ = scConnected;
+
     bool sidechainEnabled =
         params[static_cast<int>(ParamId::SidechainEnableParam)].getValue() > 0.5f;
 
-    float threshold = params[static_cast<int>(ParamId::ThresholdParam)].getValue() +
-                      (inputs[static_cast<int>(InputId::ThresholdCvIn)].isConnected()
-                           ? inputs[static_cast<int>(InputId::ThresholdCvIn)].getVoltage() * 6.0f
-                           : 0.0f);
-    threshold = clamp(threshold, -60.f, 0.f);
+    // CV inputs replace the corresponding knob entirely when patched. Both use
+    // a unipolar 0..+10 V convention (the standard VCV LFO/envelope range)
+    // mapped onto the full parameter range:
+    //   Threshold: 0 V -> -60 dB, +10 V -> 0 dB
+    //   Blend:     0 V -> -1.0,   +10 V -> +1.0  (+5 V == 0)
+    float threshold;
+    if (inputs[static_cast<int>(InputId::ThresholdCvIn)].isConnected())
+    {
+      const float cv = inputs[static_cast<int>(InputId::ThresholdCvIn)].getVoltage();
+      threshold = clamp(cv * 6.0f - 60.0f, -60.f, 0.f);
+    }
+    else
+    {
+      threshold = params[static_cast<int>(ParamId::ThresholdParam)].getValue();
+    }
 
-    float blend = params[static_cast<int>(ParamId::BlendParam)].getValue() +
-                  (inputs[static_cast<int>(InputId::BlendCvIn)].isConnected()
-                       ? inputs[static_cast<int>(InputId::BlendCvIn)].getVoltage() * 0.2f
-                       : 0.0f);
-    blend = clamp(blend, -1.f, 1.f);
+    float blend;
+    if (inputs[static_cast<int>(InputId::BlendCvIn)].isConnected())
+    {
+      const float cv = inputs[static_cast<int>(InputId::BlendCvIn)].getVoltage();
+      blend = clamp(cv * 0.2f - 1.0f, -1.f, 1.f);
+    }
+    else
+    {
+      blend = params[static_cast<int>(ParamId::BlendParam)].getValue();
+    }
 
     const bool leftConnected = inputs[static_cast<int>(InputId::AudioInL)].isConnected();
     const bool rightConnected = inputs[static_cast<int>(InputId::AudioInR)].isConnected();
-    const bool scConnected = inputs[static_cast<int>(InputId::SidechainIn)].isConnected();
 
     irProcessor_.setDynamicModeEnabled(dynamicMode);
     irProcessor_.setSidechainEnabled(dynamicMode && sidechainEnabled && scConnected);
@@ -251,35 +295,40 @@ struct OpcVcvIr final : Module
 
     if (dynamicMode && sidechainEnabled && scConnected)
     {
-      float sc = inputs[static_cast<int>(InputId::SidechainIn)].getVoltage();
+      float sc = inputs[static_cast<int>(InputId::SidechainIn)].getVoltage()
+                 * kVcvAudioToNormalized;
 
       if (leftConnected && rightConnected)
       {
-        float inputL = inputs[static_cast<int>(InputId::AudioInL)].getVoltage();
-        float inputR = inputs[static_cast<int>(InputId::AudioInR)].getVoltage();
+        float inputL = inputs[static_cast<int>(InputId::AudioInL)].getVoltage()
+                       * kVcvAudioToNormalized;
+        float inputR = inputs[static_cast<int>(InputId::AudioInR)].getVoltage()
+                       * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processStereoWithSidechain(&inputL, &inputR, &sc, &sc, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else if (leftConnected)
       {
-        float input = inputs[static_cast<int>(InputId::AudioInL)].getVoltage();
+        float input = inputs[static_cast<int>(InputId::AudioInL)].getVoltage()
+                      * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processMonoToStereoWithSidechain(&input, &sc, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else if (rightConnected)
       {
-        float input = inputs[static_cast<int>(InputId::AudioInR)].getVoltage();
+        float input = inputs[static_cast<int>(InputId::AudioInR)].getVoltage()
+                      * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processMonoToStereoWithSidechain(&input, &sc, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else
       {
@@ -291,31 +340,35 @@ struct OpcVcvIr final : Module
     {
       if (leftConnected && rightConnected)
       {
-        float inputL = inputs[static_cast<int>(InputId::AudioInL)].getVoltage();
-        float inputR = inputs[static_cast<int>(InputId::AudioInR)].getVoltage();
+        float inputL = inputs[static_cast<int>(InputId::AudioInL)].getVoltage()
+                       * kVcvAudioToNormalized;
+        float inputR = inputs[static_cast<int>(InputId::AudioInR)].getVoltage()
+                       * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processStereo(&inputL, &inputR, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else if (leftConnected)
       {
-        float input = inputs[static_cast<int>(InputId::AudioInL)].getVoltage();
+        float input = inputs[static_cast<int>(InputId::AudioInL)].getVoltage()
+                      * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processMonoToStereo(&input, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else if (rightConnected)
       {
-        float input = inputs[static_cast<int>(InputId::AudioInR)].getVoltage();
+        float input = inputs[static_cast<int>(InputId::AudioInR)].getVoltage()
+                      * kVcvAudioToNormalized;
         float outputL = 0.0f;
         float outputR = 0.0f;
         irProcessor_.processMonoToStereo(&input, &outputL, &outputR, 1);
-        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL);
-        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR);
+        outputs[static_cast<int>(OutputId::OutputL)].setVoltage(outputL * kNormalizedToVcvAudio);
+        outputs[static_cast<int>(OutputId::OutputR)].setVoltage(outputR * kNormalizedToVcvAudio);
       }
       else
       {

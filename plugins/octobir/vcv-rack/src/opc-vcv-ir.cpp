@@ -898,17 +898,23 @@ struct OpcMeterDisplay : OpaqueWidget
 
     drawMeterBar(args.vg, padH, cy, w - padH * 2.f, barH, levelDb, false);
 
-    // Check for threshold markers
+    // Check for threshold markers. Read the effective (CV-modulated, clamped)
+    // threshold from the processor so the marker tracks the threshold CV input
+    // rather than only the static knob position.
     if (module != nullptr)
     {
-      float dynMode =
-          module->params[static_cast<int>(OpcVcvIr::ParamId::DynamicModeParam)].getValue();
-      if (dynMode > 0.5f)
+      const bool dynamicGateConnected =
+          module->inputs[static_cast<int>(OpcVcvIr::InputId::DynamicsEnableCvIn)].isConnected();
+      const bool dynMode =
+          dynamicGateConnected
+              ? module->inputs[static_cast<int>(OpcVcvIr::InputId::DynamicsEnableCvIn)]
+                        .getVoltage() > 1.0f
+              : module->params[static_cast<int>(OpcVcvIr::ParamId::DynamicModeParam)].getValue() >
+                    0.5f;
+      if (dynMode)
       {
-        float threshold =
-            module->params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].getValue();
-        float rangeDb =
-            module->params[static_cast<int>(OpcVcvIr::ParamId::RangeDbParam)].getValue();
+        float threshold = module->getIRProcessor().getThreshold();
+        float rangeDb = module->getIRProcessor().getRangeDb();
         float barX = padH;
         float barW = w - padH * 2.f;
         drawThresholdMarker(args.vg, barX, cy, barW, barH, threshold);

@@ -345,7 +345,7 @@ TEST_F(VcvAudioTest, MonoToStereo_ChannelsAreDifferent)
 
 TEST_F(VcvAudioTest, ThresholdCv_ClampedToMax)
 {
-  // +5V at threshold CV with knob at -30 dB -> effective threshold = 0 dB (clamped)
+  // +10V at threshold CV maps to the top of the range (0 dB) regardless of knob.
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
@@ -353,18 +353,18 @@ TEST_F(VcvAudioTest, ThresholdCv_ClampedToMax)
   module.params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].setValue(-30.f);
   const int threshCvIn = static_cast<int>(OpcVcvIr::InputId::ThresholdCvIn);
   module.inputs[static_cast<size_t>(threshCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(threshCvIn)].voltage = 5.0f;
+  module.inputs[static_cast<size_t>(threshCvIn)].voltage = 10.0f;
 
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
   EXPECT_NEAR(module.getIRProcessor().getThreshold(), 0.f, 0.01f)
-      << "Threshold CV at +5V should clamp to 0 dB";
+      << "Threshold CV at +10V should map to 0 dB";
 }
 
 TEST_F(VcvAudioTest, BlendCv_ShiftsBlendToMax)
 {
-  // +5V at blend CV with knob at 0.0 -> effective blend = 1.0 (5V * 0.2)
+  // +10V at blend CV maps to +1.0 regardless of knob.
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
@@ -372,37 +372,18 @@ TEST_F(VcvAudioTest, BlendCv_ShiftsBlendToMax)
   module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(0.f);
   const int blendCvIn = static_cast<int>(OpcVcvIr::InputId::BlendCvIn);
   module.inputs[static_cast<size_t>(blendCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 5.0f;
+  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 10.0f;
 
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
   EXPECT_NEAR(module.getIRProcessor().getBlend(), 1.f, 0.01f)
-      << "Blend CV at +5V should set blend to 1.0";
+      << "Blend CV at +10V should set blend to 1.0";
 }
 
 TEST_F(VcvAudioTest, ThresholdCv_MidRangeScaling)
 {
-  // +2.5V at threshold CV with knob at -30 dB -> -30 + 15 = -15 dB
-  OpcVcvIr module;
-  SampleRateChangeEvent sr{kSampleRate};
-  module.onSampleRateChange(sr);
-
-  module.params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].setValue(-30.f);
-  const int threshCvIn = static_cast<int>(OpcVcvIr::InputId::ThresholdCvIn);
-  module.inputs[static_cast<size_t>(threshCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(threshCvIn)].voltage = 2.5f;
-
-  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
-  module.process(args);
-
-  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -15.f, 0.01f)
-      << "Threshold CV at +2.5V should add 15 dB to knob value";
-}
-
-TEST_F(VcvAudioTest, ThresholdCv_AddsToNonZeroBase)
-{
-  // -2V at threshold CV with knob at -10 dB -> -10 + (-12) = -22 dB
+  // +5V at threshold CV: 5 * 6 - 60 = -30 dB.
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
@@ -410,56 +391,92 @@ TEST_F(VcvAudioTest, ThresholdCv_AddsToNonZeroBase)
   module.params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].setValue(-10.f);
   const int threshCvIn = static_cast<int>(OpcVcvIr::InputId::ThresholdCvIn);
   module.inputs[static_cast<size_t>(threshCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(threshCvIn)].voltage = -2.0f;
+  module.inputs[static_cast<size_t>(threshCvIn)].voltage = 5.0f;
 
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -22.f, 0.01f)
-      << "Threshold CV at -2V should subtract 12 dB from knob value of -10";
+  EXPECT_NEAR(module.getIRProcessor().getThreshold(), -30.f, 0.01f)
+      << "Threshold CV at +5V should map to -30 dB (mid-range)";
+}
+
+TEST_F(VcvAudioTest, ThresholdCv_OverridesKnobWhenConnected)
+{
+  // CV replaces knob when connected: knob position must not influence the result.
+  OpcVcvIr module;
+  SampleRateChangeEvent sr{kSampleRate};
+  module.onSampleRateChange(sr);
+
+  const int threshCvIn = static_cast<int>(OpcVcvIr::InputId::ThresholdCvIn);
+  module.inputs[static_cast<size_t>(threshCvIn)].connected = true;
+  module.inputs[static_cast<size_t>(threshCvIn)].voltage = 3.0f;
+
+  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
+
+  // Same CV with two different knob positions must produce the same threshold.
+  module.params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].setValue(-10.f);
+  module.process(args);
+  const float thresholdAtKnobMinus10 = module.getIRProcessor().getThreshold();
+
+  module.params[static_cast<int>(OpcVcvIr::ParamId::ThresholdParam)].setValue(-50.f);
+  module.process(args);
+  const float thresholdAtKnobMinus50 = module.getIRProcessor().getThreshold();
+
+  EXPECT_NEAR(thresholdAtKnobMinus10, -42.f, 0.01f)
+      << "Threshold CV at +3V should map to -42 dB (3*6 - 60)";
+  EXPECT_NEAR(thresholdAtKnobMinus10, thresholdAtKnobMinus50, 0.01f)
+      << "Knob position must not affect threshold while CV is connected";
 }
 
 TEST_F(VcvAudioTest, BlendCv_MidRangeScaling)
 {
-  // +2.5V at blend CV with knob at 0.0 -> 0.0 + 0.5 = 0.5
+  // +5V at blend CV: 5 * 0.2 - 1 = 0.0 (midpoint).
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
 
-  module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(0.f);
+  module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(-0.7f);
   const int blendCvIn = static_cast<int>(OpcVcvIr::InputId::BlendCvIn);
   module.inputs[static_cast<size_t>(blendCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 2.5f;
+  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 5.0f;
 
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
 
-  EXPECT_NEAR(module.getIRProcessor().getBlend(), 0.5f, 0.01f)
-      << "Blend CV at +2.5V should set blend to 0.5";
+  EXPECT_NEAR(module.getIRProcessor().getBlend(), 0.f, 0.01f)
+      << "Blend CV at +5V should map to 0.0 (midpoint)";
 }
 
-TEST_F(VcvAudioTest, BlendCv_AddsToNonZeroBase)
+TEST_F(VcvAudioTest, BlendCv_OverridesKnobWhenConnected)
 {
-  // +2V at blend CV with knob at -0.5 -> -0.5 + 0.4 = -0.1
+  // CV replaces knob when connected: +5V CV must give blend = 0 even with knob far from center.
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
+
+  const int blendCvIn = static_cast<int>(OpcVcvIr::InputId::BlendCvIn);
+  module.inputs[static_cast<size_t>(blendCvIn)].connected = true;
+  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 5.0f;
+
+  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
 
   module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(-0.5f);
-  const int blendCvIn = static_cast<int>(OpcVcvIr::InputId::BlendCvIn);
-  module.inputs[static_cast<size_t>(blendCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 2.0f;
-
-  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
+  const float blendAtKnobMinusHalf = module.getIRProcessor().getBlend();
 
-  EXPECT_NEAR(module.getIRProcessor().getBlend(), -0.1f, 0.01f)
-      << "Blend CV at +2V should add 0.4 to knob value of -0.5";
+  module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(0.8f);
+  module.process(args);
+  const float blendAtKnobPlusEightTenths = module.getIRProcessor().getBlend();
+
+  EXPECT_NEAR(blendAtKnobMinusHalf, 0.f, 0.01f)
+      << "Blend CV at +5V should map to 0 regardless of knob";
+  EXPECT_NEAR(blendAtKnobMinusHalf, blendAtKnobPlusEightTenths, 0.01f)
+      << "Knob position must not affect blend while CV is connected";
 }
 
-TEST_F(VcvAudioTest, BlendCv_ClampWhenBaseAndCvExceedRange)
+TEST_F(VcvAudioTest, BlendCv_ClampedAtRangeRails)
 {
-  // +5V at blend CV with knob at 0.5 -> 0.5 + 1.0 = 1.5, clamped to 1.0
+  // +10V CV reaches the +1 rail.
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
   module.onSampleRateChange(sr);
@@ -467,7 +484,7 @@ TEST_F(VcvAudioTest, BlendCv_ClampWhenBaseAndCvExceedRange)
   module.params[static_cast<int>(OpcVcvIr::ParamId::BlendParam)].setValue(0.5f);
   const int blendCvIn = static_cast<int>(OpcVcvIr::InputId::BlendCvIn);
   module.inputs[static_cast<size_t>(blendCvIn)].connected = true;
-  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 5.0f;
+  module.inputs[static_cast<size_t>(blendCvIn)].voltage = 10.0f;
 
   ProcessArgs args{kSampleRate, 1.f / kSampleRate};
   module.process(args);
@@ -808,7 +825,33 @@ TEST_F(VcvAudioTest, DynamicMode_ButtonOn_SCNotConnected_InputStillDrivesBlend)
       << "With SC button ON but not connected, loud input should still drive dynamic blend";
 }
 
-TEST_F(VcvAudioTest, SCConnected_ButtonOff_ConnectionDoesNotActivateSidechain)
+TEST_F(VcvAudioTest, SCConnected_FirstConnection_AutoEnablesSidechainButton)
+{
+  OpcVcvIr module;
+  SampleRateChangeEvent sr{kSampleRate};
+  module.onSampleRateChange(sr);
+  module.loadIR(kIrAPath);
+  module.params[static_cast<int>(OpcVcvIr::ParamId::IrAEnableParam)].setValue(1.f);
+  module.params[static_cast<int>(OpcVcvIr::ParamId::DynamicModeParam)].setValue(1.f);
+  module.params[static_cast<int>(OpcVcvIr::ParamId::SidechainEnableParam)].setValue(0.f);
+
+  const int scIn = static_cast<int>(OpcVcvIr::InputId::SidechainIn);
+
+  // Tick once with SC disconnected so the rising-edge tracker sees a clean baseline.
+  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
+  module.inputs[static_cast<size_t>(scIn)].connected = false;
+  module.process(args);
+
+  // Now patch in the sidechain cable: the button should auto-enable.
+  module.inputs[static_cast<size_t>(scIn)].connected = true;
+  module.process(args);
+
+  EXPECT_GT(module.params[static_cast<int>(OpcVcvIr::ParamId::SidechainEnableParam)].getValue(),
+            0.5f)
+      << "Connecting an SC cable should auto-enable the sidechain button";
+}
+
+TEST_F(VcvAudioTest, SCConnected_UserTurnsButtonOff_RemainsOff)
 {
   OpcVcvIr module;
   SampleRateChangeEvent sr{kSampleRate};
@@ -826,12 +869,31 @@ TEST_F(VcvAudioTest, SCConnected_ButtonOff_ConnectionDoesNotActivateSidechain)
   module.params[static_cast<int>(OpcVcvIr::ParamId::AttackTimeParam)].setValue(1.f);
   module.params[static_cast<int>(OpcVcvIr::ParamId::ReleaseTimeParam)].setValue(1.f);
 
-  // SC connected + button OFF: loud main, silent sidechain -- blend driven by main input
+  const int inL = static_cast<int>(OpcVcvIr::InputId::AudioInL);
+  const int scIn = static_cast<int>(OpcVcvIr::InputId::SidechainIn);
+
+  // First connection auto-enables the sidechain button (rising edge from disconnected).
+  ProcessArgs args{kSampleRate, 1.f / kSampleRate};
+  module.inputs[static_cast<size_t>(inL)].connected = true;
+  module.inputs[static_cast<size_t>(scIn)].connected = false;
+  module.process(args);
+  module.inputs[static_cast<size_t>(scIn)].connected = true;
+  module.process(args);
+  ASSERT_GT(module.params[static_cast<int>(OpcVcvIr::ParamId::SidechainEnableParam)].getValue(),
+            0.5f);
+
+  // User then turns the button off. With the cable still connected (no new rising
+  // edge), the button must remain off and the core must see sidechain as disabled.
+  module.params[static_cast<int>(OpcVcvIr::ParamId::SidechainEnableParam)].setValue(0.f);
+
   std::vector<float> silence(dryInput_.size(), 0.0f);
   auto out = processMonoWithSidechain(module, dryInput_, silence);
 
+  EXPECT_LT(module.params[static_cast<int>(OpcVcvIr::ParamId::SidechainEnableParam)].getValue(),
+            0.5f)
+      << "User-disabled sidechain button should not be re-enabled while cable stays connected";
   EXPECT_FALSE(module.getIRProcessor().getSidechainEnabled())
-      << "Core should see sidechain as disabled when button is OFF, even if SC is connected";
+      << "Core should see sidechain as disabled when user has explicitly turned the button off";
   float blend = module.getCurrentBlend();
   EXPECT_GT(blend, 0.1f)
       << "With button OFF, loud main input should drive blend regardless of SC connection";
