@@ -1,6 +1,6 @@
 {
-  "slug": "opc-vcv-ir",
-  "name": "VCV IR Loader",
+  "slug": "opc-octobir",
+  "name": "OctobIR",
   "version": "2.0.0",
   "license": "GPL-3.0-or-later",
   "brand": "October Production Co.",
@@ -14,12 +14,15 @@
   "changelogUrl": "",
   "modules": [
     {
-      "slug": "opc-vcv-ir",
-      "name": "opc-vcv-ir",
-      "description": "Impulse response loader!",
+      "slug": "opc-octobir",
+      "name": "OctobIR",
+      "description": "Impulse response loader with static and dynamic blending options",
       "tags": [
         "physical modeling",
-        "sampler"
+        "sampler",
+        "effect",
+        "dynamics",
+        "reverb"
       ]
     }
   ]
