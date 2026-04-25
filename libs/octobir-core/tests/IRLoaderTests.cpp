@@ -96,7 +96,7 @@ TEST_F(IRLoaderTest, MinimumPhase_DelayedImpulse_PeakAtOrigin)
   std::vector<float> ir(kIRLen, 0.0f);
   ir[kDelay] = 1.0f;
 
-  const std::string path = "/tmp/octobir_test_delayed_impulse.wav";
+  const std::string path = ::testing::TempDir() + "octobir_test_delayed_impulse.wav";
   ASSERT_TRUE(writeTempWavMono(path, ir, kSampleRate));
 
   IRLoadResult result = loader.loadFromFile(path);
@@ -138,7 +138,7 @@ TEST_F(IRLoaderTest, MinimumPhase_EnergyPreserved)
     originalEnergy += static_cast<double>(ir[n]) * ir[n];
   }
 
-  const std::string path = "/tmp/octobir_test_energy_preservation.wav";
+  const std::string path = ::testing::TempDir() + "octobir_test_energy_preservation.wav";
   ASSERT_TRUE(writeTempWavMono(path, ir, kSampleRate));
 
   IRLoadResult result = loader.loadFromFile(path);

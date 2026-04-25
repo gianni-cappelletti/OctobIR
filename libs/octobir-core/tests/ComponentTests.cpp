@@ -266,7 +266,7 @@ TEST_F(ComponentTest, ConvolutionMatchesReference_IrAOnly)
   constexpr int kBlockSize = 512;
   std::vector<float> actualOutput = processAndAlign(processor, dryInput, kBlockSize);
 
-  writeWavMono("/tmp/octobir_component_ir_a_only.wav", actualOutput, drySampleRate);
+  writeWavMono(::testing::TempDir() + "octobir_component_ir_a_only.wav", actualOutput, drySampleRate);
 
   float peak = 0.0f;
   for (float s : actualOutput)
@@ -309,11 +309,13 @@ TEST_F(ComponentTest, ConvolutionMatchesReference_IrAOnly)
   std::cout << "[IrAOnly] Alignment lag: " << lag << " samples\n";
   std::cout << "[IrAOnly] SNR (at best lag): " << snrDb << " dB\n";
   std::cout << "[IrAOnly] Pearson r (at best lag): " << r << "\n";
-  std::cout << "[IrAOnly] Diagnostic output: /tmp/octobir_component_ir_a_only.wav\n";
+  std::cout << "[IrAOnly] Diagnostic output: " << ::testing::TempDir()
+            << "octobir_component_ir_a_only.wav\n";
 
   EXPECT_GT(r, 0.99) << "Correlation too low (r=" << r << ", SNR=" << snrDb << " dB, lag=" << lag
                      << " samples). "
-                     << "Listen to /tmp/octobir_component_ir_a_only.wav for diagnosis.";
+                     << "Listen to " << ::testing::TempDir()
+                     << "octobir_component_ir_a_only.wav for diagnosis.";
 }
 
 // Scenario: IR A and IR B both loaded and enabled, equal-power blend (blend=0.0f), static mode.
@@ -360,7 +362,7 @@ TEST_F(ComponentTest, ConvolutionMatchesReference_EvenBlend)
   constexpr int kBlockSize = 512;
   std::vector<float> actualOutput = processAndAlign(processor, dryInput, kBlockSize);
 
-  writeWavMono("/tmp/octobir_component_even_blend.wav", actualOutput, drySampleRate);
+  writeWavMono(::testing::TempDir() + "octobir_component_even_blend.wav", actualOutput, drySampleRate);
 
   float peak = 0.0f;
   for (float s : actualOutput)
@@ -403,11 +405,13 @@ TEST_F(ComponentTest, ConvolutionMatchesReference_EvenBlend)
   std::cout << "[EvenBlend] Alignment lag: " << lag << " samples\n";
   std::cout << "[EvenBlend] SNR (at best lag): " << snrDb << " dB\n";
   std::cout << "[EvenBlend] Pearson r (at best lag): " << r << "\n";
-  std::cout << "[EvenBlend] Diagnostic output: /tmp/octobir_component_even_blend.wav\n";
+  std::cout << "[EvenBlend] Diagnostic output: " << ::testing::TempDir()
+            << "octobir_component_even_blend.wav\n";
 
   EXPECT_GT(r, 0.99) << "Correlation too low (r=" << r << ", SNR=" << snrDb << " dB, lag=" << lag
                      << " samples). "
-                     << "Listen to /tmp/octobir_component_even_blend.wav for diagnosis.";
+                     << "Listen to " << ::testing::TempDir()
+                     << "octobir_component_even_blend.wav for diagnosis.";
 }
 
 // Scenario: Equal-power blend is commutative — swapping which IR occupies slot 1 vs slot 2
@@ -447,7 +451,7 @@ TEST_F(ComponentTest, ConvolutionIsSymmetric_AfterIrSwap)
     ASSERT_TRUE(p.loadImpulseResponse1(irAPath_, err)) << "IR A load failed: " << err;
     ASSERT_TRUE(p.loadImpulseResponse2(irBPath_, err)) << "IR B load failed: " << err;
     outputAB = processAndAlign(p, dryInput, kBlockSize);
-    writeWavMono("/tmp/octobir_swap_ab.wav", outputAB, drySampleRate);
+    writeWavMono(::testing::TempDir() + "octobir_swap_ab.wav", outputAB, drySampleRate);
     float peak = 0.0f;
     for (float s : outputAB)
       peak = std::max(peak, std::abs(s));
@@ -463,7 +467,7 @@ TEST_F(ComponentTest, ConvolutionIsSymmetric_AfterIrSwap)
     ASSERT_TRUE(p.loadImpulseResponse1(irBPath_, err)) << "IR B load failed: " << err;
     ASSERT_TRUE(p.loadImpulseResponse2(irAPath_, err)) << "IR A load failed: " << err;
     outputBA = processAndAlign(p, dryInput, kBlockSize);
-    writeWavMono("/tmp/octobir_swap_ba.wav", outputBA, drySampleRate);
+    writeWavMono(::testing::TempDir() + "octobir_swap_ba.wav", outputBA, drySampleRate);
     float peak = 0.0f;
     for (float s : outputBA)
       peak = std::max(peak, std::abs(s));
@@ -479,18 +483,19 @@ TEST_F(ComponentTest, ConvolutionIsSymmetric_AfterIrSwap)
 
   std::cout << "[SwapSymmetry] Pearson r: " << r << "\n";
   std::cout << "[SwapSymmetry] SNR: " << snrDb << " dB\n";
-  std::cout << "[SwapSymmetry] Pre-swap:  /tmp/octobir_swap_ab.wav\n";
-  std::cout << "[SwapSymmetry] Post-swap: /tmp/octobir_swap_ba.wav\n";
+  std::cout << "[SwapSymmetry] Pre-swap:  " << ::testing::TempDir() << "octobir_swap_ab.wav\n";
+  std::cout << "[SwapSymmetry] Post-swap: " << ::testing::TempDir() << "octobir_swap_ba.wav\n";
 
   EXPECT_GT(r, 0.9999) << "Swap symmetry violated (r=" << r << ", SNR=" << snrDb
                        << " dB). Output differs based on IR slot assignment. "
-                       << "Compare /tmp/octobir_swap_ab.wav and /tmp/octobir_swap_ba.wav.";
+                       << "Compare " << ::testing::TempDir() << "octobir_swap_ab.wav and "
+                       << ::testing::TempDir() << "octobir_swap_ba.wav.";
 }
 
 // Diagnostic: decomposes the blend into individual convolutions to isolate whether
 // the mismatch is in the dual-IR processing path or in the blending formula vs the reference.
 // Run manually with --gtest_also_run_disabled_tests when investigating blend discrepancies.
-// Outputs: /tmp/octobir_diag_A.wav, _B.wav, _manual_blend.wav
+// Outputs (to ::testing::TempDir()): octobir_diag_A.wav, _B.wav, _manual_blend.wav
 TEST_F(ComponentTest, DISABLED_DiagnoseBlendDecomposition)
 {
   unsigned int drySampleRate = 0;
@@ -516,7 +521,7 @@ TEST_F(ComponentTest, DISABLED_DiagnoseBlendDecomposition)
     std::string err;
     ASSERT_TRUE(p.loadImpulseResponse1(irAPath_, err)) << err;
     aOutput = processAndAlign(p, dryInput, kBlockSize);
-    writeWavMono("/tmp/octobir_diag_A.wav", aOutput, drySampleRate);
+    writeWavMono(::testing::TempDir() + "octobir_diag_A.wav", aOutput, drySampleRate);
   }
 
   // IR B convolution via single-IR path.
@@ -529,7 +534,7 @@ TEST_F(ComponentTest, DISABLED_DiagnoseBlendDecomposition)
     std::string err;
     ASSERT_TRUE(p.loadImpulseResponse2(irBPath_, err)) << err;
     bOutput = processAndAlign(p, dryInput, kBlockSize);
-    writeWavMono("/tmp/octobir_diag_B.wav", bOutput, drySampleRate);
+    writeWavMono(::testing::TempDir() + "octobir_diag_B.wav", bOutput, drySampleRate);
   }
 
   // Manual equal-power blend of the two single-IR outputs.
@@ -537,7 +542,7 @@ TEST_F(ComponentTest, DISABLED_DiagnoseBlendDecomposition)
   std::vector<float> manualBlend(blendLen);
   for (size_t i = 0; i < blendLen; ++i)
     manualBlend[i] = std::sqrt(0.5f) * aOutput[i] + std::sqrt(0.5f) * bOutput[i];
-  writeWavMono("/tmp/octobir_diag_manual_blend.wav", manualBlend, drySampleRate);
+  writeWavMono(::testing::TempDir() + "octobir_diag_manual_blend.wav", manualBlend, drySampleRate);
 
   // Dual-IR path output (same as ConvolutionMatchesReference_EvenBlend).
   std::vector<float> dualOutput;
