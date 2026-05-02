@@ -23,7 +23,8 @@ OutputDir=..\..\dist
 OutputBaseFilename=OctoberPluginsSuite-{#AppVersion}-Windows
 Compression=lzma2
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64 arm64
+ArchitecturesInstallIn64BitMode=x64 arm64
 PrivilegesRequired=admin
 LicenseFile=..\..\LICENSE
 WizardStyle=modern
@@ -40,13 +41,13 @@ Name: "octobir";  Description: "OctobIR - Impulse response loader";   Types: ful
 [Files]
 ; OctoBASS VST3
 Source: "..\..\build\release\plugins\octobass\juce\OctoBASS_artefacts\Release\VST3\OctoBASS.vst3\*"; \
-  DestDir: "{commoncf}\VST3\OctoBASS.vst3"; \
+  DestDir: "{commoncf64}\VST3\OctoBASS.vst3"; \
   Flags: recursesubdirs ignoreversion; \
   Components: octobass
 
 ; OctobIR VST3
 Source: "..\..\build\release\plugins\octobir\juce\OctobIR_artefacts\Release\VST3\OctobIR.vst3\*"; \
-  DestDir: "{commoncf}\VST3\OctobIR.vst3"; \
+  DestDir: "{commoncf64}\VST3\OctobIR.vst3"; \
   Flags: recursesubdirs ignoreversion; \
   Components: octobir
 
