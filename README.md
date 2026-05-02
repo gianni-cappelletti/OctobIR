@@ -20,22 +20,23 @@ Hey there! Welcome to the repo. There are two plugins in here at the moment: Oct
 Download the latest release for your platform from [GitHub Releases](https://github.com/gianni-cappelletti/October-Production-Co/releases).
 
 **macOS**
-1. Download `OctobIR-macOS.dmg` and/or `OctoBASS-macOS.dmg`
+1. Download `OctoberPluginsSuite-<version>-macOS.dmg`
 2. Open the DMG and run the installer
 3. Apple will try and block it as untrusted, as I am not going to pay them $99 a year for package signing rights on a FOSS project at this stage.
 4. Go to System settings and allow the install anyway to complete setup
-5. Select components to install (VST3, AU)
+5. In the installer, choose which plugins and formats to install (OctoBASS VST3/AU, OctobIR VST3/AU)
 
 **Windows**
-1. Download `OctobIR-Windows.exe` and/or `OctoBASS-Windows.exe`
+1. Download `OctoberPluginsSuite-<version>-Windows.exe`
 2. Run the installer
-3. Follow the installation wizard
-4. VST3 will be installed to `C:\Program Files\Common Files\VST3\`
+3. In the components step, choose which plugins to install (OctoBASS, OctobIR, or both)
+4. Follow the installation wizard
+5. VST3 plugins will be installed to `C:\Program Files\Common Files\VST3\`
 
 **Linux**
-1. Download `OctobIR-Linux.tar.gz` and/or `OctoBASS-Linux.tar.gz`
-2. Extract: `tar -xzf <plugin>-Linux.tar.gz`
-3. Run the installer: `cd <plugin> && ./install.sh`
+1. Download `OctoberPluginsSuite-<version>-Linux.tar.gz`
+2. Extract: `tar -xzf OctoberPluginsSuite-<version>-Linux.tar.gz`
+3. Run the installer: `cd OctoberPluginsSuite && ./install.sh` (prompts per-plugin, or pass `--octobir` / `--octobass` to skip prompts)
 4. VST3 will be installed to `~/.vst3/`
 
 **VCV Rack (OctobIR only)**
