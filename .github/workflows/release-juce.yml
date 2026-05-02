@@ -237,8 +237,8 @@ jobs:
         path: dist/OctoberPluginsSuite-*-Windows.exe
 
   build-linux-plugins:
-    name: Build JUCE Plugins - Linux
-    runs-on: ubuntu-latest
+    name: Build JUCE Plugins - Linux (${{ matrix.arch.name }})
+    runs-on: ${{ matrix.arch.runner }}
     needs: [resolve-version]
     env:
       RELEASE_VERSION: ${{ needs.resolve-version.outputs.version }}
@@ -251,6 +251,13 @@ jobs:
           - name: octobass
             cmake_target: OctoBASS_All
             product_name: OctoBASS
+        arch:
+          - name: x86_64
+            runner: ubuntu-latest
+            vst3_subdir: x86_64-linux
+          - name: aarch64
+            runner: ubuntu-24.04-arm
+            vst3_subdir: aarch64-linux
 
     steps:
     - name: Checkout code
@@ -294,7 +301,7 @@ jobs:
     - name: Upload build artefacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.plugin.name }}-linux-build
+        name: ${{ matrix.plugin.name }}-linux-${{ matrix.arch.name }}-build
         path: build/release/plugins/${{ matrix.plugin.name }}/juce/${{ matrix.plugin.product_name }}_artefacts/Release/
 
   package-linux-installer:
@@ -308,37 +315,69 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download OctoBASS build
+    - name: Download OctoBASS x86_64 build
       uses: actions/download-artifact@v4
       with:
-        name: octobass-linux-build
-        path: build/release/plugins/octobass/juce/OctoBASS_artefacts/Release
+        name: octobass-linux-x86_64-build
+        path: artefacts/octobass/x86_64
 
-    - name: Download OctobIR build
+    - name: Download OctoBASS aarch64 build
       uses: actions/download-artifact@v4
       with:
-        name: octobir-linux-build
-        path: build/release/plugins/octobir/juce/OctobIR_artefacts/Release
+        name: octobass-linux-aarch64-build
+        path: artefacts/octobass/aarch64
 
-    - name: Assemble tarball
+    - name: Download OctobIR x86_64 build
+      uses: actions/download-artifact@v4
+      with:
+        name: octobir-linux-x86_64-build
+        path: artefacts/octobir/x86_64
+
+    - name: Download OctobIR aarch64 build
+      uses: actions/download-artifact@v4
+      with:
+        name: octobir-linux-aarch64-build
+        path: artefacts/octobir/aarch64
+
+    - name: Assemble multi-arch tarball
       run: |
         STAGE="package/OctoberPluginsSuite"
         mkdir -p "$STAGE"
 
-        OCTOBASS_VST3="build/release/plugins/octobass/juce/OctoBASS_artefacts/Release/VST3/OctoBASS.vst3"
-        OCTOBIR_VST3="build/release/plugins/octobir/juce/OctobIR_artefacts/Release/VST3/OctobIR.vst3"
+        # Merge per-arch VST3 bundles into a single multi-arch bundle.
+        # The VST3 spec supports multiple arch subfolders inside Contents/,
+        # and the host loader picks the matching one at load time.
+        merge_bundle() {
+          local product="$1"          # OctoBASS / OctobIR
+          local x64_bundle="artefacts/${product,,}/x86_64/VST3/${product}.vst3"
+          local arm_bundle="artefacts/${product,,}/aarch64/VST3/${product}.vst3"
+          local out_bundle="$STAGE/${product}.vst3"
 
-        if [ -d "$OCTOBASS_VST3" ]; then
-          cp -r "$OCTOBASS_VST3" "$STAGE/"
-        else
-          echo "Warning: OctoBASS.vst3 missing"
-        fi
+          if [ ! -d "$x64_bundle" ] && [ ! -d "$arm_bundle" ]; then
+            echo "Warning: ${product}.vst3 missing for both architectures, skipping"
+            return
+          fi
 
-        if [ -d "$OCTOBIR_VST3" ]; then
-          cp -r "$OCTOBIR_VST3" "$STAGE/"
-        else
-          echo "Warning: OctobIR.vst3 missing"
-        fi
+          if [ -d "$x64_bundle" ]; then
+            cp -r "$x64_bundle" "$out_bundle"
+          else
+            echo "Warning: ${product} x86_64 build missing"
+            cp -r "$arm_bundle" "$out_bundle"
+            return
+          fi
+
+          if [ -d "$arm_bundle/Contents/aarch64-linux" ]; then
+            cp -r "$arm_bundle/Contents/aarch64-linux" "$out_bundle/Contents/"
+          else
+            echo "Warning: ${product} aarch64 binary missing from build"
+          fi
+        }
+
+        merge_bundle OctoBASS
+        merge_bundle OctobIR
+
+        echo "Final bundle contents:"
+        find "$STAGE" -maxdepth 4 -type d
 
         cp LICENSE README.md "$STAGE/"
         cp installers/linux/install.sh "$STAGE/"

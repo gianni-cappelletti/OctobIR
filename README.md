@@ -33,11 +33,11 @@ Download the latest release for your platform from [GitHub Releases](https://git
 4. Follow the installation wizard
 5. VST3 plugins will be installed to `C:\Program Files\Common Files\VST3\`
 
-**Linux**
+**Linux** (x86_64 and aarch64)
 1. Download `OctoberPluginsSuite-<version>-Linux.tar.gz`
 2. Extract: `tar -xzf OctoberPluginsSuite-<version>-Linux.tar.gz`
 3. Run the installer: `cd OctoberPluginsSuite && ./install.sh` (prompts per-plugin, or pass `--octobir` / `--octobass` to skip prompts)
-4. VST3 will be installed to `~/.vst3/`
+4. VST3 will be installed to `~/.vst3/`. The bundles ship both x86_64 and aarch64 binaries; your host loads the matching one automatically.
 
 **VCV Rack (OctobIR only)**
 - VCV Rack plugins are distributed through the [VCV Library](https://library.vcvrack.com/)
