@@ -15,9 +15,11 @@ Hey there! Welcome to the repo. There are two plugins in here at the moment: Oct
 Hear it in action! Raw bass DI, then the same DI processed by OctoBASS:
 
 **Raw DI**
+
 https://github.com/user-attachments/assets/dc8d3316-7a73-4e9f-92c5-e41b4101d1a1
 
 **Processed**
+
 https://github.com/user-attachments/assets/55826a40-47cb-4395-9ee8-78e17190db8d
 
 ## Supported Platforms
